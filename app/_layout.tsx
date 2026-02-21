@@ -18,15 +18,19 @@ import mobileAds from 'react-native-google-mobile-ads';
 
 SplashScreen.preventAutoHideAsync();
 
-// Initialize the Google Mobile Ads SDK immediately
-mobileAds()
-  .initialize()
-  .then(adapterStatuses => {
-    // Initialization complete!
-  })
-  .catch(error => {
-    console.warn("Could not initialize mobile ads", error);
-  });
+// Initialize the Google Mobile Ads SDK safely
+try {
+  mobileAds()
+    .initialize()
+    .then(adapterStatuses => {
+      // Initialization complete!
+    })
+    .catch(error => {
+      console.warn("Could not initialize mobile ads", error);
+    });
+} catch (error) {
+  console.warn("AdMob init error (non-fatal):", error);
+}
 
 function RootLayoutNav() {
   return (
