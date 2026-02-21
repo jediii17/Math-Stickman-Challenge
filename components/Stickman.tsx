@@ -76,9 +76,10 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
   const headCY = size * 0.22;
   const headR = size * 0.1;
   const bodyTop = headCY + headR;
-  const bodyBot = size * 0.55;
+  const bodyLen = size * 0.35;
+  const bodyBot = bodyTop + bodyLen;
   const legLen = size * 0.22;
-  const armY = size * 0.38;
+  const armY = bodyTop + bodyLen * 0.2;
   const armLen = size * 0.18;
   const sw = size * 0.035; // stroke width
   const jointR = sw * 0.9;
@@ -113,165 +114,237 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
   const raEndX = cx + armLen;
   const raEndY = armY + armLen * 0.5;
 
-  const hasHat = equipped.hair === 'hat-1';
-  const hasGlasses = equipped.face === 'glasses-1';
-  const hasCape = equipped.clothes === 'shirt-1';
-  const hasBoots = equipped.shoes === 'shoes-1';
+  const hasHat = equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3';
+  const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3';
+  const hasClothes = equipped.clothes === 'shirt-1' || equipped.clothes === 'shirt-2' || equipped.clothes === 'shirt-3';
+  const hasBoots = equipped.shoes === 'shoes-1' || equipped.shoes === 'shoes-2' || equipped.shoes === 'shoes-3';
+  
+  const getClothesColor = () => {
+    if (equipped.clothes === 'shirt-1') return "rgba(231, 76, 60, 0.4)";
+    if (equipped.clothes === 'shirt-2') return "#4CAF50";
+    if (equipped.clothes === 'shirt-3') return "#9C27B0";
+    return bodyCol;
+  };
 
   // ── Accessory renderers ──
   const renderHat = () => {
     if (!hasHat) return null;
-    // A nice rounded cap with brim
-    return (
-      <G>
-        {/* Brim */}
-        <Ellipse
-          cx={cx}
-          cy={headCY - headR * 0.75}
-          rx={headR * 1.5}
-          ry={headR * 0.2}
-          fill={Colors.primary}
-        />
-        {/* Crown */}
-        <Path
-          d={`M${cx - headR * 1.1},${headCY - headR * 0.75}
-              Q${cx - headR * 1.1},${headCY - headR * 1.8} ${cx},${headCY - headR * 1.9}
-              Q${cx + headR * 1.1},${headCY - headR * 1.8} ${cx + headR * 1.1},${headCY - headR * 0.75} Z`}
-          fill={Colors.primary}
-          stroke={Colors.primaryDark}
-          strokeWidth={1}
-        />
-        {/* Band */}
-        <Line
-          x1={cx - headR * 1.05}
-          y1={headCY - headR * 0.85}
-          x2={cx + headR * 1.05}
-          y2={headCY - headR * 0.85}
-          stroke={Colors.primaryDark}
-          strokeWidth={2}
-        />
-      </G>
-    );
+    
+    if (equipped.hair === 'hat-1') {
+      return (
+        <G>
+          <Ellipse cx={cx} cy={headCY - headR * 0.75} rx={headR * 1.5} ry={headR * 0.2} fill={Colors.primary} />
+          <Path d={`M${cx - headR * 1.1},${headCY - headR * 0.75} Q${cx - headR * 1.1},${headCY - headR * 1.8} ${cx},${headCY - headR * 1.9} Q${cx + headR * 1.1},${headCY - headR * 1.8} ${cx + headR * 1.1},${headCY - headR * 0.75} Z`} fill={Colors.primary} stroke={Colors.primaryDark} strokeWidth={1} />
+          <Line x1={cx - headR * 1.05} y1={headCY - headR * 0.85} x2={cx + headR * 1.05} y2={headCY - headR * 0.85} stroke={Colors.primaryDark} strokeWidth={2} />
+        </G>
+      );
+    }
+    
+    if (equipped.hair === 'hat-2') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 1.1},${headCY - headR * 0.4} Q${cx - headR * 1.1},${headCY - headR * 1.6} ${cx},${headCY - headR * 1.6} Q${cx + headR * 1.1},${headCY - headR * 1.6} ${cx + headR * 1.1},${headCY - headR * 0.4} Z`} fill="#FF5722" stroke="#E64A19" strokeWidth={1} />
+          <Path d={`M${cx - headR * 1.1},${headCY - headR * 0.4} L${cx + headR * 1.8},${headCY - headR * 0.4}`} stroke="#E64A19" strokeWidth={3} strokeLinecap="round" />
+        </G>
+      );
+    }
+
+    if (equipped.hair === 'hat-3') {
+      return (
+        <G>
+          <Ellipse cx={cx} cy={headCY - headR * 0.5} rx={headR * 1.8} ry={headR * 0.3} fill="#F06292" />
+          <Path d={`M${cx - headR},${headCY - headR * 0.5} Q${cx - headR},${headCY - headR * 1.7} ${cx},${headCY - headR * 1.7} Q${cx + headR},${headCY - headR * 1.7} ${cx + headR},${headCY - headR * 0.5} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
+          <Line x1={cx - headR * 0.9} y1={headCY - headR * 0.7} x2={cx + headR * 0.9} y2={headCY - headR * 0.7} stroke="#D81B60" strokeWidth={3} />
+        </G>
+      );
+    }
+    
+    return null;
   };
 
   const renderGlasses = () => {
     if (!hasGlasses) return null;
     const lensR = headR * 0.25;
-    return (
-      <G>
-        {/* Left lens */}
-        <Circle
-          cx={cx - headR * 0.35}
-          cy={headCY - headR * 0.05}
-          r={lensR}
-          fill="rgba(54, 69, 79, 0.15)"
-          stroke={bodyCol}
-          strokeWidth={1.5}
-        />
-        {/* Right lens */}
-        <Circle
-          cx={cx + headR * 0.35}
-          cy={headCY - headR * 0.05}
-          r={lensR}
-          fill="rgba(54, 69, 79, 0.15)"
-          stroke={bodyCol}
-          strokeWidth={1.5}
-        />
-        {/* Bridge */}
-        <Line
-          x1={cx - headR * 0.1}
-          y1={headCY - headR * 0.05}
-          x2={cx + headR * 0.1}
-          y2={headCY - headR * 0.05}
-          stroke={bodyCol}
-          strokeWidth={1.5}
-        />
-        {/* Temples */}
-        <Line
-          x1={cx - headR * 0.35 - lensR}
-          y1={headCY - headR * 0.05}
-          x2={cx - headR * 0.8}
-          y2={headCY - headR * 0.15}
-          stroke={bodyCol}
-          strokeWidth={1}
-        />
-        <Line
-          x1={cx + headR * 0.35 + lensR}
-          y1={headCY - headR * 0.05}
-          x2={cx + headR * 0.8}
-          y2={headCY - headR * 0.15}
-          stroke={bodyCol}
-          strokeWidth={1}
-        />
-      </G>
-    );
+    const eyeOffsetX = headR * 0.4;
+    
+    if (equipped.face === 'glasses-1') {
+      return (
+        <G>
+          <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
+          <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
+          <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#37474F" strokeWidth={2} />
+          <Line x1={cx - eyeOffsetX - lensR} y1={headCY} x2={cx - headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
+          <Line x1={cx + eyeOffsetX + lensR} y1={headCY} x2={cx + headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
+        </G>
+      );
+    }
+
+    if (equipped.face === 'glasses-2') {
+      return (
+        <G>
+          <Path d={`M${cx - eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx - eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
+          <Path d={`M${cx + eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx + eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
+          <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#2196F3" strokeWidth={2} />
+        </G>
+      );
+    }
+
+    if (equipped.face === 'glasses-3') {
+      const g3R = lensR * 1.1;
+      return (
+        <G>
+          <Circle cx={cx - eyeOffsetX} cy={headCY} r={g3R} fill="none" stroke="#E91E63" strokeWidth={2} />
+          <Circle cx={cx + eyeOffsetX} cy={headCY} r={g3R} fill="none" stroke="#E91E63" strokeWidth={2} />
+          <Line x1={cx - eyeOffsetX + g3R} y1={headCY} x2={cx + eyeOffsetX - g3R} y2={headCY} stroke="#E91E63" strokeWidth={2} />
+          <Path d={`M${cx - eyeOffsetX - g3R},${headCY - g3R * 0.5} L${cx - headR},${headCY - g3R * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
+          <Path d={`M${cx + eyeOffsetX + g3R},${headCY - g3R * 0.5} L${cx + headR},${headCY - g3R * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
+        </G>
+      );
+    }
+    
+    return null;
   };
 
-  const renderCape = () => {
-    if (!hasCape) return null;
-    return (
-      <G>
-        {/* Cape body flowing from shoulders */}
-        <Path
-          d={`M${cx - armLen * 0.15},${armY - sw}
-              L${cx - armLen * 0.8},${bodyBot + legLen * 0.3}
-              Q${cx},${bodyBot + legLen * 0.45} ${cx + armLen * 0.8},${bodyBot + legLen * 0.3}
-              L${cx + armLen * 0.15},${armY - sw} Z`}
-          fill="rgba(231, 76, 60, 0.25)"
-          stroke={Colors.error}
-          strokeWidth={1.2}
-        />
-        {/* Clasp at neck */}
-        <Circle
-          cx={cx}
-          cy={bodyTop + sw}
-          r={sw * 1.2}
-          fill={Colors.secondary}
-          stroke={Colors.secondaryDark}
-          strokeWidth={1}
-        />
-      </G>
-    );
+  const renderClothes = () => {
+    if (!hasClothes) return null;
+    
+    if (equipped.clothes === 'shirt-1') {
+      const capeWidth = bodyLen * 0.7;
+      return (
+        <G>
+          <Path
+            d={`M${cx - armLen * 0.15},${armY - sw}
+                L${cx - armLen * 0.8},${bodyBot + legLen * 0.3}
+                Q${cx},${bodyBot + legLen * 0.45} ${cx + armLen * 0.8},${bodyBot + legLen * 0.3}
+                L${cx + armLen * 0.15},${armY - sw} Z`}
+            fill="rgba(231, 76, 60, 0.25)"
+            stroke={Colors.error}
+            strokeWidth={1.2}
+          />
+          <Circle cx={cx} cy={bodyTop + sw} r={sw * 1.2} fill={Colors.secondary} stroke={Colors.secondaryDark} strokeWidth={1} />
+        </G>
+      );
+    }
+    
+    if (equipped.clothes === 'shirt-2') {
+      const tWidth = 14;
+      const armSleeveLen = 20;
+      return (
+        <G>
+          {/* T-Shirt */}
+          <Path
+             d={`M${cx - tWidth},${armY - 5}
+                 L${cx - armSleeveLen},${armY + 5}
+                 L${cx - tWidth + 2},${armY + 12}
+                 L${cx - tWidth},${bodyBot - 5}
+                 L${cx + tWidth},${bodyBot - 5}
+                 L${cx + tWidth - 2},${armY + 12}
+                 L${cx + armSleeveLen},${armY + 5}
+                 L${cx + tWidth},${armY - 5} Z`}
+             fill="#4CAF50"
+             stroke="#388E3C"
+             strokeWidth={1}
+          />
+          {/* Pants */}
+          <Path
+             d={`M${cx - tWidth},${bodyBot - 5}
+                 L${cx - tWidth - 5},${llEndY - 10}
+                 L${cx - 2},${llEndY - 10}
+                 L${cx},${bodyBot + 5}
+                 L${cx + 2},${rlEndY - 10}
+                 L${cx + tWidth + 5},${rlEndY - 10}
+                 L${cx + tWidth},${bodyBot - 5} Z`}
+             fill="#1976D2"
+             stroke="#0D47A1"
+             strokeWidth={1}
+          />
+        </G>
+      );
+    }
+
+    if (equipped.clothes === 'shirt-3') {
+      const dressWidth = bodyLen * 0.6;
+      return (
+        <G>
+          <Path
+            d={`M${cx - 10},${armY - 5}
+                L${cx - dressWidth},${bodyBot + 10}
+                Q${cx},${bodyBot + 20} ${cx + dressWidth},${bodyBot + 10}
+                L${cx + 10},${armY - 5} Z`}
+            fill="#9C27B0"
+            stroke="#7B1FA2"
+            strokeWidth={1}
+          />
+          <Line x1={cx - 15} y1={bodyBot - 10} x2={cx + 15} y2={bodyBot - 10} stroke="#7B1FA2" strokeWidth={3} />
+        </G>
+      );
+    }
+    
+    return null;
   };
 
-  const renderLeftBoot = () => {
-    if (!hasBoots) return null;
-    const bootH = size * 0.04;
-    const bootW = size * 0.06;
-    return (
-      <G>
+  const renderLeftBoot = (bootType: string, x: number, y: number, bootW: number, bootH: number) => {
+    if (bootType === 'shoes-1') {
+      return (
         <Path
-          d={`M${llEndX - bootW * 0.6},${llEndY - bootH * 0.3}
-              L${llEndX - bootW * 0.6},${llEndY + bootH}
-              L${llEndX + bootW * 0.8},${llEndY + bootH}
-              L${llEndX + bootW * 0.8},${llEndY + bootH * 0.5}
-              L${llEndX + bootW * 0.3},${llEndY - bootH * 0.3} Z`}
-          fill={bodyCol}
-          stroke="#263238"
-          strokeWidth={1}
+          d={`M${x - bootW * 0.6},${y - bootH * 0.3}
+              L${x - bootW * 0.6},${y + bootH}
+              L${x + bootW * 0.8},${y + bootH}
+              L${x + bootW * 0.8},${y + bootH * 0.5}
+              L${x + bootW * 0.3},${y - bootH * 0.3} Z`}
+          fill="#37474F" stroke="#263238" strokeWidth={1}
         />
-      </G>
-    );
+      );
+    }
+    if (bootType === 'shoes-2') {
+      return (
+        <G>
+          <Path d={`M${x - bootW * 0.6},${y - bootH * 0.1} L${x - bootW * 0.6},${y + bootH} L${x + bootW * 0.9},${y + bootH} L${x + bootW * 0.9},${y + bootH * 0.4} L${x + bootW * 0.3},${y - bootH * 0.1} Z`} fill="#2196F3" stroke="#1976D2" strokeWidth={1} />
+          <Circle cx={x + bootW * 0.3} cy={y + bootH * 0.6} r={bootW * 0.2} fill="#fff" />
+        </G>
+      );
+    }
+    if (bootType === 'shoes-3') {
+      return (
+        <G>
+          <Path d={`M${x - bootW * 0.5},${y + bootH * 0.4} Q${x + bootW * 0.2},${y + bootH * 0.1} ${x + bootW * 0.8},${y + bootH} L${x - bootW * 0.5},${y + bootH} Z`} fill="#E91E63" />
+          <Line x1={x - bootW * 0.5} y1={y + bootH * 0.6} x2={x + bootW * 0.3} y2={y + bootH * 0.6} stroke="#fff" strokeWidth={1.5} />
+        </G>
+      );
+    }
+    return null;
   };
 
-  const renderRightBoot = () => {
-    if (!hasBoots) return null;
-    const bootH = size * 0.04;
-    const bootW = size * 0.06;
-    return (
-      <G>
+  const renderRightBoot = (bootType: string, x: number, y: number, bootW: number, bootH: number) => {
+    if (bootType === 'shoes-1') {
+      return (
         <Path
-          d={`M${rlEndX + bootW * 0.6},${rlEndY - bootH * 0.3}
-              L${rlEndX + bootW * 0.6},${rlEndY + bootH}
-              L${rlEndX - bootW * 0.8},${rlEndY + bootH}
-              L${rlEndX - bootW * 0.8},${rlEndY + bootH * 0.5}
-              L${rlEndX - bootW * 0.3},${rlEndY - bootH * 0.3} Z`}
-          fill={bodyCol}
-          stroke="#263238"
-          strokeWidth={1}
+          d={`M${x + bootW * 0.6},${y - bootH * 0.3}
+              L${x + bootW * 0.6},${y + bootH}
+              L${x - bootW * 0.8},${y + bootH}
+              L${x - bootW * 0.8},${y + bootH * 0.5}
+              L${x - bootW * 0.3},${y - bootH * 0.3} Z`}
+          fill="#37474F" stroke="#263238" strokeWidth={1}
         />
-      </G>
-    );
+      );
+    }
+    if (bootType === 'shoes-2') {
+      return (
+        <G>
+          <Path d={`M${x + bootW * 0.6},${y - bootH * 0.1} L${x + bootW * 0.6},${y + bootH} L${x - bootW * 0.9},${y + bootH} L${x - bootW * 0.9},${y + bootH * 0.4} L${x - bootW * 0.3},${y - bootH * 0.1} Z`} fill="#2196F3" stroke="#1976D2" strokeWidth={1} />
+          <Circle cx={x - bootW * 0.3} cy={y + bootH * 0.6} r={bootW * 0.2} fill="#fff" />
+        </G>
+      );
+    }
+    if (bootType === 'shoes-3') {
+      return (
+        <G>
+          <Path d={`M${x + bootW * 0.5},${y + bootH * 0.4} Q${x - bootW * 0.2},${y + bootH * 0.1} ${x - bootW * 0.8},${y + bootH} L${x + bootW * 0.5},${y + bootH} Z`} fill="#E91E63" />
+          <Line x1={x + bootW * 0.5} y1={y + bootH * 0.6} x2={x - bootW * 0.3} y2={y + bootH * 0.6} stroke="#fff" strokeWidth={1.5} />
+        </G>
+      );
+    }
+    return null;
   };
 
   // ── Fallen parts on the ground ──
@@ -294,16 +367,10 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.7} fill={dismCol} />
-          {hasBoots && (
-            <Rect
-              x={fx + legLen * 0.5}
-              y={fallY - size * 0.025}
-              width={size * 0.05}
-              height={size * 0.025}
-              rx={2}
-              fill={bodyCol}
-              opacity={0.7}
-            />
+          {hasBoots && equipped.shoes && (
+            <G transform={`translate(${fx + legLen * 0.5}, ${fallY - size * 0.025})`}>
+              {renderLeftBoot(equipped.shoes, 0, 0, size * 0.06, size * 0.04)}
+            </G>
           )}
         </G>
       );
@@ -324,16 +391,10 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx + legLen * 0.65} cy={fallY + size * 0.01} r={jointR * 0.7} fill={dismCol} />
-          {hasBoots && (
-            <Rect
-              x={fx + legLen * 0.65 - size * 0.01}
-              y={fallY - size * 0.01}
-              width={size * 0.05}
-              height={size * 0.025}
-              rx={2}
-              fill={bodyCol}
-              opacity={0.7}
-            />
+          {hasBoots && equipped.shoes && (
+            <G transform={`translate(${fx + legLen * 0.65 - size * 0.01}, ${fallY - size * 0.01})`}>
+               {renderRightBoot(equipped.shoes, 0, 0, size * 0.06, size * 0.04)}
+            </G>
           )}
         </G>
       );
@@ -354,6 +415,11 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
+          {hasClothes && (
+            <G transform={`translate(${fx}, ${fallY})`}>
+               <Rect y={-size * 0.02} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
+            </G>
+          )}
           <Circle cx={fx + armLen * 0.6} cy={fallY - size * 0.02} r={jointR * 0.6} fill={dismCol} />
         </G>
       );
@@ -374,6 +440,11 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
+          {hasClothes && (
+            <G transform={`translate(${fx}, ${fallY})`}>
+               <Rect y={-size * 0.01} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
+            </G>
+          )}
           <Circle cx={fx + armLen * 0.55} cy={fallY + size * 0.01} r={jointR * 0.6} fill={dismCol} />
         </G>
       );
@@ -483,7 +554,7 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
           />
 
           {/* ── Cape (behind body) ── */}
-          {renderCape()}
+          {renderClothes()}
 
           {/* ── Body trunk ── */}
           <Line
@@ -521,7 +592,7 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
               />
               {/* Foot circle */}
               <Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />
-              {renderLeftBoot()}
+              {equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}
             </G>
           ) : (
             <G>
@@ -568,7 +639,7 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
                 fill={bodyCol}
               />
               <Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />
-              {renderRightBoot()}
+              {equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}
             </G>
           ) : (
             <G>

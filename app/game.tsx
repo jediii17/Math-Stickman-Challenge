@@ -68,6 +68,10 @@ export default function GameScreen() {
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [freezeTimeLeft, setFreezeTimeLeft] = useState(0);
   const [addedTimeAnim, setAddedTimeAnim] = useState(0); // Trigger for +30s animation
+  const [usedPowerUps, setUsedPowerUps] = useState<string[]>([]);
+  const [showFireflyHint, setShowFireflyHint] = useState(false);
+  const [showPotionHeal, setShowPotionHeal] = useState(false);
+
 
   const isTimerPausedRef = useRef(false);
 
@@ -278,6 +282,7 @@ export default function GameScreen() {
     setFeedback(null);
     setIsTransitioning(false);
     clearPowderEffect();
+    setUsedPowerUps([]);
 
     feedbackOpacity.value = 0;
 
@@ -322,6 +327,7 @@ export default function GameScreen() {
   };
 
   const handleUsePotion = async () => {
+    if (usedPowerUps.includes('potion')) return;
     if (wrongCount > 0) {
       let used = false;
       if (!isGuest && user) {
@@ -331,13 +337,20 @@ export default function GameScreen() {
       }
 
       if (used) {
+        setUsedPowerUps(prev => [...prev, 'potion']);
+        setShowPotionHeal(true);
         setWrongCount(prev => prev - 1);
         if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        setTimeout(() => {
+          setShowPotionHeal(false);
+        }, 1500);
       }
     }
   };
 
   const handleUseDust = async () => {
+    if (usedPowerUps.includes('dust')) return;
     let used = false;
     if (!isGuest && user) {
       used = await usePowerUpForUser(user.id, 'dust');
@@ -346,13 +359,18 @@ export default function GameScreen() {
     }
 
     if (used) {
+      setUsedPowerUps(prev => [...prev, 'dust']);
       setTimeLeft(prev => prev + 30);
-      setAddedTimeAnim(prev => prev + 1); // Trigger animation re-render
+      setAddedTimeAnim(Date.now()); // Trigger animation re-render with unique key
+      setTimeout(() => {
+        setAddedTimeAnim(0);
+      }, 1500);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
   const handleUsePowder = async () => {
+    if (usedPowerUps.includes('powder')) return;
     let used = false;
     if (!isGuest && user) {
       used = await usePowerUpForUser(user.id, 'powder');
@@ -361,6 +379,7 @@ export default function GameScreen() {
     }
 
     if (used) {
+      setUsedPowerUps(prev => [...prev, 'powder']);
       isTimerPausedRef.current = true;
       setIsTimerPaused(true);
       setFreezeTimeLeft(30);
@@ -369,6 +388,7 @@ export default function GameScreen() {
   };
 
   const handleUseFirefly = async () => {
+    if (usedPowerUps.includes('firefly')) return;
     let used = false;
     if (!isGuest && user) {
       used = await usePowerUpForUser(user.id, 'firefly');
@@ -377,12 +397,18 @@ export default function GameScreen() {
     }
 
     if (used) {
-      const ansStr = currentProblem.answer.toString();
-      const currentLen = userInput.length;
-      if (currentLen < ansStr.length) {
-        setUserInput(prev => prev + ansStr[currentLen]);
-      }
+      setUsedPowerUps(prev => [...prev, 'firefly']);
+      setShowFireflyHint(true);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      setTimeout(() => {
+        const ansStr = currentProblem.answer.toString();
+        const currentLen = userInput.length;
+        if (currentLen < ansStr.length) {
+          setUserInput(prev => prev + ansStr[currentLen]);
+        }
+        setShowFireflyHint(false);
+      }, 1200);
     }
   };
 
@@ -482,9 +508,11 @@ export default function GameScreen() {
       {isTimerPaused && <Snowflakes />}
 
       <View style={styles.gameArea}>
-        <View style={styles.stickmanArea}>
-          <Stickman wrongCount={wrongCount} size={140} />
-        </View>
+        {!scribbleMode && (
+          <View style={styles.stickmanArea}>
+            <Stickman wrongCount={wrongCount} size={140} />
+          </View>
+        )}
 
         <Animated.View style={[styles.problemCard, problemAnimStyle]}>
           <Text style={styles.topicLabel}>{currentProblem.topic}</Text>
@@ -534,9 +562,9 @@ export default function GameScreen() {
             <View style={styles.powerUpRow}>
               {powerUps.potion > 0 && (
                 <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#E91E63'}]}
+                  style={[styles.powerUpBtn, {backgroundColor: '#E91E63'}, usedPowerUps.includes('potion') && {opacity: 0.5}]}
                   onPress={handleUsePotion}
-                  disabled={wrongCount === 0 || isTransitioning || gameOver || preGameCountdown !== null}
+                  disabled={wrongCount === 0 || usedPowerUps.includes('potion') || isTransitioning || gameOver || preGameCountdown !== null}
                 >
                   <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.potion}</Text></View>
                   <Ionicons name="flask" size={24} color="#fff" />
@@ -544,9 +572,9 @@ export default function GameScreen() {
               )}
               {powerUps.dust > 0 && (
                 <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#9C27B0'}]}
+                  style={[styles.powerUpBtn, {backgroundColor: '#9C27B0'}, usedPowerUps.includes('dust') && {opacity: 0.5}]}
                   onPress={handleUseDust}
-                  disabled={isTransitioning || gameOver || preGameCountdown !== null}
+                  disabled={usedPowerUps.includes('dust') || isTransitioning || gameOver || preGameCountdown !== null}
                 >
                   <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.dust}</Text></View>
                   <Ionicons name="hourglass" size={24} color="#fff" />
@@ -554,9 +582,9 @@ export default function GameScreen() {
               )}
               {powerUps.powder > 0 && (
                 <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#00BCD4'}]}
+                  style={[styles.powerUpBtn, {backgroundColor: '#00BCD4'}, usedPowerUps.includes('powder') && {opacity: 0.5}]}
                   onPress={handleUsePowder}
-                  disabled={isTimerPaused || isTransitioning || gameOver || preGameCountdown !== null}
+                  disabled={usedPowerUps.includes('powder') || isTimerPaused || isTransitioning || gameOver || preGameCountdown !== null}
                 >
                   <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.powder}</Text></View>
                   <Ionicons name="snow" size={24} color="#fff" />
@@ -564,9 +592,9 @@ export default function GameScreen() {
               )}
               {powerUps.firefly > 0 && (
                 <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#FFC107'}]}
+                  style={[styles.powerUpBtn, {backgroundColor: '#FFC107'}, usedPowerUps.includes('firefly') && {opacity: 0.5}]}
                   onPress={handleUseFirefly}
-                  disabled={userInput.length >= currentProblem.answer.toString().length || isTransitioning || gameOver || preGameCountdown !== null}
+                  disabled={usedPowerUps.includes('firefly') || userInput.length >= currentProblem.answer.toString().length || isTransitioning || gameOver || preGameCountdown !== null}
                 >
                   <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.firefly}</Text></View>
                   <Ionicons name="bulb" size={24} color="#fff" />
@@ -581,6 +609,29 @@ export default function GameScreen() {
             onSubmit={handleSubmit}
             disabled={isTransitioning || gameOver || preGameCountdown !== null}
           />
+        </Animated.View>
+      )}
+
+      {showFireflyHint && (
+        <Animated.View
+          entering={ZoomIn.duration(400).withInitialValues({ transform: [{ translateY: 200 }, { translateX: 100 }, { scale: 0.5 }] })}
+          exiting={FadeOut.duration(300)}
+          style={styles.fireflyAnim}
+        >
+          <Ionicons name="bulb" size={48} color="#FFC107" />
+          <View style={styles.fireflyGlow} />
+        </Animated.View>
+      )}
+
+      {showPotionHeal && (
+        <Animated.View
+          entering={FadeIn.duration(300).withInitialValues({ transform: [{ translateY: 20 }, { translateX: 0 }, { scale: 0.5 }] })}
+          exiting={FadeOut.duration(500)}
+          style={styles.potionHealAnim}
+        >
+          <Ionicons name="medical" size={40} color="#E91E63" />
+          <Ionicons name="heart" size={30} color="#E91E63" style={{ position: 'absolute', top: -20, right: -10, opacity: 0.7 }} />
+          <Ionicons name="star" size={20} color="#FFC107" style={{ position: 'absolute', top: 10, left: -15, opacity: 0.8 }} />
         </Animated.View>
       )}
 
@@ -835,5 +886,39 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
     zIndex: 10,
+  },
+  fireflyAnim: {
+    position: 'absolute',
+    top: '35%',
+    left: '42%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fireflyGlow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 193, 7, 0.3)',
+    zIndex: -1,
+  },
+  potionHealAnim: {
+    position: 'absolute',
+    top: '25%',
+    left: '45%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 8,
   },
 });

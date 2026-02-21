@@ -152,7 +152,7 @@ export default function HomeScreen() {
               <Text style={styles.userName}>{user.username}</Text>
               <View style={styles.coinBadge}>
                 <Ionicons name="sparkles" size={13} color="#FFD700" />
-                <Text style={styles.coinText}>{user.coins}</Text>
+                <Text style={styles.coinText}>{coins}</Text>
               </View>
             </View>
           ) : (
@@ -221,9 +221,8 @@ export default function HomeScreen() {
                 pressed && { transform: [{ scale: 0.96 }] },
               ]}
             >
-              <Ionicons name="bag-outline" size={22} color={Colors.primary} />
-              <Text style={styles.shopBtnText}>Accessories Shop</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+              <Ionicons name="bag-handle" size={24} color={Colors.primary} />
+              <Text style={styles.shopBtnText}>Shop</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -389,9 +388,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   shopBtnText: {
-    flex: 1,
     fontSize: 18,
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Fredoka_700Bold',
     color: Colors.primary,
   },
 });

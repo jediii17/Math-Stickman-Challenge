@@ -7,12 +7,15 @@ MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native
 ## Features & Progress
 
 - **Authentication**: Guest mode or local user accounts stored via Supabase (SQLite in-app for now).
-- **Character Shop**: Earn coins by answering questions correctly. Spend coins to buy hats, glasses, shirts, and shoes to customize your Stickman.
-- **Magic Shop**: Buy consumable power-ups:
-  - **Pixie Patch Potion**: Heals 1 body part
-  - **Moonlit Minute Dust**: Adds 30s to the timer (with floating +30s animation)
-  - **Aurora Pause Powder**: Freezes time for 30s (with falling snowflakes and cyan countdown)
-  - **Hinting Firefly**: Reveals a digit of the answer
+- **Shop**: Earn coins by answering questions correctly. Spend coins to customize your Stickman or buy consumable power-ups.
+  - **Accessories**: Choose from diverse sets including Cool Caps, Boy/Girl themed hats, Sunglasses, outfits (Hero Cape, Boy Outfit, Girl Dress), and various footwear. All rendered natively as detailed SVG attachments.
+  - **Magic Consumables**:
+    - **Pixie Patch Potion**: Heals 1 body part (with new heart/medical floating animation)
+    - **Moonlit Minute Dust**: Adds 30s to the timer (with animated +30s floating text)
+    - **Aurora Pause Powder**: Freezes time for 30s (with falling snowflakes and cyan countdown)
+    - **Hinting Firefly**: Reveals a digit of the answer (with new animated firefly fly-in sequence)
+- **Power-up Balancing**: Usage is balanced to once per game session to maintain challenge and strategic play.
+- **Scribble Mode Optimization**: The drawing canvas automatically hides the stickman area on smaller screens to maximize writing space.
 - **Color scheme**: Green primary (#2ECC71), Yellow secondary (#F1C40F), Baby pink tertiary (#FFB6C1), Purple (#9b59b6) for scribbling.
 - **Stickman mechanic**: Starts complete, loses parts on wrong answers (legs -> arms -> head rolls off).
 - **Timer**: Easy=60s, Average=45s, Difficult=30s.
@@ -35,11 +38,12 @@ MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native
 - **State Management**: Zustand with AsyncStorage persistence for tracking coins, accessories, high scores, and power-up inventory (`hooks/useGameState.ts`)
 - **Database**: Local SQLite and Supabase for user persistence (`lib/db.ts`)
 - **Key Components**:
-  - `Stickman` — SVG stickman that loses body parts on wrong answers.
-  - `NumberPad` — Custom numeric input pad
-  - `Timer` — Circular countdown timer with color changes
-  - `Snowflakes` — Falling snow animation for the time freeze effect
-  - `ScribbleArea` — Drawing canvas for scratchpad math
+  - `Stickman` — Detailed SVG stickman that loses body parts on wrong answers. Now supports multiple accessory variants and dismembered limb clothing rendering.
+  - `AnimatedStickman` — Lively home screen stickman that proudly wears your equipped customizations.
+  - `NumberPad` — Custom numeric input pad for fast calculations
+  - `Timer` — Circular countdown timer with color changes and pulse effects
+  - `Snowflakes` — Beautiful falling snow animation for the time freeze effect
+  - `ScribbleArea` — Drawing canvas scratchpad with intelligent layout toggling for space efficiency
 
 ### Game Logic (`lib/math-engine.ts`)
 - Generates random math problems based on difficulty
