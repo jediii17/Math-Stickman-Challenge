@@ -26,6 +26,7 @@ Your data is securely stored using Supabase, our backend service provider. We ut
 ## 5. Sharing of Information
 We highly value your privacy and **do not** sell, trade, or rent your information to third parties. We may share data only with:
 *   **Service Providers:** We use Supabase to host our secure database. They act as a data processor and are bound by strict data protection agreements.
+*   **Advertising Partners:** We use Google AdMob to display non-personalized ads within the app. AdMob may collect certain device identifiers (such as the Advertising ID) to serve these ads. No personally identifiable gameplay or account data is shared with our advertising partners.
 *   **Legal Requirements:** If required by law, court order, or governmental regulation, we may disclose your information to comply with legal obligations.
 
 ## 6. Children's Privacy

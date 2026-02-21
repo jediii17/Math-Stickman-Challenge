@@ -16,6 +16,7 @@ MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native
 - **Color scheme**: Green primary (#2ECC71), Yellow secondary (#F1C40F), Baby pink tertiary (#FFB6C1), Purple (#9b59b6) for scribbling.
 - **Stickman mechanic**: Starts complete, loses parts on wrong answers (legs -> arms -> head rolls off).
 - **Timer**: Easy=60s, Average=45s, Difficult=30s.
+- **Ads**: Google Mobile Ads (Banner and Interstitial)
 
 ## System Architecture
 

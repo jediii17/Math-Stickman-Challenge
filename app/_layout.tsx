@@ -14,8 +14,19 @@ import {
   Fredoka_600SemiBold,
   Fredoka_700Bold,
 } from "@expo-google-fonts/fredoka";
+import mobileAds from 'react-native-google-mobile-ads';
 
 SplashScreen.preventAutoHideAsync();
+
+// Initialize the Google Mobile Ads SDK immediately
+mobileAds()
+  .initialize()
+  .then(adapterStatuses => {
+    // Initialization complete!
+  })
+  .catch(error => {
+    console.warn("Could not initialize mobile ads", error);
+  });
 
 function RootLayoutNav() {
   return (

@@ -29,6 +29,7 @@ import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameState } from '@/hooks/useGameState';
 import AnimatedStickman from '@/components/AnimatedStickman';
+import AdBanner from '@/components/AdBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -227,6 +228,7 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
       </View>
+      <AdBanner />
     </LinearGradient>
   );
 }

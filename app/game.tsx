@@ -29,6 +29,7 @@ import ScribbleArea from '@/components/ScribbleArea';
 import Snowflakes from '@/components/Snowflakes';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
+import AdBanner from '@/components/AdBanner';
 import {
   generateProblem,
   getTimeLimit,
@@ -595,6 +596,7 @@ export default function GameScreen() {
           </Animated.View>
         </View>
       )}
+      <AdBanner />
     </View>
   );
 }
