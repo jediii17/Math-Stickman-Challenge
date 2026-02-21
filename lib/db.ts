@@ -79,6 +79,39 @@ export async function setEquipped(userId: string, accessoryId: string, equipped:
   if (error) throw error;
 }
 
+export async function syncEquippedStatus(userId: string, accessoryId: string | null, type: string) {
+  // 1. Unequip all items of the same category
+  let unequipQuery = supabase
+    .from('user_accessories')
+    .update({ equipped: false })
+    .eq('user_id', userId);
+
+  if (type === 'hair') unequipQuery = unequipQuery.like('accessory_id', 'hat-%');
+  else if (type === 'face') unequipQuery = unequipQuery.like('accessory_id', 'glasses-%');
+  else if (type === 'back') unequipQuery = unequipQuery.eq('accessory_id', 'shirt-1');
+  else if (type === 'clothes') unequipQuery = unequipQuery.like('accessory_id', 'shirt-%').neq('accessory_id', 'shirt-1');
+  else if (type === 'shoes') unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
+
+  const { error: unequipError } = await unequipQuery;
+  if (unequipError) {
+    console.error('Error unequipping items:', unequipError);
+    throw unequipError;
+  }
+
+  // 2. Equip the new item if it's not null
+  if (accessoryId) {
+    const { error: equipError } = await supabase
+      .from('user_accessories')
+      .update({ equipped: true })
+      .eq('user_id', userId)
+      .eq('accessory_id', accessoryId);
+    if (equipError) {
+      console.error('Error equipping item:', equipError);
+      throw equipError;
+    }
+  }
+}
+
 // --- Power Ups ---
 
 export async function getUserPowerUps(userId: string) {

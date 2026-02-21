@@ -111,8 +111,6 @@ export default function HomeScreen() {
   useEffect(() => {
     if (user && !isGuest) {
       loadFromDb(user.id);
-    } else {
-      resetForGuest();
     }
   }, [user, isGuest]);
 

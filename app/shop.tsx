@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
-import Svg, { Path, Ellipse, Line, G, Circle } from 'react-native-svg';
+import Svg, { Path, Ellipse, Line, G, Circle, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,12 +14,24 @@ const SHOP_ITEMS: Accessory[] = [
   { id: 'hat-1', type: 'hair', name: 'Cool Cap', price: 50, owned: false },
   { id: 'hat-2', type: 'hair', name: 'Boy Cap', price: 60, owned: false },
   { id: 'hat-3', type: 'hair', name: 'Girl Hat', price: 60, owned: false },
+  { id: 'hat-4', type: 'hair', name: 'Fairy Crown', price: 150, owned: false },
   { id: 'glasses-1', type: 'face', name: 'Sunglasses', price: 30, owned: false },
   { id: 'glasses-2', type: 'face', name: 'Boy Glasses', price: 40, owned: false },
   { id: 'glasses-3', type: 'face', name: 'Girl Glasses', price: 40, owned: false },
-  { id: 'shirt-1', type: 'clothes', name: 'Hero Cape', price: 100, owned: false },
-  { id: 'shirt-2', type: 'clothes', name: 'Boy Outfit', price: 120, owned: false },
-  { id: 'shirt-3', type: 'clothes', name: 'Girl Dress', price: 120, owned: false },
+  { id: 'shirt-1', type: 'back', name: 'Hero Cape', price: 100, owned: false },
+  { id: 'shirt-2', type: 'upper', name: 'Boy Shirt', price: 80, owned: false },
+  { id: 'shirt-3', type: 'upper', name: 'Princess Top', price: 80, owned: false },
+  { id: 'shirt-4', type: 'upper', name: 'Light Pink Tee', price: 90, owned: false },
+  { id: 'shirt-5', type: 'lower', name: 'Pink Ruffle Skirt', price: 110, owned: false },
+  { id: 'lower-1', type: 'lower', name: 'Boy Shorts', price: 50, owned: false },
+  { id: 'lower-2', type: 'lower', name: 'Princess Skirt', price: 60, owned: false },
+  { id: 'lower-3', type: 'lower', name: 'Purple Pleated Skirt', price: 130, owned: false },
+  { id: 'lower-4', type: 'lower', name: 'Camo Shorts', price: 120, owned: false },
+  { id: 'back-2', type: 'back', name: 'Dual Katanas', price: 150, owned: false },
+  { id: 'back-3', type: 'back', name: 'Adventurer Backpack', price: 120, owned: false },
+  { id: 'back-4', type: 'back', name: 'Angel Wings', price: 200, owned: false },
+  { id: 'back-5', type: 'back', name: 'Jetpack', price: 250, owned: false },
+  { id: 'back-6', type: 'back', name: 'Pink Butterfly', price: 180, owned: false },
   { id: 'shoes-1', type: 'shoes', name: 'Speed Boots', price: 60, owned: false },
   { id: 'shoes-2', type: 'shoes', name: 'Boy Sneakers', price: 70, owned: false },
   { id: 'shoes-3', type: 'shoes', name: 'Girl Flats', price: 70, owned: false },
@@ -84,6 +96,20 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
       </Svg>
     );
   }
+
+  if (id === 'hat-4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 60) scale(1.6)">
+          <Path d="M-15,5 Q-15,-5 0,-8 Q15,-5 15,5" fill="none" stroke="#FFD700" strokeWidth={2} />
+          <Path d="M-12,2 Q-6,-6 0,-12 Q6,-6 12,2" fill="none" stroke="#FFD700" strokeWidth={2} />
+          <Circle cx={0} cy={-12} r={3} fill="#F06292" stroke="#D81B60" strokeWidth={0.5} />
+          <Path d="M-10,-5 L-8,-7 M-8,-5 L-10,-7" stroke="#FFD700" strokeWidth={1} />
+          <Path d="M10,-5 L8,-7 M8,-5 L10,-7" stroke="#FFD700" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
   
   if (id === 'glasses-1') {
     return (
@@ -141,11 +167,79 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     );
   }
 
+  if (id === 'back-2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.3)">
+          <Path d="M-20,-30 L20,30" stroke="#7F8C8D" strokeWidth={3} strokeLinecap="round" />
+          <Path d="M20,-30 L-20,30" stroke="#7F8C8D" strokeWidth={3} strokeLinecap="round" />
+          <Path d="M-20,-30 L-14,-22" stroke="#2C3E50" strokeWidth={5} strokeLinecap="round" />
+          <Path d="M20,-30 L14,-22" stroke="#2C3E50" strokeWidth={5} strokeLinecap="round" />
+          <Circle cx={-20} cy={-30} r={2} fill="#F1C40F" />
+          <Circle cx={20} cy={-30} r={2} fill="#F1C40F" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.2)">
+          <Rect x={-15} y={-15} width={30} height={35} rx={5} fill="#8D6E63" stroke="#5D4037" strokeWidth={1} />
+          <Rect x={-15} y={-5} width={30} height={4} fill="#5D4037" />
+          <Rect x={-15} y={10} width={30} height={4} fill="#5D4037" />
+          <Path d="M-10,-15 L-10,20 M10,-15 L10,20" stroke="rgba(0,0,0,0.3)" strokeWidth={3} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.4)">
+          <Path d="M0,0 Q-25,-30 -40,-10 Q-35,10 0,5 Z" fill="rgba(255,255,255,0.8)" stroke="#BDC3C7" strokeWidth={1} />
+          <Path d="M0,0 Q25,-30 40,-10 Q35,10 0,5 Z" fill="rgba(255,255,255,0.8)" stroke="#BDC3C7" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-5') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.3)">
+          <Rect x={-12} y={-15} width={24} height={30} rx={2} fill="#7F8C8D" />
+          <Rect x={-8} y={15} width={6} height={10} fill="#E67E22" />
+          <Rect x={2} y={15} width={6} height={10} fill="#E67E22" />
+          <Path d="M-8,25 L-5,32 L-2,25 Z" fill="#E74C3C" />
+          <Path d="M2,25 L5,32 L8,25 Z" fill="#E74C3C" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-6') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.2)">
+          <Path d="M0,0 Q-30,-40 -45,-15 Q-40,10 0,5 Z" fill="#F48FB1" stroke="#D81B60" strokeWidth={1.5} />
+          <Path d="M0,0 Q-25,40 -40,25 Q-35,10 0,5 Z" fill="#F48FB1" stroke="#D81B60" strokeWidth={1.5} />
+          <Path d="M0,0 Q30,-40 45,-15 Q40,10 0,5 Z" fill="#F48FB1" stroke="#D81B60" strokeWidth={1.5} />
+          <Path d="M0,0 Q25,40 40,25 Q35,10 0,5 Z" fill="#F48FB1" stroke="#D81B60" strokeWidth={1.5} />
+          <Circle cx={-30} cy={-15} r={3} fill="#fff" opacity={0.6} />
+          <Circle cx={30} cy={-15} r={3} fill="#fff" opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+
   if (id === 'shirt-2') {
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <G transform="translate(50, 45) scale(1.5)">
-          <Path d={`M-10,-15 L-20,-5 L-15,0 L-8,-5 L-8,15 L8,15 L8,-5 L15,0 L20,-5 L10,-15 Z`} fill="#4CAF50" stroke="#388E3C" strokeWidth={1} />
+          <Path d={`M-12,-18 L-22,-8 L-16,-2 L-10,-6 L-10,5 L10,5 L10,-6 L16,-2 L22,-8 L12,-18 Z`} fill="#4CAF50" stroke="#388E3C" strokeWidth={1} />
         </G>
       </Svg>
     );
@@ -155,8 +249,82 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <G transform="translate(50, 45) scale(1.5)">
-          <Path d={`M-8,-15 L-12,-5 L-20,15 Q0,20 20,15 L12,-5 L8,-15 Z`} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
-          <Line x1={-10} y1={-5} x2={10} y2={-5} stroke="#7B1FA2" strokeWidth={2} />
+          <Path d={`M-10,-18 L-25,-5 L-20,2 L-8,-8`} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+          <Path d={`M10,-18 L25,-5 L20,2 L8,-8`} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+          <Path d={`M-10,-18 L-15,5 L15,5 L10,-18 Z`} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shirt-4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 45) scale(1.5)">
+          <Path d="M-8,-14 L-15,-8 L-12,-3 L-6,-8" fill="#F8BBD0" stroke="#F06292" strokeWidth={1} />
+          <Path d="M8,-14 L15,-8 L12,-3 L6,-8" fill="#F8BBD0" stroke="#F06292" strokeWidth={1} />
+          <Path d={`M-10,-15 L-10,10 Q0,15 10,10 L10,-15 Z`} fill="#F8BBD0" stroke="#F06292" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shirt-5') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 60) scale(1.5)">
+          <Path d={`M-12,0 L12,0 L20,15 Q0,20 -20,15 Z`} fill="#F06292" stroke="#D81B60" strokeWidth={1} />
+          <Path d="M-15,8 Q-7,10 0,8 Q7,10 15,8" fill="none" stroke="#D81B60" strokeWidth={1} opacity={0.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Path d={`M-10,0 L10,0 L12,15 L2,15 L0,5 L-2,15 L-12,15 Z`} fill="#1976D2" stroke="#0D47A1" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55) scale(1.6)">
+          <Path d={`M-10,0 L10,0 L18,20 Q0,26 -18,20 Z`} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+          <Rect x={-10} y={0} width={20} height={3} fill="#F06292" rx={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55) scale(1.6)">
+          {/* Purple Pleated Skirt */}
+          <Path d={`M-12,0 L12,0 L22,22 Q0,28 -22,22 Z`} fill="#673AB7" stroke="#512DA8" strokeWidth={1} />
+          <Line x1={-15} y1={5} x2={-18} y2={20} stroke="#512DA8" strokeWidth={1} opacity={0.6} />
+          <Line x1={-5} y1={5} x2={-6} y2={24} stroke="#512DA8" strokeWidth={1} opacity={0.6} />
+          <Line x1={5} y1={5} x2={6} y2={24} stroke="#512DA8" strokeWidth={1} opacity={0.6} />
+          <Line x1={15} y1={5} x2={18} y2={20} stroke="#512DA8" strokeWidth={1} opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          {/* Camo Shorts */}
+          <Path d={`M-10,0 L10,0 L12,18 L2,18 L0,8 L-2,18 L-12,18 Z`} fill="#556B2F" stroke="#3D4F1F" strokeWidth={1} />
+          {/* Camo spots */}
+          <Circle cx={-6} cy={6} r={3} fill="#8B4513" opacity={0.5} />
+          <Circle cx={6} cy={12} r={2.5} fill="#2F4F4F" opacity={0.5} />
         </G>
       </Svg>
     );
@@ -166,18 +334,8 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <G transform="translate(50, 50) scale(1.8)">
-          <Path
-            d={`M-25,10 L-25,-5 L-12,-5 L-10,-12 L-30,-12 Z`}
-            fill="#37474F"
-            stroke="#263238"
-            strokeWidth={1}
-          />
-          <Path
-            d={`M25,10 L25,-5 L12,-5 L10,-12 L30,-12 Z`}
-            fill="#37474F"
-            stroke="#263238"
-            strokeWidth={1}
-          />
+          <Path d={`M-25,10 L-25,-5 L-12,-5 L-10,-12 L-30,-12 Z`} fill="#37474F" stroke="#263238" strokeWidth={1} />
+          <Path d={`M25,10 L25,-5 L12,-5 L10,-12 L30,-12 Z`} fill="#37474F" stroke="#263238" strokeWidth={1} />
         </G>
       </Svg>
     );
@@ -209,7 +367,6 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     );
   }
 
-  // Fallback
   return <Ionicons name="shirt-outline" size={32} color={color} />;
 };
 
@@ -217,7 +374,7 @@ export default function ShopScreen() {
   const [activeTab, setActiveTab] = React.useState<'character' | 'magic'>('character');
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
-  const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
+  const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
   const renderItem = ({ item }: { item: Accessory }) => {
@@ -251,7 +408,11 @@ export default function ShopScreen() {
                 buyAccessory(item);
               }
             } else {
-              equipAccessory(item.type, isEquipped ? null : item.id);
+              if (!isGuest && user) {
+                await equipAccessoryForUser(user.id, item.type, isEquipped ? null : item.id);
+              } else {
+                equipAccessory(item.type, isEquipped ? null : item.id);
+              }
             }
           }}
         >

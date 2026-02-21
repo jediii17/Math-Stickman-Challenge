@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as db from '@/lib/db';
 
-export type AccessoryType = 'hair' | 'face' | 'clothes' | 'shoes';
+export type AccessoryType = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back';
 
 export interface Accessory {
   id: string;
@@ -40,13 +40,14 @@ interface GameState {
   loadFromDb: (userId: string) => Promise<void>;
   syncCoinsToDb: (userId: string) => Promise<void>;
   buyAccessoryForUser: (userId: string, accessory: Accessory) => Promise<boolean>;
+  equipAccessoryForUser: (userId: string, type: AccessoryType, id: string | null) => Promise<void>;
   buyPowerUpForUser: (userId: string, id: keyof PowerUps, price: number) => Promise<boolean>;
   usePowerUpForUser: (userId: string, id: keyof PowerUps) => Promise<boolean>;
   updateHighScore: (difficulty: keyof HighScores, score: number) => void;
   resetForGuest: () => void;
 }
 
-const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 'default-shoes'];
+const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 'default-shoes', 'default-back'];
 
 export const useGameState = create<GameState>()(
   persist(
@@ -57,8 +58,10 @@ export const useGameState = create<GameState>()(
       equippedAccessories: {
         hair: null,
         face: null,
-        clothes: null,
+        upper: null,
+        lower: null,
         shoes: null,
+        back: null,
       },
       powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
       addCoins: (amount) => set((state) => ({ coins: state.coins + amount })),
@@ -127,15 +130,19 @@ export const useGameState = create<GameState>()(
             const equipped: Record<AccessoryType, string | null> = {
               hair: null,
               face: null,
-              clothes: null,
+              upper: null,
+              lower: null,
               shoes: null,
+              back: null,
             };
 
             accessories.forEach((a) => {
               if (a.equipped) {
                 if (a.accessory_id.startsWith('hat-')) equipped.hair = a.accessory_id;
                 else if (a.accessory_id.startsWith('glasses-')) equipped.face = a.accessory_id;
-                else if (a.accessory_id.startsWith('shirt-')) equipped.clothes = a.accessory_id;
+                else if (a.accessory_id.startsWith('shirt-1') || a.accessory_id.startsWith('back-')) equipped.back = a.accessory_id;
+                else if (a.accessory_id.startsWith('shirt-5') || a.accessory_id.startsWith('lower-')) equipped.lower = a.accessory_id;
+                else if (a.accessory_id.startsWith('shirt-')) equipped.upper = a.accessory_id;
                 else if (a.accessory_id.startsWith('shoes-')) equipped.shoes = a.accessory_id;
               }
             });
@@ -179,6 +186,13 @@ export const useGameState = create<GameState>()(
         return false;
       },
 
+      equipAccessoryForUser: async (userId, type, id) => {
+        set((state) => ({
+          equippedAccessories: { ...state.equippedAccessories, [type]: id },
+        }));
+        await db.syncEquippedStatus(userId, id, type);
+      },
+
       buyPowerUpForUser: async (userId, id, price) => {
         const { coins, powerUps } = get();
         if (coins >= price) {
@@ -218,7 +232,7 @@ export const useGameState = create<GameState>()(
           coins: 0,
           highScores: { easy: 0, average: 0, difficult: 0 },
           ownedAccessories: [...DEFAULT_ACCESSORIES],
-          equippedAccessories: { hair: null, face: null, clothes: null, shoes: null },
+          equippedAccessories: { hair: null, face: null, upper: null, lower: null, shoes: null, back: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
         }),
     }),

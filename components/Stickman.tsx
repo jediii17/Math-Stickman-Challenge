@@ -114,15 +114,20 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
   const raEndX = cx + armLen;
   const raEndY = armY + armLen * 0.5;
 
-  const hasHat = equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3';
+  const hasHat = equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3' || equipped.hair === 'hat-4';
   const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3';
-  const hasClothes = equipped.clothes === 'shirt-1' || equipped.clothes === 'shirt-2' || equipped.clothes === 'shirt-3';
+  const hasUpper = !!equipped.upper;
+  const hasLower = !!equipped.lower;
+  const hasBack = !!equipped.back;
   const hasBoots = equipped.shoes === 'shoes-1' || equipped.shoes === 'shoes-2' || equipped.shoes === 'shoes-3';
   
   const getClothesColor = () => {
-    if (equipped.clothes === 'shirt-1') return "rgba(231, 76, 60, 0.4)";
-    if (equipped.clothes === 'shirt-2') return "#4CAF50";
-    if (equipped.clothes === 'shirt-3') return "#9C27B0";
+    if (equipped.upper === 'shirt-2') return "#4CAF50";
+    if (equipped.upper === 'shirt-3') return "#9C27B0";
+    if (equipped.upper === 'shirt-4') return "#F8BBD0";
+    if (equipped.lower === 'shirt-5') return "#F06292";
+    if (equipped.lower === 'lower-3') return "#673AB7";
+    if (equipped.back === 'shirt-1') return "rgba(231, 76, 60, 0.4)";
     return bodyCol;
   };
 
@@ -155,6 +160,32 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
           <Ellipse cx={cx} cy={headCY - headR * 0.5} rx={headR * 1.8} ry={headR * 0.3} fill="#F06292" />
           <Path d={`M${cx - headR},${headCY - headR * 0.5} Q${cx - headR},${headCY - headR * 1.7} ${cx},${headCY - headR * 1.7} Q${cx + headR},${headCY - headR * 1.7} ${cx + headR},${headCY - headR * 0.5} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
           <Line x1={cx - headR * 0.9} y1={headCY - headR * 0.7} x2={cx + headR * 0.9} y2={headCY - headR * 0.7} stroke="#D81B60" strokeWidth={3} />
+        </G>
+      );
+    }
+    
+    if (equipped.hair === 'hat-4') {
+      return (
+        <G>
+          {/* Fairy Crown / Tiara */}
+          <Path
+            d={`M${cx - headR * 0.9},${headCY - headR * 0.6} Q${cx - headR * 0.9},${headCY - headR * 1.1} ${cx},${headCY - headR * 1.3} Q${cx + headR * 0.9},${headCY - headR * 1.1} ${cx + headR * 0.9},${headCY - headR * 0.6}`}
+            fill="none"
+            stroke="#FFD700"
+            strokeWidth={2}
+          />
+          <Path
+            d={`M${cx - headR * 0.7},${headCY - headR * 0.9} Q${cx - headR * 0.3},${headCY - headR * 1.5} ${cx},${headCY - headR * 1.8} Q${cx + headR * 0.3},${headCY - headR * 1.5} ${cx + headR * 0.7},${headCY - headR * 0.9}`}
+            fill="none"
+            stroke="#FFD700"
+            strokeWidth={2}
+          />
+          <Circle cx={cx} cy={headCY - headR * 1.8} r={headR * 0.15} fill="#F06292" stroke="#D81B60" strokeWidth={0.5} />
+          {/* Sparkles */}
+          <G opacity={0.8}>
+            <Path d={`M${cx - headR},${headCY - headR} L${cx - headR * 0.8},${headCY - headR * 1.2}`} stroke="#FFD700" strokeWidth={1} />
+            <Path d={`M${cx + headR},${headCY - headR} L${cx + headR * 0.8},${headCY - headR * 1.2}`} stroke="#FFD700" strokeWidth={1} />
+          </G>
         </G>
       );
     }
@@ -205,81 +236,282 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
     return null;
   };
 
-  const renderClothes = () => {
-    if (!hasClothes) return null;
+  const renderBehindClothes = () => {
+    if (!hasBack) return null;
     
-    if (equipped.clothes === 'shirt-1') {
-      const capeWidth = bodyLen * 0.7;
+    // Back accessory: shirt-1 (Hero Cape) renders BEHIND the stickman
+    if (equipped.back === 'shirt-1') {
       return (
-        <G>
-          <Path
-            d={`M${cx - armLen * 0.15},${armY - sw}
-                L${cx - armLen * 0.8},${bodyBot + legLen * 0.3}
-                Q${cx},${bodyBot + legLen * 0.45} ${cx + armLen * 0.8},${bodyBot + legLen * 0.3}
-                L${cx + armLen * 0.15},${armY - sw} Z`}
-            fill="rgba(231, 76, 60, 0.25)"
-            stroke={Colors.error}
-            strokeWidth={1.2}
-          />
-          <Circle cx={cx} cy={bodyTop + sw} r={sw * 1.2} fill={Colors.secondary} stroke={Colors.secondaryDark} strokeWidth={1} />
-        </G>
+        <Path
+          d={`M${cx - 10},${armY - 15} L${cx - 25},${bodyBot + 15} Q${cx},${bodyBot + 25} ${cx + 25},${bodyBot + 15} L${cx + 10},${armY - 15} Z`}
+          fill="rgba(231, 76, 60, 0.4)"
+          stroke={Colors.error}
+          strokeWidth={1.2}
+        />
       );
     }
     
-    if (equipped.clothes === 'shirt-2') {
-      const tWidth = 14;
-      const armSleeveLen = 20;
+    if (equipped.back === 'back-2') {
       return (
         <G>
+          {/* Dual Katanas - Longer blades and visible handles */}
+          <Path d={`M${cx - 20},${armY - 25} L${cx + 20},${bodyBot + 15}`} stroke="#7F8C8D" strokeWidth={3} strokeLinecap="round" />
+          <Path d={`M${cx + 20},${armY - 25} L${cx - 20},${bodyBot + 15}`} stroke="#7F8C8D" strokeWidth={3} strokeLinecap="round" />
+          {/* Handles */}
+          <Path d={`M${cx - 20},${armY - 25} L${cx - 15},${armY - 15}`} stroke="#2C3E50" strokeWidth={5} strokeLinecap="round" />
+          <Path d={`M${cx + 20},${armY - 25} L${cx + 15},${armY - 15}`} stroke="#2C3E50" strokeWidth={5} strokeLinecap="round" />
+          <Circle cx={cx - 20} cy={armY - 25} r={2} fill="#F1C40F" />
+          <Circle cx={cx + 20} cy={armY - 25} r={2} fill="#F1C40F" />
+        </G>
+      );
+    }
+
+    if (equipped.back === 'back-3') {
+      return (
+        <G>
+          {/* Backpack - Main Bag */}
+          <Rect x={cx - 15} y={armY - 5} width={30} height={38} rx={4} fill="#8D6E63" stroke="#5D4037" strokeWidth={1} />
+          <Rect x={cx - 15} y={armY + 5} width={30} height={4} fill="#5D4037" />
+          <Rect x={cx - 15} y={armY + 20} width={30} height={4} fill="#5D4037" />
+        </G>
+      );
+    }
+
+    if (equipped.back === 'back-4') {
+      return (
+        <G>
+          {/* Angel Wings */}
+          <Path d={`M${cx},${armY} Q${cx - 40},${armY - 50} ${cx - 60},${armY - 10} Q${cx - 50},${armY + 20} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.8)" stroke="#BDC3C7" />
+          <Path d={`M${cx},${armY} Q${cx + 40},${armY - 50} ${cx + 60},${armY - 10} Q${cx + 50},${armY + 20} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.8)" stroke="#BDC3C7" />
+        </G>
+      );
+    }
+
+    if (equipped.back === 'back-5') {
+      return (
+        <G>
+          {/* Jetpack */}
+          <Rect x={cx - 15} y={armY - 10} width={30} height={35} rx={2} fill="#7F8C8D" />
+          <Rect x={cx - 12} y={armY + 25} width={8} height={12} fill="#E67E22" />
+          <Rect x={cx + 4} y={armY + 25} width={8} height={12} fill="#E67E22" />
+          <Path d={`M${cx - 12},${armY + 37} L${cx - 8},${armY + 45} L${cx - 4},${armY + 37} Z`} fill="#E74C3C" />
+          <Path d={`M${cx + 4},${armY + 37} L${cx + 8},${armY + 45} L${cx + 12},${armY + 37} Z`} fill="#E74C3C" />
+        </G>
+      );
+    }
+
+    if (equipped.back === 'back-6') {
+      return (
+        <G>
+          {/* Pink Butterfly Wings */}
+          <Path d={`M${cx},${armY + 5} Q${cx - 30},${armY - 35} ${cx - 45},${armY + 5} Q${cx - 40},${armY + 30} ${cx},${armY + 25} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
+          <Path d={`M${cx},${armY + 5} Q${cx - 25},${armY + 50} ${cx - 40},${armY + 35} Q${cx - 35},${armY + 20} ${cx},${armY + 25} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
+          <Path d={`M${cx},${armY + 5} Q${cx + 30},${armY - 35} ${cx + 45},${armY + 5} Q${cx + 40},${armY + 30} ${cx},${armY + 25} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
+          <Path d={`M${cx},${armY + 5} Q${cx + 25},${armY + 50} ${cx + 40},${armY + 35} Q${cx + 35},${armY + 20} ${cx},${armY + 25} Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
+        </G>
+      );
+    }
+    return null;
+  };
+
+  const renderFrontBackAccessories = () => {
+    if (!hasBack) return null;
+    if (equipped.back === 'back-3') {
+      const strapW = sw * 0.6;
+      return (
+        <G>
+          {/* Backpack Straps in Front */}
+          <Path d={`M${cx - 10},${armY - 10} L${cx - 10},${bodyBot - 5}`} stroke="rgba(0,0,0,0.4)" strokeWidth={strapW} strokeLinecap="round" />
+          <Path d={`M${cx + 10},${armY - 10} L${cx + 10},${bodyBot - 5}`} stroke="rgba(0,0,0,0.4)" strokeWidth={strapW} strokeLinecap="round" />
+        </G>
+      );
+    }
+    return null;
+  };
+
+  const renderUpper = () => {
+    if (!hasUpper) return null;
+
+    if (equipped.upper === 'shirt-2') {
+      // Boy Shirt
+      const shirtWidth = 12;
+      return (
+        <G>
+          {/* Short Sleeves */}
+          <Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#4CAF50" stroke="#388E3C" />
+          <Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#4CAF50" stroke="#388E3C" />
           {/* T-Shirt */}
           <Path
-             d={`M${cx - tWidth},${armY - 5}
-                 L${cx - armSleeveLen},${armY + 5}
-                 L${cx - tWidth + 2},${armY + 12}
-                 L${cx - tWidth},${bodyBot - 5}
-                 L${cx + tWidth},${bodyBot - 5}
-                 L${cx + tWidth - 2},${armY + 12}
-                 L${cx + armSleeveLen},${armY + 5}
-                 L${cx + tWidth},${armY - 5} Z`}
-             fill="#4CAF50"
-             stroke="#388E3C"
-             strokeWidth={1}
-          />
-          {/* Pants */}
-          <Path
-             d={`M${cx - tWidth},${bodyBot - 5}
-                 L${cx - tWidth - 5},${llEndY - 10}
-                 L${cx - 2},${llEndY - 10}
-                 L${cx},${bodyBot + 5}
-                 L${cx + 2},${rlEndY - 10}
-                 L${cx + tWidth + 5},${rlEndY - 10}
-                 L${cx + tWidth},${bodyBot - 5} Z`}
-             fill="#1976D2"
-             stroke="#0D47A1"
-             strokeWidth={1}
+            d={`M${cx - shirtWidth},${armY - 5}
+                L${cx - shirtWidth - 1},${bodyBot}
+                Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot}
+                L${cx + shirtWidth},${armY - 5} Z`}
+            fill="#4CAF50"
+            stroke="#388E3C"
+            strokeWidth={1}
           />
         </G>
       );
     }
 
-    if (equipped.clothes === 'shirt-3') {
-      const dressWidth = bodyLen * 0.6;
+    if (equipped.upper === 'shirt-3') {
+      // Girl Dress Top
+      const topWidth = 12;
+      const sleeveEndPathL = `M${cx - topWidth},${armY - 4} L${cx - armLen * 1.0},${laEndY - 2} L${cx - armLen * 0.95},${laEndY + 4} L${cx - topWidth + 2},${armY + 8}`;
+      const sleeveEndPathR = `M${cx + topWidth},${armY - 4} L${cx + armLen * 1.0},${raEndY - 2} L${cx + armLen * 0.95},${raEndY + 4} L${cx + topWidth - 2},${armY + 8}`;
+
       return (
         <G>
+          {/* Long Sleeves */}
+          <Path d={sleeveEndPathL} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+          <Path d={sleeveEndPathR} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />
+          {/* Top */}
           <Path
-            d={`M${cx - 10},${armY - 5}
-                L${cx - dressWidth},${bodyBot + 10}
-                Q${cx},${bodyBot + 20} ${cx + dressWidth},${bodyBot + 10}
-                L${cx + 10},${armY - 5} Z`}
+            d={`M${cx - topWidth},${armY - 5}
+                L${cx - topWidth},${bodyBot}
+                Q${cx},${bodyBot + 3} ${cx + topWidth},${bodyBot}
+                L${cx + topWidth},${armY - 5} Z`}
             fill="#9C27B0"
             stroke="#7B1FA2"
             strokeWidth={1}
           />
-          <Line x1={cx - 15} y1={bodyBot - 10} x2={cx + 15} y2={bodyBot - 10} stroke="#7B1FA2" strokeWidth={3} />
         </G>
       );
     }
-    
+
+    if (equipped.upper === 'shirt-4') {
+      // Light Pink Tee
+      const shirtWidth = 12;
+      return (
+        <G>
+          {/* Short Sleeves */}
+          <Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 18},${armY + 4} L${cx - 14},${armY + 10} L${cx - 8},${armY + 7}`} fill="#F8BBD0" stroke="#F06292" />
+          <Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 18},${armY + 4} L${cx + 14},${armY + 10} L${cx + 8},${armY + 7}`} fill="#F8BBD0" stroke="#F06292" />
+          {/* Tee Body */}
+          <Path
+            d={`M${cx - shirtWidth},${armY - 5}
+                L${cx - shirtWidth - 1},${bodyBot}
+                Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot}
+                L${cx + shirtWidth},${armY - 5} Z`}
+            fill="#F8BBD0"
+            stroke="#F06292"
+          />
+        </G>
+      );
+    }
+    return null;
+  };
+
+  const renderLower = () => {
+    if (!hasLower) return null;
+
+    if (equipped.lower === 'shirt-5') {
+      const skirtWidthTop = 13;
+      const skirtWidthBot = 25;
+      return (
+        <G>
+          {/* Pink Ruffle Skirt */}
+          <Path
+            d={`M${cx - skirtWidthTop},${bodyBot}
+                L${cx + skirtWidthTop},${bodyBot}
+                L${cx + skirtWidthBot},${bodyBot + 18}
+                Q${cx},${bodyBot + 24} ${cx - skirtWidthBot},${bodyBot + 18} Z`}
+            fill="#F06292"
+            stroke="#D81B60"
+            strokeWidth={1}
+          />
+          <Path d={`M${cx - 18},${bodyBot + 12} Q${cx - 9},${bodyBot + 14} ${cx},${bodyBot + 12} Q${cx + 9},${bodyBot + 14} ${cx + 18},${bodyBot + 12}`} fill="none" stroke="#D81B60" strokeWidth={1} opacity={0.6} />
+        </G>
+      );
+    }
+
+    if (equipped.lower === 'lower-1') {
+      // Boy Shorts
+      const sWidth = 14;
+      return (
+        <G>
+          <Path
+            d={`M${cx - 12},${bodyBot}
+                L${cx + 12},${bodyBot}
+                L${cx + sWidth},${bodyBot + 15}
+                L${cx + 2},${bodyBot + 15}
+                L${cx},${bodyBot + 8}
+                L${cx - 2},${bodyBot + 15}
+                L${cx - sWidth},${bodyBot + 15} Z`}
+            fill="#1976D2"
+            stroke="#0D47A1"
+            strokeWidth={1}
+          />
+        </G>
+      );
+    }
+
+    if (equipped.lower === 'lower-2') {
+      // Princess Skirt
+      const dWidthTop = 12;
+      const dWidthBot = bodyLen * 0.8;
+      return (
+        <G>
+          <Path
+            d={`M${cx - dWidthTop},${bodyBot}
+                L${cx - dWidthBot},${bodyBot + legLen * 0.5}
+                Q${cx},${bodyBot + legLen * 0.65} ${cx + dWidthBot},${bodyBot + legLen * 0.5}
+                L${cx + dWidthTop},${bodyBot} Z`}
+            fill="#9C27B0"
+            stroke="#7B1FA2"
+            strokeWidth={1}
+          />
+          <Rect x={cx - dWidthTop} y={bodyBot} width={dWidthTop * 2} height={4} fill="#F06292" rx={2} />
+        </G>
+      );
+    }
+
+    if (equipped.lower === 'lower-3') {
+      // Purple Pleated Skirt
+      const skirtWidthTop = 13;
+      const skirtWidthBot = 22;
+      return (
+        <G>
+          <Path
+            d={`M${cx - skirtWidthTop},${bodyBot}
+                L${cx + skirtWidthTop},${bodyBot}
+                L${cx + skirtWidthBot},${bodyBot + 20}
+                Q${cx},${bodyBot + 26} ${cx - skirtWidthBot},${bodyBot + 20} Z`}
+            fill="#673AB7"
+            stroke="#512DA8"
+            strokeWidth={1}
+          />
+          {/* Pleats */}
+          <Line x1={cx - 8} y1={bodyBot + 2} x2={cx - 12} y2={bodyBot + 22} stroke="#512DA8" strokeWidth={1} opacity={0.5} />
+          <Line x1={cx} y1={bodyBot + 2} x2={cx} y2={bodyBot + 24} stroke="#512DA8" strokeWidth={1} opacity={0.5} />
+          <Line x1={cx + 8} y1={bodyBot + 2} x2={cx + 12} y2={bodyBot + 22} stroke="#512DA8" strokeWidth={1} opacity={0.5} />
+        </G>
+      );
+    }
+
+    if (equipped.lower === 'lower-4') {
+      // Camo Shorts
+      const sWidth = 14;
+      return (
+        <G>
+          <Path
+            d={`M${cx - 12},${bodyBot}
+                L${cx + 12},${bodyBot}
+                L${cx + sWidth},${bodyBot + 18}
+                L${cx + 2},${bodyBot + 18}
+                L${cx},${bodyBot + 8}
+                L${cx - 2},${bodyBot + 18}
+                L${cx - sWidth},${bodyBot + 18} Z`}
+            fill="#556B2F"
+            stroke="#3D4F1F"
+            strokeWidth={1.5}
+          />
+          <Circle cx={cx - 6} cy={bodyBot + 6} r={3} fill="#8B4513" opacity={0.4} />
+          <Circle cx={cx + 6} cy={bodyBot + 12} r={2.5} fill="#2F4F4F" opacity={0.4} />
+        </G>
+      );
+    }
+
     return null;
   };
 
@@ -415,9 +647,9 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
-          {hasClothes && (
+          {(hasUpper || hasLower) && (
             <G transform={`translate(${fx}, ${fallY})`}>
-               <Rect y={-size * 0.02} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
+               <Rect y={-size * 0.01} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
             </G>
           )}
           <Circle cx={fx + armLen * 0.6} cy={fallY - size * 0.02} r={jointR * 0.6} fill={dismCol} />
@@ -440,7 +672,7 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
-          {hasClothes && (
+          {(hasUpper || hasLower) && (
             <G transform={`translate(${fx}, ${fallY})`}>
                <Rect y={-size * 0.01} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
             </G>
@@ -553,23 +785,8 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
             strokeWidth={sw * 0.6}
           />
 
-          {/* ── Cape (behind body) ── */}
-          {renderClothes()}
-
-          {/* ── Body trunk ── */}
-          <Line
-            x1={cx}
-            y1={bodyTop}
-            x2={cx}
-            y2={bodyBot}
-            stroke={bodyCol}
-            strokeWidth={sw}
-            strokeLinecap="round"
-          />
-          {/* Shoulder joint */}
-          <Circle cx={cx} cy={armY} r={jointR} fill={bodyCol} />
-          {/* Hip joint */}
-          <Circle cx={cx} cy={bodyBot} r={jointR} fill={bodyCol} />
+          {/* ── Behind Clothing (Cape) ── */}
+          {renderBehindClothes()}
 
           {/* ── Left Leg ── */}
           {showLL ? (
@@ -720,6 +937,7 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
                 r={jointR * 0.6}
                 fill={bodyCol}
               />
+              {/* Hand */}
               <Circle cx={raEndX} cy={raEndY} r={jointR * 0.8} fill={bodyCol} />
             </G>
           ) : (
@@ -736,6 +954,27 @@ export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
               <Circle cx={cx + armLen * 0.18} cy={armY + armLen * 0.09} r={jointR * 0.5} fill={dismCol} />
             </G>
           )}
+
+          {/* ── Body trunk ── */}
+          <Line
+            x1={cx}
+            y1={bodyTop}
+            x2={cx}
+            y2={bodyBot}
+            stroke={bodyCol}
+            strokeWidth={sw}
+            strokeLinecap="round"
+          />
+          {/* Shoulder joint */}
+          <Circle cx={cx} cy={armY} r={jointR} fill={bodyCol} />
+          {/* Hip joint */}
+          <Circle cx={cx} cy={bodyBot} r={jointR} fill={bodyCol} />
+
+          {/* ── Front Clothing (Shirt/Dress) ── */}
+         {/* Front Accessories Layer */}
+        {renderLower()}
+        {renderUpper()}
+        {renderFrontBackAccessories()}
 
           {/* ── Head ── (accessories coupled — hat & glasses only show with head) */}
           {showHead && (
