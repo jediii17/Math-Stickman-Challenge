@@ -1,6 +1,6 @@
 # Privacy Policy for Math Stickman Challenge
 
-**Effective Date:** [Current Date]
+**Effective Date:** February 21, 2026
 
 ## 1. Introduction
 Welcome to **Math Stickman Challenge**. We are committed to protecting your privacy. This Privacy Policy explains how your information is collected, used, and safeguarded when you play our mobile game.
