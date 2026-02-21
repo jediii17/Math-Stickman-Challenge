@@ -2,10 +2,10 @@ import { supabase } from './supabase';
 
 // --- Profile helpers ---
 
-export async function createProfile(userId: string, username: string) {
+export async function createProfile(userId: string, username: string, recoveryPhraseHash: string) {
   const { error } = await supabase
     .from('profiles')
-    .insert({ id: userId, username, coins: 0 });
+    .insert({ id: userId, username, coins: 0, recovery_phrase_hash: recoveryPhraseHash });
   if (error) throw error;
   return { id: userId, username, coins: 0 };
 }
@@ -22,6 +22,16 @@ export async function getProfile(userId: string) {
 
 export async function getUserById(userId: string) {
   return getProfile(userId);
+}
+
+export async function getRecoveryPhraseHash(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('recovery_phrase_hash')
+    .eq('id', userId)
+    .single();
+  if (error) return null;
+  return data.recovery_phrase_hash as string;
 }
 
 // --- Coins ---

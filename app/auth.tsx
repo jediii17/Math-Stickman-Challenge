@@ -18,6 +18,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameState } from '@/hooks/useGameState';
+import * as Clipboard from 'expo-clipboard';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +34,8 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
@@ -42,16 +45,25 @@ export default function AuthScreen() {
     }
 
     setLoading(true);
-    const result = mode === 'login'
-      ? await login(username.trim(), password)
-      : await register(username.trim(), password);
 
-    setLoading(false);
-
-    if (result) {
-      setError(result);
+    if (mode === 'login') {
+      const errorMsg = await login(username.trim(), password);
+      setLoading(false);
+      if (errorMsg) {
+        setError(errorMsg);
+      } else {
+        router.replace('/');
+      }
     } else {
-      router.replace('/');
+      const res = await register(username.trim(), password);
+      setLoading(false);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.recoveryPhrase) {
+        setRecoveryPhrase(res.recoveryPhrase);
+      } else {
+        router.replace('/');
+      }
     }
   };
 
@@ -59,6 +71,14 @@ export default function AuthScreen() {
     resetForGuest();
     continueAsGuest();
     router.replace('/');
+  };
+
+  const copyToClipboard = async () => {
+    if (recoveryPhrase) {
+      await Clipboard.setStringAsync(recoveryPhrase);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
@@ -80,7 +100,57 @@ export default function AuthScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.card}>
-          <View style={styles.tabRow}>
+          {recoveryPhrase ? (
+            <View style={styles.recoveryContainer}>
+              <View style={styles.recoveryIconContainer}>
+                <Ionicons name="shield-checkmark" size={48} color={Colors.primary} />
+              </View>
+              <Text style={styles.recoveryTitle}>Registration Successful!</Text>
+              <Text style={styles.recoveryDesc}>
+                This is your secure recovery phrase. You <Text style={styles.boldText}>must</Text> save it to reset your password if you ever forget it.
+                {'\n\n'}Please write it down or copy it to a safe place. It will not be shown again!
+              </Text>
+              
+              <View style={styles.phraseBox}>
+                <Text style={styles.phraseText} selectable={true}>{recoveryPhrase}</Text>
+                <Pressable 
+                  style={styles.copyButton} 
+                  onPress={copyToClipboard}
+                >
+                  <Ionicons 
+                    name={copied ? "checkmark" : "copy-outline"} 
+                    size={20} 
+                    color={copied ? Colors.primary : Colors.textLight} 
+                  />
+                  <Text style={[
+                    styles.copyText, 
+                    copied && { color: Colors.primary }
+                  ]}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+                ]}
+                onPress={() => router.replace('/')}
+              >
+                <LinearGradient
+                  colors={[Colors.primary, Colors.primaryDark]}
+                  style={styles.submitGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.submitText}>I have saved my phrase</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <View style={styles.tabRow}>
             <Pressable
               style={[styles.tab, mode === 'login' && styles.activeTab]}
               onPress={() => { setMode('login'); setError(null); }}
@@ -158,6 +228,20 @@ export default function AuthScreen() {
               )}
             </LinearGradient>
           </Pressable>
+
+          {mode === 'login' && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.forgotBtn,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={() => router.push('/forgot-password')}
+            >
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </Pressable>
+          )}
+            </>
+          )}
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(500).springify()}>
@@ -312,4 +396,76 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
   },
+  forgotBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  forgotText: {
+    fontSize: 14,
+    fontFamily: 'Fredoka_500Medium',
+    color: Colors.primary,
+  },
+  recoveryContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  recoveryIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  recoveryTitle: {
+    fontSize: 24,
+    fontFamily: 'Fredoka_700Bold',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  recoveryDesc: {
+    fontSize: 15,
+    fontFamily: 'Fredoka_400Regular',
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  boldText: {
+    fontFamily: 'Fredoka_700Bold',
+    color: Colors.primaryDark,
+  },
+  phraseBox: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    width: '100%',
+    marginVertical: 8,
+  },
+  phraseText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  copyText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 14,
+    color: Colors.textLight,
+  }
 });

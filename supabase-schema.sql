@@ -3,11 +3,20 @@
 -- Run this in your Supabase SQL Editor
 -- =============================================
 
+-- Drop dependent tables first (to avoid FK errors)
+drop table if exists public.user_accessories cascade;
+drop table if exists public.game_sessions cascade;
+drop table if exists public.user_powerups cascade;
+
+-- Drop parent table last
+drop table if exists public.profiles cascade;
+
 -- 1. Profiles table (linked to Supabase Auth)
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text not null unique,
   coins integer not null default 0,
+  recovery_phrase_hash text,
   created_at timestamptz not null default now()
 );
 
