@@ -19,17 +19,29 @@ export interface HighScores {
   difficult: number;
 }
 
+export interface PowerUps {
+  potion: number;
+  dust: number;
+  powder: number;
+  firefly: number;
+}
+
 interface GameState {
   coins: number;
   highScores: HighScores;
   ownedAccessories: string[];
   equippedAccessories: Record<AccessoryType, string | null>;
+  powerUps: PowerUps;
   addCoins: (amount: number) => void;
   buyAccessory: (accessory: Accessory) => boolean;
   equipAccessory: (type: AccessoryType, id: string | null) => void;
+  buyPowerUp: (id: keyof PowerUps, price: number) => boolean;
+  usePowerUp: (id: keyof PowerUps) => boolean;
   loadFromDb: (userId: string) => Promise<void>;
   syncCoinsToDb: (userId: string) => Promise<void>;
   buyAccessoryForUser: (userId: string, accessory: Accessory) => Promise<boolean>;
+  buyPowerUpForUser: (userId: string, id: keyof PowerUps, price: number) => Promise<boolean>;
+  usePowerUpForUser: (userId: string, id: keyof PowerUps) => Promise<boolean>;
   updateHighScore: (difficulty: keyof HighScores, score: number) => void;
   resetForGuest: () => void;
 }
@@ -48,6 +60,7 @@ export const useGameState = create<GameState>()(
         clothes: null,
         shoes: null,
       },
+      powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
       addCoins: (amount) => set((state) => ({ coins: state.coins + amount })),
       buyAccessory: (accessory) => {
         const { coins, ownedAccessories } = get();
@@ -64,6 +77,29 @@ export const useGameState = create<GameState>()(
         set((state) => ({
           equippedAccessories: { ...state.equippedAccessories, [type]: id },
         })),
+
+      buyPowerUp: (id, price) => {
+        const { coins } = get();
+        if (coins >= price) {
+          set((state) => ({
+            coins: state.coins - price,
+            powerUps: { ...state.powerUps, [id]: state.powerUps[id] + 1 },
+          }));
+          return true;
+        }
+        return false;
+      },
+
+      usePowerUp: (id) => {
+        const { powerUps } = get();
+        if (powerUps[id] > 0) {
+          set((state) => ({
+            powerUps: { ...state.powerUps, [id]: state.powerUps[id] - 1 },
+          }));
+          return true;
+        }
+        return false;
+      },
 
       updateHighScore: (difficulty, score) =>
         set((state) => {
@@ -83,6 +119,8 @@ export const useGameState = create<GameState>()(
         try {
           const profile = await db.getProfile(userId);
           const accessories = await db.getUserAccessories(userId);
+          const dbPowerUps = await db.getUserPowerUps(userId);
+          const dbHighScores = await db.getUserHighScores(userId);
 
           if (profile) {
             const ownedIds = accessories.map((a) => a.accessory_id);
@@ -106,6 +144,8 @@ export const useGameState = create<GameState>()(
               coins: profile.coins,
               ownedAccessories: [...DEFAULT_ACCESSORIES, ...ownedIds],
               equippedAccessories: equipped,
+              powerUps: dbPowerUps || { potion: 0, dust: 0, powder: 0, firefly: 0 },
+              highScores: dbHighScores,
             });
           }
         } catch (e) {
@@ -139,6 +179,39 @@ export const useGameState = create<GameState>()(
         return false;
       },
 
+      buyPowerUpForUser: async (userId, id, price) => {
+        const { coins, powerUps } = get();
+        if (coins >= price) {
+          const newCoins = coins - price;
+          const newPowerUps = { ...powerUps, [id]: powerUps[id] + 1 };
+          
+          set({
+            coins: newCoins,
+            powerUps: newPowerUps,
+          });
+          
+          await db.updateCoins(userId, newCoins);
+          await db.updateUserPowerUps(userId, newPowerUps);
+          return true;
+        }
+        return false;
+      },
+
+      usePowerUpForUser: async (userId, id) => {
+        const { powerUps } = get();
+        if (powerUps[id] > 0) {
+          const newPowerUps = { ...powerUps, [id]: powerUps[id] - 1 };
+          
+          set({
+            powerUps: newPowerUps,
+          });
+          
+          await db.updateUserPowerUps(userId, newPowerUps);
+          return true;
+        }
+        return false;
+      },
+
       // Reset state for guest mode
       resetForGuest: () =>
         set({
@@ -146,6 +219,7 @@ export const useGameState = create<GameState>()(
           highScores: { easy: 0, average: 0, difficult: 0 },
           ownedAccessories: [...DEFAULT_ACCESSORIES],
           equippedAccessories: { hair: null, face: null, clothes: null, shoes: null },
+          powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
         }),
     }),
     {

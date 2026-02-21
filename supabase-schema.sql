@@ -70,3 +70,26 @@ create policy "Users can read own game sessions"
 create policy "Users can insert own game sessions"
   on public.game_sessions for insert
   with check (auth.uid() = user_id);
+
+-- 4. User Power-Ups table
+create table if not exists public.user_powerups (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  potion integer not null default 0,
+  dust integer not null default 0,
+  powder integer not null default 0,
+  firefly integer not null default 0
+);
+
+alter table public.user_powerups enable row level security;
+
+create policy "Users can read own powerups"
+  on public.user_powerups for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own powerups"
+  on public.user_powerups for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own powerups"
+  on public.user_powerups for update
+  using (auth.uid() = user_id);

@@ -4,12 +4,18 @@
 
 MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native) and an Express backend. Aligned with the MATATAG curriculum by DepEd for Grade 1. Players choose a difficulty level (Easy, Average, Difficult) and answer timed math problems (addition, subtraction up to 3 digits; multiplication and division of 1-digit numbers). The stickman starts fully drawn and loses body parts with each wrong answer (legs first, then arms, then head rolls off). 5 attempts total. Results are shown at the end.
 
-## User Preferences
+## Features & Progress
 
-- Color scheme: Green primary (#2ECC71), Yellow secondary (#F1C40F), Baby pink tertiary (#FFB6C1)
-- Stickman mechanic: Starts complete, loses parts on wrong answers (legs -> arms -> head rolls off)
-- Timer: Easy=60s, Average=45s, Difficult=30s
-- Preferred communication style: Simple, everyday language.
+- **Authentication**: Guest mode or local user accounts stored via Supabase (SQLite in-app for now).
+- **Character Shop**: Earn coins by answering questions correctly. Spend coins to buy hats, glasses, shirts, and shoes to customize your Stickman.
+- **Magic Shop**: Buy consumable power-ups:
+  - **Pixie Patch Potion**: Heals 1 body part
+  - **Moonlit Minute Dust**: Adds 30s to the timer (with floating +30s animation)
+  - **Aurora Pause Powder**: Freezes time for 30s (with falling snowflakes and cyan countdown)
+  - **Hinting Firefly**: Reveals a digit of the answer
+- **Color scheme**: Green primary (#2ECC71), Yellow secondary (#F1C40F), Baby pink tertiary (#FFB6C1), Purple (#9b59b6) for scribbling.
+- **Stickman mechanic**: Starts complete, loses parts on wrong answers (legs -> arms -> head rolls off).
+- **Timer**: Easy=60s, Average=45s, Difficult=30s.
 
 ## System Architecture
 
@@ -17,17 +23,22 @@ MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native
 - **Framework**: Expo SDK 54 with expo-router for file-based routing
 - **Screens**: Three main screens managed by expo-router Stack navigation
   - `app/index.tsx` — Home/difficulty selection screen
-  - `app/game.tsx` — Active game screen with math problems, timer, stickman, and number pad
-  - `app/results.tsx` — Results summary screen after game ends
-- **Animations**: react-native-reanimated for smooth animations (floating shapes, stickman shake, head rolling, timer pulse)
-- **Fonts**: Fredoka font family (Regular, Medium, SemiBold, Bold) via @expo-google-fonts
-- **Haptics**: expo-haptics for tactile feedback on button presses
-- **State Management**: Local component state (useState) for game logic
+  - `app/auth.tsx` — Registration and login
+  - `app/shop.tsx` — Character and Magic Shop for spending coins
+  - `app/game.tsx` — Active game screen with math problems, timer, stickman, number pad, and power-up buttons
+  - `app/results.tsx` — Results summary screen
+- **Animations**: react-native-reanimated for smooth animations (floating shapes, stickman shake, head rolling, timer pulse, snowflakes)
+- **Audio**: expo-audio for sound effects (ping, go, tick, purchase)
+- **Fonts**: Fredoka font family via @expo-google-fonts
+- **Haptics**: expo-haptics for tactile feedback
+- **State Management**: Zustand with AsyncStorage persistence for tracking coins, accessories, high scores, and power-up inventory (`hooks/useGameState.ts`)
+- **Database**: Local SQLite and Supabase for user persistence (`lib/db.ts`)
 - **Key Components**:
-  - `Stickman` — SVG stickman that starts complete and loses body parts on wrong answers. Head rolls off on 5th wrong.
-  - `NumberPad` — Custom numeric input pad with green submit, pink delete
-  - `Timer` — Circular countdown timer with color changes (green->yellow->red)
-  - `ErrorBoundary` / `ErrorFallback` — Error handling with restart capability
+  - `Stickman` — SVG stickman that loses body parts on wrong answers.
+  - `NumberPad` — Custom numeric input pad
+  - `Timer` — Circular countdown timer with color changes
+  - `Snowflakes` — Falling snow animation for the time freeze effect
+  - `ScribbleArea` — Drawing canvas for scratchpad math
 
 ### Game Logic (`lib/math-engine.ts`)
 - Generates random math problems based on difficulty

@@ -26,7 +26,9 @@ import Stickman from '@/components/Stickman';
 import NumberPad from '@/components/NumberPad';
 import Timer from '@/components/Timer';
 import ScribbleArea from '@/components/ScribbleArea';
+import Snowflakes from '@/components/Snowflakes';
 import { useGameState } from '@/hooks/useGameState';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   generateProblem,
   getTimeLimit,
@@ -62,6 +64,14 @@ export default function GameScreen() {
   const [gameOver, setGameOver] = useState(false);
   const [scribbleMode, setScribbleMode] = useState(false);
   const [preGameCountdown, setPreGameCountdown] = useState<number | 'GO' | null>(3);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [freezeTimeLeft, setFreezeTimeLeft] = useState(0);
+  const [addedTimeAnim, setAddedTimeAnim] = useState(0); // Trigger for +30s animation
+
+  const isTimerPausedRef = useRef(false);
+
+  const { powerUps, usePowerUp, usePowerUpForUser } = useGameState();
+  const { user, isGuest } = useAuth();
 
   const pingPlayer = useAudioPlayer(require('@/assets/sounds/ping.wav'));
   const goPlayer = useAudioPlayer(require('@/assets/sounds/go.wav'));
@@ -76,6 +86,18 @@ export default function GameScreen() {
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
+      if (isTimerPausedRef.current) {
+        setFreezeTimeLeft((prev) => {
+          if (prev <= 1) {
+            isTimerPausedRef.current = false;
+            setIsTimerPaused(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+        return; // Skip main timer decrement
+      }
+
       setTimeLeft((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
@@ -137,10 +159,16 @@ export default function GameScreen() {
   }, [timeLeft, preGameCountdown, gameOver, isTransitioning, tickPlayer]);
 
   useEffect(() => {
-    if (timeLeft === 0 && !isTransitioning && !gameOver && preGameCountdown === null) {
+    if (timeLeft === 0 && !isTransitioning && !gameOver && preGameCountdown === null && !isTimerPausedRef.current) {
       handleTimeout();
     }
   }, [timeLeft, isTransitioning, gameOver, preGameCountdown]);
+
+  const clearPowderEffect = () => {
+    isTimerPausedRef.current = false;
+    setIsTimerPaused(false);
+    setFreezeTimeLeft(0);
+  };
 
   const handleTimeout = () => {
     stopTimer();
@@ -248,6 +276,7 @@ export default function GameScreen() {
     setTimeLeft(timeLimit);
     setFeedback(null);
     setIsTransitioning(false);
+    clearPowderEffect();
 
     feedbackOpacity.value = 0;
 
@@ -289,6 +318,71 @@ export default function GameScreen() {
   const handleDelete = () => {
     if (isTransitioning || gameOver || preGameCountdown !== null) return;
     setUserInput((prev) => prev.slice(0, -1));
+  };
+
+  const handleUsePotion = async () => {
+    if (wrongCount > 0) {
+      let used = false;
+      if (!isGuest && user) {
+        used = await usePowerUpForUser(user.id, 'potion');
+      } else {
+        used = usePowerUp('potion');
+      }
+
+      if (used) {
+        setWrongCount(prev => prev - 1);
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }
+  };
+
+  const handleUseDust = async () => {
+    let used = false;
+    if (!isGuest && user) {
+      used = await usePowerUpForUser(user.id, 'dust');
+    } else {
+      used = usePowerUp('dust');
+    }
+
+    if (used) {
+      setTimeLeft(prev => prev + 30);
+      setAddedTimeAnim(prev => prev + 1); // Trigger animation re-render
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleUsePowder = async () => {
+    let used = false;
+    if (!isGuest && user) {
+      used = await usePowerUpForUser(user.id, 'powder');
+    } else {
+      used = usePowerUp('powder');
+    }
+
+    if (used) {
+      isTimerPausedRef.current = true;
+      setIsTimerPaused(true);
+      setFreezeTimeLeft(30);
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleUseFirefly = async () => {
+    let used = false;
+    if (!isGuest && user) {
+      used = await usePowerUpForUser(user.id, 'firefly');
+    } else {
+      used = usePowerUp('firefly');
+    }
+
+    if (used) {
+      const ansStr = currentProblem.answer.toString();
+      const currentLen = userInput.length;
+      if (currentLen < ansStr.length) {
+        setUserInput(prev => prev + ansStr[currentLen]);
+      }
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   };
 
   const feedbackAnimStyle = useAnimatedStyle(() => ({
@@ -345,7 +439,19 @@ export default function GameScreen() {
             Q{questionNum}/{totalQ}
           </Text>
         </View>
-        <Timer timeLeft={timeLeft} totalTime={timeLimit} />
+        <View style={{ position: 'relative' }}>
+          <Timer timeLeft={timeLeft} totalTime={timeLimit} isPaused={isTimerPaused} />
+          {addedTimeAnim > 0 && (
+            <Animated.Text
+              key={addedTimeAnim}
+              entering={FadeIn.duration(200).withInitialValues({ transform: [{ translateY: 10 }] })}
+              exiting={FadeOut.duration(400)}
+              style={styles.addedTimeText}
+            >
+              +30s
+            </Animated.Text>
+          )}
+        </View>
       </View>
 
       <View style={styles.scoreRow}>
@@ -364,6 +470,15 @@ export default function GameScreen() {
           ))}
         </View>
       </View>
+
+      {isTimerPaused && (
+        <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(300)} style={styles.freezeBanner}>
+          <Ionicons name="snow" size={20} color="#00BCD4" />
+          <Text style={styles.freezeBannerText}>Time Frozen: {freezeTimeLeft}s</Text>
+        </Animated.View>
+      )}
+
+      {isTimerPaused && <Snowflakes />}
 
       <View style={styles.gameArea}>
         <View style={styles.stickmanArea}>
@@ -413,6 +528,52 @@ export default function GameScreen() {
               <Ionicons name="pencil" size={18} color={Colors.textWhite} />
             </Pressable>
           </View>
+
+          {(powerUps.potion > 0 || powerUps.dust > 0 || powerUps.powder > 0 || powerUps.firefly > 0) && (
+            <View style={styles.powerUpRow}>
+              {powerUps.potion > 0 && (
+                <Pressable
+                  style={[styles.powerUpBtn, {backgroundColor: '#E91E63'}]}
+                  onPress={handleUsePotion}
+                  disabled={wrongCount === 0 || isTransitioning || gameOver || preGameCountdown !== null}
+                >
+                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.potion}</Text></View>
+                  <Ionicons name="flask" size={24} color="#fff" />
+                </Pressable>
+              )}
+              {powerUps.dust > 0 && (
+                <Pressable
+                  style={[styles.powerUpBtn, {backgroundColor: '#9C27B0'}]}
+                  onPress={handleUseDust}
+                  disabled={isTransitioning || gameOver || preGameCountdown !== null}
+                >
+                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.dust}</Text></View>
+                  <Ionicons name="hourglass" size={24} color="#fff" />
+                </Pressable>
+              )}
+              {powerUps.powder > 0 && (
+                <Pressable
+                  style={[styles.powerUpBtn, {backgroundColor: '#00BCD4'}]}
+                  onPress={handleUsePowder}
+                  disabled={isTimerPaused || isTransitioning || gameOver || preGameCountdown !== null}
+                >
+                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.powder}</Text></View>
+                  <Ionicons name="snow" size={24} color="#fff" />
+                </Pressable>
+              )}
+              {powerUps.firefly > 0 && (
+                <Pressable
+                  style={[styles.powerUpBtn, {backgroundColor: '#FFC107'}]}
+                  onPress={handleUseFirefly}
+                  disabled={userInput.length >= currentProblem.answer.toString().length || isTransitioning || gameOver || preGameCountdown !== null}
+                >
+                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.firefly}</Text></View>
+                  <Ionicons name="bulb" size={24} color="#fff" />
+                </Pressable>
+              )}
+            </View>
+          )}
+
           <NumberPad
             onPress={handleNumberPress}
             onDelete={handleDelete}
@@ -590,6 +751,63 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+  powerUpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  powerUpBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  powerUpQtyBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: Colors.text,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.background,
+    zIndex: 10,
+  },
+  powerUpQtyText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'Fredoka_700Bold',
+  },
+  freezeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+    marginHorizontal: 30,
+    marginBottom: 8,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 188, 212, 0.3)',
+    gap: 8,
+    zIndex: 10,
+  },
+  freezeBannerText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 14,
+    color: '#00BCD4',
+  },
   countdownOverlay: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
@@ -603,5 +821,17 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 10,
+  },
+  addedTimeText: {
+    position: 'absolute',
+    right: 0,
+    bottom: -20,
+    fontSize: 14,
+    fontFamily: 'Fredoka_700Bold',
+    color: Colors.primary,
+    textShadowColor: 'rgba(255,255,255,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    zIndex: 10,
   },
 });

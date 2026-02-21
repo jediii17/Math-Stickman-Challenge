@@ -69,6 +69,42 @@ export async function setEquipped(userId: string, accessoryId: string, equipped:
   if (error) throw error;
 }
 
+// --- Power Ups ---
+
+export async function getUserPowerUps(userId: string) {
+  const { data, error } = await supabase
+    .from('user_powerups')
+    .select('potion, dust, powder, firefly')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // Row doesn't exist yet, insert default 0s
+      const defaultPowerUps = { user_id: userId, potion: 0, dust: 0, powder: 0, firefly: 0 };
+      await supabase.from('user_powerups').insert(defaultPowerUps);
+      return { potion: 0, dust: 0, powder: 0, firefly: 0 };
+    }
+    return null;
+  }
+  return data as { potion: number; dust: number; powder: number; firefly: number };
+}
+
+export async function updateUserPowerUps(
+  userId: string,
+  powerUps: { potion: number; dust: number; powder: number; firefly: number }
+) {
+  const { error } = await supabase
+    .from('user_powerups')
+    .update(powerUps)
+    .eq('user_id', userId);
+  
+  if (error) {
+    // If update fails, maybe row doesn't exist, try upsert
+    await supabase.from('user_powerups').upsert({ user_id: userId, ...powerUps }, { onConflict: 'user_id' });
+  }
+}
+
 // --- Game Sessions ---
 
 export async function saveGameSession(
@@ -90,4 +126,24 @@ export async function saveGameSession(
       coins_earned: coinsEarned,
     });
   if (error) throw error;
+}
+
+export async function getUserHighScores(userId: string) {
+  const { data, error } = await supabase
+    .from('game_sessions')
+    .select('difficulty, score')
+    .eq('user_id', userId);
+
+  const highScores = { easy: 0, average: 0, difficult: 0 };
+  
+  if (!error && data) {
+    data.forEach(row => {
+      const diff = row.difficulty as 'easy' | 'average' | 'difficult';
+      if (diff && highScores[diff] !== undefined && row.score > highScores[diff]) {
+        highScores[diff] = row.score;
+      }
+    });
+  }
+
+  return highScores;
 }

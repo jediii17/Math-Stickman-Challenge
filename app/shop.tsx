@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { useGameState, Accessory } from '@/hooks/useGameState';
+import { useGameState, Accessory, PowerUps } from '@/hooks/useGameState';
 import Stickman from '@/components/Stickman';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudioPlayer } from 'expo-audio';
@@ -16,10 +16,27 @@ const SHOP_ITEMS: Accessory[] = [
   { id: 'shoes-1', type: 'shoes', name: 'Speed Boots', price: 60, owned: false },
 ];
 
+export interface MagicItem {
+  id: keyof PowerUps;
+  name: string;
+  description: string;
+  price: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}
+
+const MAGIC_ITEMS: MagicItem[] = [
+  { id: 'potion', name: 'Pixie Patch Potion', description: 'Heal 1 body part', price: 150, icon: 'flask', color: '#E91E63' },
+  { id: 'dust', name: 'Moonlit Minute Dust', description: '+30s to timer', price: 100, icon: 'hourglass', color: '#9C27B0' },
+  { id: 'powder', name: 'Aurora Pause Powder', description: 'Pause timer for 30s', price: 200, icon: 'snow', color: '#00BCD4' },
+  { id: 'firefly', name: 'Hinting Firefly', description: 'Show 1 digit of the answer', price: 80, icon: 'bulb', color: '#FFC107' },
+];
+
 export default function ShopScreen() {
+  const [activeTab, setActiveTab] = React.useState<'character' | 'magic'>('character');
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
-  const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser } = useGameState();
+  const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
   const renderItem = ({ item }: { item: Accessory }) => {
@@ -65,6 +82,46 @@ export default function ShopScreen() {
     );
   };
 
+  const renderMagicItem = ({ item }: { item: MagicItem }) => {
+    const quantity = powerUps[item.id];
+
+    return (
+      <View style={styles.itemCard}>
+        <View style={[styles.itemIcon, { backgroundColor: `${item.color}1A` }]}>
+          <Ionicons name={item.icon} size={32} color={item.color} />
+        </View>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
+        <View style={styles.priceRow}>
+          <Ionicons name="sparkles" size={14} color="#FFD700" />
+          <Text style={styles.itemPriceMagic}>{item.price}</Text>
+        </View>
+        <View style={styles.magicActionRow}>
+          <View style={styles.quantityBadge}>
+            <Text style={styles.quantityText}>x{quantity}</Text>
+          </View>
+          <Pressable
+            style={[styles.buyBtn, styles.magicBuyBtn]}
+            onPress={async () => {
+              if (coins >= item.price) {
+                purchasePlayer.seekTo(0);
+                purchasePlayer.play();
+                
+                if (!isGuest && user) {
+                  await buyPowerUpForUser(user.id, item.id, item.price);
+                } else {
+                  buyPowerUp(item.id, item.price);
+                }
+              }
+            }}
+          >
+            <Text style={styles.buyBtnText}>Buy</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -78,24 +135,53 @@ export default function ShopScreen() {
         </View>
       </View>
 
-      <View style={styles.previewArea}>
-        <Stickman wrongCount={0} size={180} />
+      <View style={styles.tabs}>
+        <Pressable
+          style={[styles.tab, activeTab === 'character' && styles.activeTab]}
+          onPress={() => setActiveTab('character')}
+        >
+          <Text style={[styles.tabText, activeTab === 'character' && styles.activeTabText]}>Character</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.tab, activeTab === 'magic' && styles.activeTab]}
+          onPress={() => setActiveTab('magic')}
+        >
+          <Text style={[styles.tabText, activeTab === 'magic' && styles.activeTabText]}>Magic Items</Text>
+        </Pressable>
       </View>
+
+      {activeTab === 'character' && (
+        <View style={styles.previewArea}>
+          <Stickman wrongCount={0} size={150} />
+        </View>
+      )}
 
       {isGuest && (
         <View style={styles.guestBanner}>
           <Ionicons name="information-circle" size={16} color={Colors.secondary} />
-          <Text style={styles.guestBannerText}>Login to save your purchases</Text>
+          <Text style={styles.guestBannerText}>Login to sync across devices!</Text>
         </View>
       )}
 
-      <FlatList
-        data={SHOP_ITEMS}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.list}
-      />
+      {activeTab === 'character' ? (
+        <FlatList
+          data={SHOP_ITEMS}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={MAGIC_ITEMS}
+          renderItem={renderMagicItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -120,12 +206,42 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   coinText: { fontSize: 16, fontFamily: 'Fredoka_700Bold', color: '#B8860B' },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  activeTab: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 15,
+    color: Colors.textLight,
+  },
+  activeTabText: {
+    color: Colors.primary,
+  },
   previewArea: {
-    height: 220,
+    height: 180,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.card,
-    margin: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
     borderRadius: 24,
   },
   list: { padding: 8 },
@@ -150,19 +266,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  itemName: { fontSize: 16, fontFamily: 'Fredoka_600SemiBold', color: Colors.text },
+  itemName: { fontSize: 15, fontFamily: 'Fredoka_600SemiBold', color: Colors.text, textAlign: 'center', minHeight: 40 },
+  itemDesc: { fontSize: 12, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, textAlign: 'center', marginBottom: 8, minHeight: 32 },
   itemPrice: { fontSize: 14, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, marginBottom: 12 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
+  itemPriceMagic: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: '#B8860B' },
   buyBtn: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
     width: '100%',
     alignItems: 'center',
   },
+  magicActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  quantityBadge: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quantityText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 14,
+    color: Colors.text,
+  },
+  magicBuyBtn: {
+    flex: 1,
+  },
   ownedBtn: { backgroundColor: Colors.secondary },
   equippedBtn: { backgroundColor: Colors.tertiary },
-  buyBtnText: { color: '#fff', fontFamily: 'Fredoka_600SemiBold' },
+  buyBtnText: { color: '#fff', fontFamily: 'Fredoka_600SemiBold', fontSize: 14 },
   guestBanner: {
     flexDirection: 'row',
     alignItems: 'center',

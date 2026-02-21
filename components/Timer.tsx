@@ -15,9 +15,10 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 interface TimerProps {
   timeLeft: number;
   totalTime: number;
+  isPaused?: boolean;
 }
 
-export default function Timer({ timeLeft, totalTime }: TimerProps) {
+export default function Timer({ timeLeft, totalTime, isPaused }: TimerProps) {
   const progress = timeLeft / totalTime;
   const size = 60;
   const strokeWidth = 4;
@@ -25,6 +26,7 @@ export default function Timer({ timeLeft, totalTime }: TimerProps) {
   const circumference = 2 * Math.PI * radius;
 
   const getColor = () => {
+    if (isPaused) return '#00BCD4'; // Cyan color for frozen state
     if (progress > 0.5) return Colors.timerGreen;
     if (progress > 0.25) return Colors.timerYellow;
     return Colors.timerRed;
