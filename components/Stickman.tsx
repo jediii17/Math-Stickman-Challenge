@@ -10,15 +10,17 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
-import { useGameState } from '@/hooks/useGameState';
+import { useGameState, AccessoryType } from '@/hooks/useGameState';
 
 interface StickmanProps {
   wrongCount: number;
   size?: number;
+  previewOverrides?: Partial<Record<AccessoryType, string | null>>;
 }
 
-export default function Stickman({ wrongCount, size = 200 }: StickmanProps) {
-  const equipped = useGameState((state) => state.equippedAccessories);
+export default function Stickman({ wrongCount, size = 200, previewOverrides }: StickmanProps) {
+  const storeEquipped = useGameState((state) => state.equippedAccessories);
+  const equipped = previewOverrides ? { ...storeEquipped, ...previewOverrides } : storeEquipped;
   const shake = useSharedValue(0);
   const scale = useSharedValue(1);
   const headRoll = useSharedValue(0);

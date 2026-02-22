@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { useGameState, Accessory, PowerUps } from '@/hooks/useGameState';
+import { useGameState, Accessory, PowerUps, AccessoryType } from '@/hooks/useGameState';
 import Stickman from '@/components/Stickman';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudioPlayer } from 'expo-audio';
@@ -51,6 +51,25 @@ const MAGIC_ITEMS: MagicItem[] = [
   { id: 'dust', name: 'Moonlit Minute Dust', description: '+30s to timer', price: 100, icon: 'hourglass', color: '#9C27B0' },
   { id: 'powder', name: 'Aurora Pause Powder', description: 'Pause timer for 30s', price: 200, icon: 'snow', color: '#00BCD4' },
   { id: 'firefly', name: 'Hinting Firefly', description: 'Show 1 digit of the answer', price: 80, icon: 'bulb', color: '#FFC107' },
+];
+
+// ─── Category definitions ───
+type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back';
+
+interface Category {
+  key: CategoryKey;
+  label: string;
+  emoji: string;
+  types: AccessoryType[];
+}
+
+const CATEGORIES: Category[] = [
+  { key: 'hair', label: 'Head', emoji: '👒', types: ['hair'] },
+  { key: 'face', label: 'Face', emoji: '👓', types: ['face'] },
+  { key: 'upper', label: 'Upper', emoji: '👕', types: ['upper'] },
+  { key: 'lower', label: 'Lower', emoji: '👖', types: ['lower'] },
+  { key: 'shoes', label: 'Shoes', emoji: '👟', types: ['shoes'] },
+  { key: 'back', label: 'Back', emoji: '🎒', types: ['back'] },
 ];
 
 const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: string }) => {
@@ -372,54 +391,122 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
 
 export default function ShopScreen() {
   const [activeTab, setActiveTab] = React.useState<'character' | 'magic'>('character');
+  const [activeCategory, setActiveCategory] = React.useState<CategoryKey>('hair');
+  const [trialItem, setTrialItem] = React.useState<{ id: string; type: AccessoryType } | null>(null);
+
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
   const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
+  // Build preview overrides from trial item
+  const previewOverrides: Partial<Record<AccessoryType, string | null>> | undefined = trialItem
+    ? { [trialItem.type]: trialItem.id }
+    : undefined;
+
+  // Filter items by active category
+  const categoryDef = CATEGORIES.find(c => c.key === activeCategory)!;
+  const filteredItems = SHOP_ITEMS.filter(item => categoryDef.types.includes(item.type));
+
+  const handleTryItem = (item: Accessory) => {
+    // Toggle trial: if same item, clear; otherwise set
+    if (trialItem?.id === item.id) {
+      setTrialItem(null);
+    } else {
+      setTrialItem({ id: item.id, type: item.type });
+    }
+  };
+
+  const handleBuyTrialItem = async () => {
+    if (!trialItem) return;
+    const item = SHOP_ITEMS.find(i => i.id === trialItem.id);
+    if (!item) return;
+    if (coins < item.price) return;
+
+    purchasePlayer.seekTo(0);
+    purchasePlayer.play();
+
+    if (!isGuest && user) {
+      await buyAccessoryForUser(user.id, item);
+    } else {
+      buyAccessory(item);
+    }
+    // After buying, auto-equip and clear trial
+    if (!isGuest && user) {
+      await equipAccessoryForUser(user.id, item.type, item.id);
+    } else {
+      equipAccessory(item.type, item.id);
+    }
+    setTrialItem(null);
+  };
+
+  const handleCategoryChange = (key: CategoryKey) => {
+    setActiveCategory(key);
+    setTrialItem(null); // Clear trial when switching categories
+  };
+
   const renderItem = ({ item }: { item: Accessory }) => {
     const isOwned = ownedAccessories.includes(item.id);
     const isEquipped = Object.values(equippedAccessories).includes(item.id);
+    const isTrying = trialItem?.id === item.id;
 
     return (
-      <View style={styles.itemCard}>
-        <View style={[styles.itemIcon, { backgroundColor: 'rgba(46, 204, 113, 0.1)' }]}>
+      <View style={[styles.itemCard, isTrying && styles.itemCardTrial]}>
+        <View style={[styles.itemIcon, { backgroundColor: isTrying ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.06)' }]}>
           <AccessoryIcon id={item.id} color={Colors.primary} />
         </View>
         <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>{item.price} coins</Text>
-        <Pressable
-          style={[
-            styles.buyBtn,
-            isOwned && styles.ownedBtn,
-            isEquipped && styles.equippedBtn
-          ]}
-          onPress={async () => {
-            if (!isOwned) {
-              // Optimistic audio
-              if (coins >= item.price) {
-                purchasePlayer.seekTo(0);
-                purchasePlayer.play();
-              }
-
-              if (!isGuest && user) {
-                await buyAccessoryForUser(user.id, item);
-              } else {
-                buyAccessory(item);
-              }
-            } else {
+        {!isOwned && (
+          <View style={styles.priceRow}>
+            <Ionicons name="sparkles" size={13} color="#FFD700" />
+            <Text style={styles.itemPrice}>{item.price}</Text>
+          </View>
+        )}
+        {isOwned ? (
+          <Pressable
+            style={[styles.actionBtn, isEquipped ? styles.equippedBtn : styles.equipBtn]}
+            onPress={async () => {
               if (!isGuest && user) {
                 await equipAccessoryForUser(user.id, item.type, isEquipped ? null : item.id);
               } else {
                 equipAccessory(item.type, isEquipped ? null : item.id);
               }
-            }
-          }}
-        >
-          <Text style={styles.buyBtnText}>
-            {!isOwned ? 'Buy' : isEquipped ? 'Unequip' : 'Equip'}
-          </Text>
-        </Pressable>
+            }}
+          >
+            <Ionicons name={isEquipped ? 'checkmark-circle' : 'add-circle-outline'} size={16} color="#fff" />
+            <Text style={styles.actionBtnText}>{isEquipped ? 'Equipped' : 'Equip'}</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.dualBtnRow}>
+            <Pressable
+              style={[styles.actionBtn, styles.tryBtnHalf, isTrying && styles.tryingBtn]}
+              onPress={() => handleTryItem(item)}
+            >
+              <Ionicons name={isTrying ? 'eye' : 'eye-outline'} size={14} color="#fff" />
+              <Text style={styles.actionBtnText}>{isTrying ? 'Trying' : 'Try'}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, styles.buyBtnHalf]}
+              onPress={async () => {
+                if (coins >= item.price) {
+                  purchasePlayer.seekTo(0);
+                  purchasePlayer.play();
+                  if (!isGuest && user) {
+                    await buyAccessoryForUser(user.id, item);
+                    await equipAccessoryForUser(user.id, item.type, item.id);
+                  } else {
+                    buyAccessory(item);
+                    equipAccessory(item.type, item.id);
+                  }
+                  if (trialItem?.id === item.id) setTrialItem(null);
+                }
+              }}
+            >
+              <Ionicons name="cart-outline" size={14} color="#fff" />
+              <Text style={styles.actionBtnText}>Buy</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     );
   };
@@ -443,7 +530,7 @@ export default function ShopScreen() {
             <Text style={styles.quantityText}>x{quantity}</Text>
           </View>
           <Pressable
-            style={[styles.buyBtn, styles.magicBuyBtn]}
+            style={[styles.actionBtn, styles.magicBuyBtn]}
             onPress={async () => {
               if (coins >= item.price) {
                 purchasePlayer.seekTo(0);
@@ -457,7 +544,7 @@ export default function ShopScreen() {
               }
             }}
           >
-            <Text style={styles.buyBtnText}>Buy</Text>
+            <Text style={styles.actionBtnText}>Buy</Text>
           </Pressable>
         </View>
       </View>
@@ -466,6 +553,7 @@ export default function ShopScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
@@ -477,25 +565,59 @@ export default function ShopScreen() {
         </View>
       </View>
 
+      {/* ── Top-level tabs ── */}
       <View style={styles.tabs}>
         <Pressable
           style={[styles.tab, activeTab === 'character' && styles.activeTab]}
-          onPress={() => setActiveTab('character')}
+          onPress={() => { setActiveTab('character'); setTrialItem(null); }}
         >
           <Text style={[styles.tabText, activeTab === 'character' && styles.activeTabText]}>Character</Text>
         </Pressable>
         <Pressable
           style={[styles.tab, activeTab === 'magic' && styles.activeTab]}
-          onPress={() => setActiveTab('magic')}
+          onPress={() => { setActiveTab('magic'); setTrialItem(null); }}
         >
           <Text style={[styles.tabText, activeTab === 'magic' && styles.activeTabText]}>Magic Items</Text>
         </Pressable>
       </View>
 
+      {/* ── Character tab content ── */}
       {activeTab === 'character' && (
-        <View style={styles.previewArea}>
-          <Stickman wrongCount={0} size={150} />
-        </View>
+        <>
+          {/* Preview area with trial badge */}
+          <View style={[styles.previewArea, trialItem && styles.previewAreaTrial]}>
+            <Stickman wrongCount={0} size={150} previewOverrides={previewOverrides} />
+            {trialItem && (
+              <View style={styles.trialBadge}>
+                <Ionicons name="eye" size={12} color={Colors.primary} />
+                <Text style={styles.trialBadgeText}>Previewing</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Category bar */}
+          <View style={styles.categoryBar}>
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCategory === cat.key;
+              const count = SHOP_ITEMS.filter(i => cat.types.includes(i.type)).length;
+              return (
+                <Pressable
+                  key={cat.key}
+                  style={[styles.categoryPill, isActive && styles.categoryPillActive]}
+                  onPress={() => handleCategoryChange(cat.key)}
+                >
+                  <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+                  <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
+                    {cat.label}
+                  </Text>
+                  <View style={[styles.categoryCountBadge, isActive && styles.categoryCountBadgeActive]}>
+                    <Text style={[styles.categoryCountText, isActive && styles.categoryCountTextActive]}>{count}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
       )}
 
       {isGuest && (
@@ -505,9 +627,10 @@ export default function ShopScreen() {
         </View>
       )}
 
+      {/* ── Item grid ── */}
       {activeTab === 'character' ? (
         <FlatList
-          data={SHOP_ITEMS}
+          data={filteredItems}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           numColumns={2}
@@ -577,49 +700,172 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: Colors.primary,
   },
+
+  // ── Preview ──
   previewArea: {
     height: 180,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.card,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
+  previewAreaTrial: {
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+  },
+  trialBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(46, 204, 113, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  trialBadgeText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 11,
+    color: Colors.primary,
+  },
+
+  // ── Category bar ──
+  categoryBar: {
+    flexDirection: 'row',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 16,
+    padding: 4,
+  },
+  categoryPill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    gap: 2,
+  },
+  categoryPillActive: {
+    backgroundColor: '#fff',
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  categoryEmoji: {
+    fontSize: 18,
+  },
+  categoryPillText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 11,
+    color: Colors.textLight,
+  },
+  categoryPillTextActive: {
+    color: Colors.primary,
+  },
+  categoryCountBadge: {
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: 'center',
+  },
+  categoryCountBadgeActive: {
+    backgroundColor: 'rgba(46, 204, 113, 0.15)',
+  },
+  categoryCountText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 10,
+    color: Colors.textLight,
+  },
+  categoryCountTextActive: {
+    color: Colors.primary,
+  },
+
+  // ── Item grid ──
   list: { padding: 8 },
   itemCard: {
     flex: 1,
     backgroundColor: Colors.card,
     margin: 8,
-    padding: 16,
+    padding: 14,
     borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  itemCardTrial: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(46, 204, 113, 0.04)',
   },
   itemIcon: {
     width: 60,
     height: 60,
-    backgroundColor: 'rgba(46, 204, 113, 0.1)',
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  itemName: { fontSize: 15, fontFamily: 'Fredoka_600SemiBold', color: Colors.text, textAlign: 'center', minHeight: 40 },
+  itemName: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: Colors.text, textAlign: 'center', minHeight: 36 },
   itemDesc: { fontSize: 12, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, textAlign: 'center', marginBottom: 8, minHeight: 32 },
-  itemPrice: { fontSize: 14, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, marginBottom: 12 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
+  itemPrice: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: '#B8860B' },
   itemPriceMagic: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: '#B8860B' },
-  buyBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    width: '100%',
+
+  // ── Action buttons ──
+  actionBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    width: '100%',
+  },
+  actionBtnText: { color: '#fff', fontFamily: 'Fredoka_600SemiBold', fontSize: 13 },
+  tryBtn: {
+    backgroundColor: Colors.blue,
+  },
+  tryingBtn: {
+    backgroundColor: Colors.primary,
+  },
+  dualBtnRow: {
+    flexDirection: 'row',
+    gap: 6,
+    width: '100%',
+  },
+  tryBtnHalf: {
+    flex: 1,
+    backgroundColor: Colors.blue,
+  },
+  buyBtnHalf: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  equipBtn: {
+    backgroundColor: Colors.secondary,
+  },
+  equippedBtn: {
+    backgroundColor: Colors.tertiary,
+  },
+  magicBuyBtn: {
+    backgroundColor: Colors.primary,
+    flex: 1,
   },
   magicActionRow: {
     flexDirection: 'row',
@@ -640,12 +886,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text,
   },
-  magicBuyBtn: {
-    flex: 1,
-  },
-  ownedBtn: { backgroundColor: Colors.secondary },
-  equippedBtn: { backgroundColor: Colors.tertiary },
-  buyBtnText: { color: '#fff', fontFamily: 'Fredoka_600SemiBold', fontSize: 14 },
+
+  // ── Guest banner ──
   guestBanner: {
     flexDirection: 'row',
     alignItems: 'center',
