@@ -16,9 +16,10 @@ interface StickmanProps {
   wrongCount: number;
   size?: number;
   previewOverrides?: Partial<Record<AccessoryType, string | null>>;
+  hideArms?: boolean;
 }
 
-export default function Stickman({ wrongCount, size = 200, previewOverrides }: StickmanProps) {
+export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false }: StickmanProps) {
   const storeEquipped = useGameState((state) => state.equippedAccessories);
   const equipped = previewOverrides ? { ...storeEquipped, ...previewOverrides } : storeEquipped;
   const shake = useSharedValue(0);
@@ -885,7 +886,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides }: S
           )}
 
           {/* ── Left Arm ── */}
-          {showLA ? (
+          {!hideArms && showLA ? (
             <G>
               <Line
                 x1={cx}
@@ -922,7 +923,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides }: S
           )}
 
           {/* ── Right Arm ── */}
-          {showRA ? (
+          {!hideArms && showRA ? (
             <G>
               <Line
                 x1={cx}

@@ -5,19 +5,19 @@ import { supabase } from './supabase';
 export async function createProfile(userId: string, username: string, recoveryPhraseHash: string) {
   const { error } = await supabase
     .from('profiles')
-    .insert({ id: userId, username, coins: 0, recovery_phrase_hash: recoveryPhraseHash });
+    .insert({ id: userId, username, coins: 0, recovery_phrase_hash: recoveryPhraseHash, classic_level: 1 });
   if (error) throw error;
-  return { id: userId, username, coins: 0 };
+  return { id: userId, username, coins: 0, classic_level: 1 };
 }
 
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, coins')
+    .select('id, username, coins, classic_level')
     .eq('id', userId)
     .single();
   if (error) return null;
-  return data as { id: string; username: string; coins: number };
+  return data as { id: string; username: string; coins: number; classic_level: number };
 }
 
 export async function getUserById(userId: string) {
@@ -50,6 +50,16 @@ export async function addCoins(userId: string, amount: number) {
   if (!profile) return;
   const newCoins = profile.coins + amount;
   await updateCoins(userId, newCoins);
+}
+
+// --- Progression ---
+
+export async function updateClassicLevel(userId: string, level: number) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ classic_level: level })
+    .eq('id', userId);
+  if (error) throw error;
 }
 
 // --- Accessories ---
@@ -88,8 +98,9 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
 
   if (type === 'hair') unequipQuery = unequipQuery.like('accessory_id', 'hat-%');
   else if (type === 'face') unequipQuery = unequipQuery.like('accessory_id', 'glasses-%');
-  else if (type === 'back') unequipQuery = unequipQuery.eq('accessory_id', 'shirt-1');
-  else if (type === 'clothes') unequipQuery = unequipQuery.like('accessory_id', 'shirt-%').neq('accessory_id', 'shirt-1');
+  else if (type === 'back') unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
+  else if (type === 'upper') unequipQuery = unequipQuery.like('accessory_id', 'shirt-%').neq('accessory_id', 'shirt-1').neq('accessory_id', 'shirt-5');
+  else if (type === 'lower') unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
   else if (type === 'shoes') unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
 
   const { error: unequipError } = await unequipQuery;
@@ -189,4 +200,34 @@ export async function getUserHighScores(userId: string) {
   }
 
   return highScores;
+}
+
+// --- Leaderboard ---
+
+export async function getLeaderboard(limit: number = 50, offset: number = 0) {
+  // Try RPC first (server-side RANK)
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc('get_leaderboard', { result_limit: limit, result_offset: offset });
+
+  if (!rpcError && rpcData) {
+    return rpcData as { id: string; username: string; coins: number; rank: number }[];
+  }
+
+  // Fallback: direct query with client-side ranking
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, coins')
+    .order('coins', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Leaderboard query error:', JSON.stringify(error));
+    return [];
+  }
+
+  // Add client-side rank
+  return (data || []).map((entry, i) => ({
+    ...entry,
+    rank: offset + i + 1,
+  })) as { id: string; username: string; coins: number; rank: number }[];
 }

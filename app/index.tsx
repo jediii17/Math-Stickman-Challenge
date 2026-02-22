@@ -210,17 +210,44 @@ export default function HomeScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Shop button */}
-          <Animated.View entering={FadeInUp.delay(750).springify()} style={{ width: '100%', alignItems: 'center' }}>
+          {/* Shop & Leaderboard row */}
+          <Animated.View entering={FadeInUp.delay(750).springify()} style={styles.secondaryRow}>
+            {/* Shop Button */}
             <Pressable
               onPress={() => router.push('/shop')}
               style={({ pressed }) => [
-                styles.shopBtn,
+                styles.secondaryBtnWrapper,
                 pressed && { transform: [{ scale: 0.96 }] },
               ]}
             >
-              <Ionicons name="bag-handle" size={24} color={Colors.primary} />
-              <Text style={styles.shopBtnText}>Shop</Text>
+              <LinearGradient
+                colors={['#3498DB', '#2980B9']}
+                style={styles.secondaryBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="bag-handle" size={24} color="#fff" />
+                <Text style={styles.secondaryBtnText}>Shop</Text>
+              </LinearGradient>
+            </Pressable>
+
+            {/* Leaderboard Button */}
+            <Pressable
+              onPress={() => router.push('/leaderboard')}
+              style={({ pressed }) => [
+                styles.secondaryBtnWrapper,
+                pressed && { transform: [{ scale: 0.96 }] },
+              ]}
+            >
+              <LinearGradient
+                colors={['#F1C40F', '#F39C12']}
+                style={styles.secondaryBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="trophy" size={24} color="#fff" />
+                <Text style={styles.secondaryBtnText}>Leaderboard</Text>
+              </LinearGradient>
             </Pressable>
           </Animated.View>
         </View>
@@ -389,5 +416,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Fredoka_700Bold',
     color: Colors.primary,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    width: width - 56,
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  secondaryBtnWrapper: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  secondaryBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+  secondaryBtnText: {
+    fontSize: 18,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

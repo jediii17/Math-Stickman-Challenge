@@ -14,6 +14,7 @@ import Animated, {
   withDelay,
   Easing,
   FadeInDown,
+  FadeInUp,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import type { Difficulty } from '@/lib/math-engine';
@@ -23,12 +24,12 @@ import { useAuth } from '@/contexts/AuthContext';
 const { width } = Dimensions.get('window');
 
 const difficulties: { key: Difficulty; label: string; icon: string; color: string; desc: string; gradient: [string, string] }[] = [
-  { key: 'easy', label: 'Easy', icon: 'star-outline', color: Colors.primary, desc: '1-digit add/sub\n60s per question', gradient: ['#2ECC71', '#27AE60'] },
-  { key: 'average', label: 'Average', icon: 'star-half-full', color: '#F1C40F', desc: '2-digit add/sub\n45s per question', gradient: ['#F1C40F', '#F39C12'] },
-  { key: 'difficult', label: 'Difficult', icon: 'star', color: '#E74C3C', desc: '3-digit add/sub\n30s per question', gradient: ['#E74C3C', '#C0392B'] },
+  { key: 'easy', label: 'Easy', icon: 'star-outline', color: Colors.primary, desc: '1-digit +−×÷\n15s per question', gradient: ['#2ECC71', '#27AE60'] },
+  { key: 'average', label: 'Average', icon: 'star-half-full', color: '#F1C40F', desc: '2-digit & fractions\n30s per question', gradient: ['#F1C40F', '#F39C12'] },
+  { key: 'difficult', label: 'Difficult', icon: 'star', color: '#E74C3C', desc: '3-digit & fractions\n60s per question', gradient: ['#E74C3C', '#C0392B'] },
 ];
 
-/* ── Soft floating bubble (from Home) ── */
+/* ── Soft floating bubble ── */
 function Bubble({ delay, x, y, size, color }: { delay: number; x: number; y: number; size: number; color: string }) {
   const translateY = useSharedValue(0);
 
@@ -65,10 +66,11 @@ export default function DifficultyScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
-  
+
+  const [showSurvival, setShowSurvival] = React.useState(false);
   const { highScores } = useGameState();
   const { isGuest } = useAuth();
-  
+
   const [showLoginModal, setShowLoginModal] = React.useState(false);
 
   const isLocked = (d: Difficulty) => {
@@ -91,7 +93,21 @@ export default function DifficultyScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.push({ pathname: '/game', params: { difficulty: d } });
+    router.push({ pathname: '/game', params: { difficulty: d, mode: 'survival' } });
+  };
+
+  const handleClassic = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    router.push('/classic-map');
+  };
+
+  const handleSurvival = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setShowSurvival(true);
   };
 
   return (
@@ -110,68 +126,122 @@ export default function DifficultyScreen() {
 
       <View style={[styles.container, { paddingTop: topPadding + 16, paddingBottom: bottomPadding + 20 }]}>
         <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable onPress={() => { if (showSurvival) { setShowSurvival(false); } else { router.back(); }}} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={Colors.textWhite} />
           </Pressable>
-          <Text style={styles.title}>Select Difficulty</Text>
+          <Text style={styles.title}>{showSurvival ? 'Survival Mode' : 'Select Mode'}</Text>
           <View style={styles.placeholder} />
         </Animated.View>
 
-        <View style={styles.content}>
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <Animated.Text style={styles.subtitle}>
-              Choose your challenge level!
+        {!showSurvival ? (
+          /* ── Mode Selection: Two side-by-side buttons ── */
+          <View style={styles.modeSelectArea}>
+            <Animated.Text entering={FadeInDown.delay(100).springify()} style={styles.subtitle}>
+              Choose your challenge!
             </Animated.Text>
-          </Animated.View>
-          
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.diffSection}>
-            <View style={styles.diffColumn}>
-              {difficulties.map((d, index) => {
-                const locked = isLocked(d.key);
-                return (
-                <Animated.View key={d.key} entering={FadeInDown.delay(300 + index * 100).springify()}>
-                  <Pressable
-                    onPress={() => handleSelect(d.key)}
-                    style={({ pressed }) => [
-                      styles.diffCardContainer,
-                      pressed && !locked && { transform: [{ scale: 0.96 }] },
-                      locked && { opacity: 0.6 }
-                    ]}
-                  >
-                    <LinearGradient
-                       colors={locked ? ['#E0E0E0', '#D5D5D5'] : ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
-                       style={styles.diffCard}
+
+            <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.modeRow}>
+              {/* Classic Button (Left) */}
+              <Pressable
+                onPress={handleClassic}
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  pressed && { transform: [{ scale: 0.95 }] },
+                ]}
+              >
+                <LinearGradient
+                  colors={['#fc79efff', '#931f8cff']}
+                  style={styles.modeCardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.modeIconWrap}>
+                    <Ionicons name="map" size={40} color="#fff" />
+                  </View>
+                  <Text style={styles.modeCardTitle}>Classic</Text>
+                  <Text style={styles.modeCardDesc}>Adventure through levels</Text>
+                </LinearGradient>
+              </Pressable>
+
+              {/* Survival Button (Right) */}
+              <Pressable
+                onPress={handleSurvival}
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  pressed && { transform: [{ scale: 0.95 }] },
+                ]}
+              >
+                <LinearGradient
+                  colors={['#E74C3C', '#C0392B']}
+                  style={styles.modeCardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.modeIconWrap}>
+                    <Ionicons name="skull" size={40} color="#fff" />
+                  </View>
+                  <Text style={styles.modeCardTitle}>Survival</Text>
+                  <Text style={styles.modeCardDesc}>Endless math challenge</Text>
+                </LinearGradient>
+              </Pressable>
+            </Animated.View>
+          </View>
+        ) : (
+          /* ── Survival: difficulty cards ── */
+          <View style={styles.content}>
+            <Animated.Text entering={FadeInDown.delay(50).springify()} style={styles.subtitle}>
+              Endless questions — survive as long as you can!
+            </Animated.Text>
+
+            <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.diffSection}>
+              <View style={styles.diffColumn}>
+                {difficulties.map((d, index) => {
+                  const locked = isLocked(d.key);
+                  return (
+                  <Animated.View key={d.key} entering={FadeInDown.delay(150 + index * 100).springify()}>
+                    <Pressable
+                      onPress={() => handleSelect(d.key)}
+                      style={({ pressed }) => [
+                        styles.diffCardContainer,
+                        pressed && !locked && { transform: [{ scale: 0.96 }] },
+                        locked && { opacity: 0.6 }
+                      ]}
                     >
                       <LinearGradient
-                        colors={locked ? ['#B0B0B0', '#9E9E9E'] as [string, string] : d.gradient}
-                        style={styles.iconContainer}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                         colors={locked ? ['#E0E0E0', '#D5D5D5'] : ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)'] as [string, string]}
+                         style={styles.diffCard}
                       >
-                        <MaterialCommunityIcons name={locked ? 'lock' : d.icon as any} size={32} color="white" />
+                        <LinearGradient
+                          colors={locked ? ['#B0B0B0', '#9E9E9E'] as [string, string] : d.gradient}
+                          style={styles.iconContainer}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <MaterialCommunityIcons name={locked ? 'lock' : d.icon as any} size={32} color="white" />
+                        </LinearGradient>
+                        
+                        <View style={styles.textContainer}>
+                          <Text style={[styles.diffLabel, { color: locked ? '#757575' : d.color }]}>{d.label}</Text>
+                          <Text style={styles.diffDesc}>{locked ? 'Locked' : d.desc}</Text>
+                          {!locked && <Text style={styles.highScore}>High Score: {highScores[d.key]}</Text>}
+                        </View>
+                        
+                        <View style={[styles.arrowContainer, { backgroundColor: locked ? '#E0E0E0' : `${d.color}15` }]}>
+                          {locked ? (
+                             <Ionicons name="lock-closed" size={18} color="#9E9E9E" />
+                          ) : (
+                             <Ionicons name="chevron-forward" size={20} color={d.color} />
+                          )}
+                        </View>
                       </LinearGradient>
-                      
-                      <View style={styles.textContainer}>
-                        <Text style={[styles.diffLabel, { color: locked ? '#757575' : d.color }]}>{d.label}</Text>
-                        <Text style={styles.diffDesc}>{locked ? 'Locked' : d.desc}</Text>
-                        {!locked && <Text style={styles.highScore}>High Score: {highScores[d.key]}</Text>}
-                      </View>
-                      
-                      <View style={[styles.arrowContainer, { backgroundColor: locked ? '#E0E0E0' : `${d.color}15` }]}>
-                        {locked ? (
-                           <Ionicons name="lock-closed" size={18} color="#9E9E9E" />
-                        ) : (
-                           <Ionicons name="chevron-forward" size={20} color={d.color} />
-                        )}
-                      </View>
-                    </LinearGradient>
-                  </Pressable>
-                </Animated.View>
-                );
-              })}
-            </View>
-          </Animated.View>
-        </View>
+                    </Pressable>
+                  </Animated.View>
+                  );
+                })}
+              </View>
+            </Animated.View>
+          </View>
+        )}
       </View>
 
       {/* ── Login Modal ── */}
@@ -228,7 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 16,
   },
   backBtn: {
     width: 44,
@@ -248,16 +318,68 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 44,
   },
+
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Fredoka_500Medium',
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
+
+  // ── Mode Selection ──
+  modeSelectArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 16,
+    width: '100%',
+  },
+  modeCard: {
+    flex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modeCardGradient: {
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 180,
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  modeIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  modeCardTitle: {
+    fontSize: 22,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#fff',
+  },
+  modeCardDesc: {
+    fontSize: 12,
+    fontFamily: 'Fredoka_500Medium',
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+  },
+
+  // ── Survival difficulty cards ──
   content: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   diffSection: {
@@ -301,7 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   diffLabel: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'Fredoka_700Bold',
     marginBottom: 4,
   },
@@ -323,6 +445,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // ── Modal ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

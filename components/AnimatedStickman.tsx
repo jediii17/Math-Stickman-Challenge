@@ -15,9 +15,10 @@ import { useGameState } from '@/hooks/useGameState';
 
 interface AnimatedStickmanProps {
   size?: number;
+  hideArms?: boolean;
 }
 
-export default function AnimatedStickman({ size = 200 }: AnimatedStickmanProps) {
+export default function AnimatedStickman({ size = 200, hideArms = false }: AnimatedStickmanProps) {
   const equipped = useGameState((state) => state.equippedAccessories);
   const armAngle = useSharedValue(0);
   const headBob = useSharedValue(0);
@@ -262,36 +263,40 @@ export default function AnimatedStickman({ size = 200 }: AnimatedStickmanProps) 
 
       {/* ── Layer 2: Limbs (Legs and Arms) ── */}
       {/* Static Left Arm */}
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={StyleSheet.absoluteFill}>
-        <Path
-          d={`M${cx},${armY} Q${cx - armLen * 0.8},${armY - armLen * 0.5} ${cx - armLen * 1.2},${armY - armLen * 0.2}`}
-          stroke={bodyCol}
-          strokeWidth={sw}
-          strokeLinecap="round"
-          fill="none"
-        />
-      </Svg>
+      {!hideArms && (
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={StyleSheet.absoluteFill}>
+          <Path
+            d={`M${cx},${armY} Q${cx - armLen * 0.8},${armY - armLen * 0.5} ${cx - armLen * 1.2},${armY - armLen * 0.2}`}
+            stroke={bodyCol}
+            strokeWidth={sw}
+            strokeLinecap="round"
+            fill="none"
+          />
+        </Svg>
+      )}
 
       {/* Animated Right Arm */}
-      <Animated.View style={[StyleSheet.absoluteFill, rightArmStyle]}>
-         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-            <Path
-              d={`M${cx},${armY} Q${cx + armLen},${armY + armLen * 0.5} ${cx + armLen * 1.3},${armY - armLen * 0.2}`}
-              stroke={bodyCol}
-              strokeWidth={sw}
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* The Pencil */}
-            <G transform={`translate(${cx + armLen * 1.3}, ${armY - armLen * 0.2}) rotate(-45)`}>
-               <Path d="M-10,-30 L10,-30 L10,20 L0,40 L-10,20 Z" fill={pencilWood} />
-               <Path d="M-4,28 L4,28 L0,36 Z" fill={pencilTip} />
-               <Path d="M-10,10 L10,10 L0,30 Z" fill="#F1C40F" opacity={0.5} />
-               <Path d="M-10,-30 L10,-30 L10,-40 L-10,-40 Z" fill={pencilBase} />
-               <Path d="M-10,-40 L10,-40 Q10,-50 0,-50 Q-10,-50 -10,-40 Z" fill={pencilPink} />
-            </G>
-         </Svg>
-      </Animated.View>
+      {!hideArms && (
+        <Animated.View style={[StyleSheet.absoluteFill, rightArmStyle]}>
+           <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+              <Path
+                d={`M${cx},${armY} Q${cx + armLen},${armY + armLen * 0.5} ${cx + armLen * 1.3},${armY - armLen * 0.2}`}
+                stroke={bodyCol}
+                strokeWidth={sw}
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* The Pencil */}
+              <G transform={`translate(${cx + armLen * 1.3}, ${armY - armLen * 0.2}) rotate(-45)`}>
+                 <Path d="M-10,-30 L10,-30 L10,20 L0,40 L-10,20 Z" fill={pencilWood} />
+                 <Path d="M-4,28 L4,28 L0,36 Z" fill={pencilTip} />
+                 <Path d="M-10,10 L10,10 L0,30 Z" fill="#F1C40F" opacity={0.5} />
+                 <Path d="M-10,-30 L10,-30 L10,-40 L-10,-40 Z" fill={pencilBase} />
+                 <Path d="M-10,-40 L10,-40 Q10,-50 0,-50 Q-10,-50 -10,-40 Z" fill={pencilPink} />
+              </G>
+           </Svg>
+        </Animated.View>
+      )}
 
       {/* Left Leg */}
       <Animated.View style={[StyleSheet.absoluteFill, leftLegStyle]}>

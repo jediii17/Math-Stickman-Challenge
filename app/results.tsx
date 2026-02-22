@@ -22,7 +22,7 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
-import type { Difficulty } from '@/lib/math-engine';
+import type { Difficulty, GameMode } from '@/lib/math-engine';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import * as dbLib from '@/lib/db';
@@ -36,6 +36,8 @@ interface ResultItem {
   correct: boolean;
   timeUp: boolean;
   topic: string;
+  coinsEarned?: number;
+  multiplier?: number;
 }
 
 function StarItem({ index, filled }: { index: number; filled: boolean }) {
@@ -67,8 +69,8 @@ function StarRating({ score, total }: { score: number; total: number }) {
   const percentage = total > 0 ? score / total : 0;
   let stars = 0;
   if (percentage >= 0.9) stars = 3;
-  else if (percentage >= 0.6) stars = 2;
-  else if (percentage >= 0.3) stars = 1;
+  else if (percentage >= 0.75) stars = 2;
+  else if (percentage >= 0.4) stars = 1;
 
   return (
     <View style={starStyles.container}>
@@ -185,6 +187,9 @@ export default function ResultsScreen() {
     total: string;
     wrong: string;
     difficulty: string;
+    mode: string;
+    level: string;
+    coinsEarned: string;
     results: string;
   }>();
 
@@ -193,6 +198,9 @@ export default function ResultsScreen() {
   const total = parseInt(params.total || '0', 10);
   const wrongCount = parseInt(params.wrong || '0', 10);
   const difficulty = (params.difficulty || 'easy') as Difficulty;
+  const mode = (params.mode || 'survival') as GameMode;
+  const level = parseInt(params.level || '1', 10);
+  const earnedCoins = parseInt(params.coinsEarned || '0', 10);
 
   let resultItems: ResultItem[] = [];
   try {
@@ -202,36 +210,25 @@ export default function ResultsScreen() {
   }
 
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
-  const isGameOver = wrongCount >= 5;
+  const isGameOver = mode === 'survival' ? wrongCount >= 5 : wrongCount >= 5;
+  const isLevelComplete = mode === 'classic' && !isGameOver && percentage >= 75;
 
-  const calculateCoins = () => {
-    if (percentage === 100) {
-      if (difficulty === 'easy') return 5;
-      if (difficulty === 'average') return 10;
-      return 20;
-    } else if (percentage >= 75) {
-      if (difficulty === 'easy') return 3;
-      if (difficulty === 'average') return 6;
-      return 12;
-    } else if (percentage >= 50) {
-      if (difficulty === 'easy') return 2;
-      if (difficulty === 'average') return 4;
-      return 8;
-    } else {
-      if (difficulty === 'easy') return 1;
-      if (difficulty === 'average') return 2;
-      return 4;
-    }
-  };
-
-  const earnedCoins = calculateCoins();
   const { user, isGuest, refreshUser } = useAuth();
 
   useEffect(() => {
     const saveResults = async () => {
-      const { addCoins, updateHighScore } = useGameState.getState();
+      const { addCoins, updateHighScore, advanceClassicLevel, advanceClassicLevelForUser } = useGameState.getState();
       addCoins(earnedCoins);
       updateHighScore(difficulty, score);
+
+      // Advance classic level on completion
+      if (isLevelComplete) {
+        if (!isGuest && user) {
+          await advanceClassicLevelForUser(user.id);
+        } else {
+          advanceClassicLevel();
+        }
+      }
 
       // Persist to SQLite for logged-in users
       if (!isGuest && user) {
@@ -256,16 +253,17 @@ export default function ResultsScreen() {
     }
   }, []);
   const getMessage = () => {
-    if (isGameOver) return 'Nice try! Keep practicing!';
+    if (isGameOver && mode === 'survival') return `Survived ${score} questions!`;
+    if (isLevelComplete) return `Level ${level} Complete!`;
     if (percentage >= 90) return 'Outstanding!';
-    if (percentage >= 70) return 'Great job!';
+    if (percentage >= 75) return 'Great job!';
     if (percentage >= 50) return 'Good effort!';
     return 'Keep practicing!';
   };
 
   const getGradient = (): [string, string, string] => {
-    if (isGameOver) return ['#e74c3c', '#c0392b', '#e74c3c'];
-    if (percentage >= 70) return [Colors.primaryDark, Colors.primary, Colors.primaryLight];
+    if (isGameOver && mode !== 'survival') return ['#e74c3c', '#c0392b', '#e74c3c'];
+    if (percentage >= 75) return [Colors.primaryDark, Colors.primary, Colors.primaryLight];
     if (percentage >= 50) return [Colors.secondaryDark, Colors.secondary, Colors.secondaryLight];
     return [Colors.tertiaryDark, Colors.tertiary, Colors.tertiaryLight];
   };
@@ -274,7 +272,20 @@ export default function ResultsScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    router.replace({ pathname: '/game', params: { difficulty } });
+    if (mode === 'classic') {
+      if (isLevelComplete) {
+        // Go to map
+        router.replace('/classic-map');
+      } else {
+        // Retry current level
+        const { classicLevel: currentLevel } = useGameState.getState();
+        const { getClassicDifficulty } = require('@/lib/math-engine');
+        const newDiff = getClassicDifficulty(currentLevel);
+        router.replace({ pathname: '/game', params: { difficulty: newDiff, mode: 'classic', level: currentLevel.toString() } });
+      }
+    } else {
+      router.replace({ pathname: '/game', params: { difficulty, mode: 'survival' } });
+    }
   };
 
   const handleHome = () => {
@@ -305,7 +316,7 @@ export default function ResultsScreen() {
       >
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.headerContent}>
           <MaterialCommunityIcons
-            name={isGameOver ? 'emoticon-sad-outline' : percentage >= 70 ? 'trophy' : 'emoticon-happy-outline'}
+            name={!isLevelComplete && mode === 'classic' ? 'emoticon-sad-outline' : percentage >= 75 ? 'trophy' : 'emoticon-happy-outline'}
             size={48}
             color={Colors.textWhite}
           />
@@ -372,8 +383,8 @@ export default function ResultsScreen() {
             pressed && { transform: [{ scale: 0.95 }], opacity: 0.9 },
           ]}
         >
-          <Ionicons name="refresh" size={22} color={Colors.textWhite} />
-          <Text style={styles.playAgainText}>Play Again</Text>
+          <Ionicons name={mode === 'classic' && isLevelComplete ? 'arrow-forward' : 'refresh'} size={22} color={Colors.textWhite} />
+          <Text style={styles.playAgainText}>{mode === 'classic' && isLevelComplete ? 'Next Level' : 'Play Again'}</Text>
         </Pressable>
       </Animated.View>
     </View>

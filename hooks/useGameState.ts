@@ -29,6 +29,7 @@ export interface PowerUps {
 interface GameState {
   coins: number;
   highScores: HighScores;
+  classicLevel: number;
   ownedAccessories: string[];
   equippedAccessories: Record<AccessoryType, string | null>;
   powerUps: PowerUps;
@@ -37,6 +38,8 @@ interface GameState {
   equipAccessory: (type: AccessoryType, id: string | null) => void;
   buyPowerUp: (id: keyof PowerUps, price: number) => boolean;
   usePowerUp: (id: keyof PowerUps) => boolean;
+  advanceClassicLevel: () => void;
+  advanceClassicLevelForUser: (userId: string) => Promise<void>;
   loadFromDb: (userId: string) => Promise<void>;
   syncCoinsToDb: (userId: string) => Promise<void>;
   buyAccessoryForUser: (userId: string, accessory: Accessory) => Promise<boolean>;
@@ -49,11 +52,26 @@ interface GameState {
 
 const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 'default-shoes', 'default-back'];
 
+/** Maps any accessory ID to its equipment slot */
+function getSlotForAccessory(id: string): AccessoryType | null {
+  if (id.startsWith('hat-')) return 'hair';
+  if (id.startsWith('glasses-')) return 'face';
+  if (id.startsWith('shoes-')) return 'shoes';
+  // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand
+  if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
+  // 'lower' items: shirt-5 (skirt), lower-*
+  if (id === 'shirt-5' || id.startsWith('lower-')) return 'lower';
+  // 'upper' items: remaining shirts (shirt-2, shirt-3, shirt-4)
+  if (id.startsWith('shirt-')) return 'upper';
+  return null;
+}
+
 export const useGameState = create<GameState>()(
   persist(
     (set, get) => ({
       coins: 0,
       highScores: { easy: 0, average: 0, difficult: 0 },
+      classicLevel: 1,
       ownedAccessories: [...DEFAULT_ACCESSORIES],
       equippedAccessories: {
         hair: null,
@@ -117,6 +135,22 @@ export const useGameState = create<GameState>()(
           return state;
         }),
 
+      advanceClassicLevel: () =>
+        set((state) => ({
+          classicLevel: state.classicLevel + 1,
+        })),
+
+      advanceClassicLevelForUser: async (userId: string) => {
+        const { classicLevel } = get();
+        const nextLevel = classicLevel + 1;
+        set({ classicLevel: nextLevel });
+        try {
+          await db.updateClassicLevel(userId, nextLevel);
+        } catch (e) {
+          console.warn('Failed to sync classic level:', e);
+        }
+      },
+
       // Load user state from Supabase
       loadFromDb: async (userId) => {
         try {
@@ -138,17 +172,14 @@ export const useGameState = create<GameState>()(
 
             accessories.forEach((a) => {
               if (a.equipped) {
-                if (a.accessory_id.startsWith('hat-')) equipped.hair = a.accessory_id;
-                else if (a.accessory_id.startsWith('glasses-')) equipped.face = a.accessory_id;
-                else if (a.accessory_id.startsWith('shirt-1') || a.accessory_id.startsWith('back-')) equipped.back = a.accessory_id;
-                else if (a.accessory_id.startsWith('shirt-5') || a.accessory_id.startsWith('lower-')) equipped.lower = a.accessory_id;
-                else if (a.accessory_id.startsWith('shirt-')) equipped.upper = a.accessory_id;
-                else if (a.accessory_id.startsWith('shoes-')) equipped.shoes = a.accessory_id;
+                const slot = getSlotForAccessory(a.accessory_id);
+                if (slot) equipped[slot] = a.accessory_id;
               }
             });
 
             set({
               coins: profile.coins,
+              classicLevel: profile.classic_level || 1,
               ownedAccessories: [...DEFAULT_ACCESSORIES, ...ownedIds],
               equippedAccessories: equipped,
               powerUps: dbPowerUps || { potion: 0, dust: 0, powder: 0, firefly: 0 },
@@ -231,6 +262,7 @@ export const useGameState = create<GameState>()(
         set({
           coins: 0,
           highScores: { easy: 0, average: 0, difficult: 0 },
+          classicLevel: 1,
           ownedAccessories: [...DEFAULT_ACCESSORIES],
           equippedAccessories: { hair: null, face: null, upper: null, lower: null, shoes: null, back: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },

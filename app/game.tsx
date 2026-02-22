@@ -7,10 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { useAudioPlayer } from 'expo-audio';
+
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,43 +18,56 @@ import Animated, {
   FadeOut,
   ZoomIn,
 } from 'react-native-reanimated';
-import Colors from '@/constants/colors';
-import Stickman from '@/components/Stickman';
-import NumberPad from '@/components/NumberPad';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import Timer from '@/components/Timer';
+import NumberPad from '@/components/NumberPad';
+import Stickman from '@/components/Stickman';
 import ScribbleArea from '@/components/ScribbleArea';
 import Snowflakes from '@/components/Snowflakes';
+import Colors from '@/constants/colors';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import AdBanner from '@/components/AdBanner';
 import {
   generateProblem,
+  generateClassicProblem,
   getTimeLimit,
-  getTotalQuestions,
+  calculateQuestionCoins,
   type Difficulty,
+  type GameMode,
   type MathProblem,
 } from '@/lib/math-engine';
+import { useAudioPlayer } from 'expo-audio';
 
 interface GameResult {
   problem: MathProblem;
   userAnswer: number | null;
   correct: boolean;
   timeUp: boolean;
+  coinsEarned: number;
+  multiplier: number;
 }
 
 export default function GameScreen() {
-  const { difficulty = 'easy' } = useLocalSearchParams<{ difficulty: Difficulty }>();
+  const params = useLocalSearchParams<{ difficulty: Difficulty; mode?: GameMode; level?: string }>();
   const insets = useSafeAreaInsets();
 
-  const diff = (difficulty as Difficulty) || 'easy';
+  const diff = (params.difficulty as Difficulty) || 'easy';
+  const mode: GameMode = (params.mode as GameMode) || 'survival';
+  const classicLevel = parseInt(params.level || '1', 10);
   const timeLimit = getTimeLimit(diff);
-  const totalQ = getTotalQuestions(diff);
+  const totalQ = mode === 'classic' ? 10 : 0; // 0 = infinite for survival
 
-  const [currentProblem, setCurrentProblem] = useState<MathProblem>(() => generateProblem(diff));
+  const [currentProblem, setCurrentProblem] = useState<MathProblem>(() =>
+    mode === 'classic' ? generateClassicProblem(classicLevel) : generateProblem(diff)
+  );
   const [userInput, setUserInput] = useState('');
   const [questionNum, setQuestionNum] = useState(1);
   const [wrongCount, setWrongCount] = useState(0);
   const [score, setScore] = useState(0);
+  const [totalCoinsEarned, setTotalCoinsEarned] = useState(0);
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -67,11 +77,11 @@ export default function GameScreen() {
   const [preGameCountdown, setPreGameCountdown] = useState<number | 'GO' | null>(3);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [freezeTimeLeft, setFreezeTimeLeft] = useState(0);
-  const [addedTimeAnim, setAddedTimeAnim] = useState(0); // Trigger for +30s animation
+  const [addedTimeAnim, setAddedTimeAnim] = useState(0);
   const [usedPowerUps, setUsedPowerUps] = useState<string[]>([]);
   const [showFireflyHint, setShowFireflyHint] = useState(false);
   const [showPotionHeal, setShowPotionHeal] = useState(false);
-
+  const [lastCoinReward, setLastCoinReward] = useState<{ coins: number; multiplier: number } | null>(null);
 
   const isTimerPausedRef = useRef(false);
 
@@ -100,7 +110,7 @@ export default function GameScreen() {
           }
           return prev - 1;
         });
-        return; // Skip main timer decrement
+        return;
       }
 
       setTimeLeft((prev) => {
@@ -120,59 +130,54 @@ export default function GameScreen() {
     }
   }, []);
 
+  // Pre-game countdown
+  useEffect(() => {
+    if (preGameCountdown === null) return;
+    if (preGameCountdown === 'GO') {
+      goPlayer.seekTo(0);
+      goPlayer.play();
+      const t = setTimeout(() => {
+        setPreGameCountdown(null);
+        startTimer();
+      }, 600);
+      return () => clearTimeout(t);
+    }
+    if (preGameCountdown > 0) {
+      pingPlayer.seekTo(0);
+      pingPlayer.play();
+      const t = setTimeout(() => {
+        if (preGameCountdown === 1) setPreGameCountdown('GO');
+        else setPreGameCountdown(preGameCountdown - 1);
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [preGameCountdown]);
+
+  // Timeout handler
+  useEffect(() => {
+    if (timeLeft === 0 && preGameCountdown === null && !isTransitioning && !gameOver) {
+      handleTimeout();
+    }
+  }, [timeLeft, preGameCountdown, isTransitioning, gameOver]);
+
+  // Tick sound
+  useEffect(() => {
+    if (timeLeft <= 5 && timeLeft > 0 && preGameCountdown === null && !gameOver) {
+      tickPlayer.seekTo(0);
+      tickPlayer.play();
+    }
+  }, [timeLeft]);
+
   useEffect(() => {
     return () => stopTimer();
   }, []);
 
-  useEffect(() => {
-    if (preGameCountdown === null) return;
-
-    if (preGameCountdown === 'GO') {
-        if (goPlayer) {
-          goPlayer.seekTo(0);
-          goPlayer.play();
-        }
-        const t = setTimeout(() => {
-            setPreGameCountdown(null);
-            startTimer();
-        }, 800);
-        return () => clearTimeout(t);
-    }
-
-    if (typeof preGameCountdown === 'number' && preGameCountdown > 0) {
-        if (pingPlayer) {
-          pingPlayer.seekTo(0);
-          pingPlayer.play();
-        }
-        const t = setTimeout(() => {
-            setPreGameCountdown(preGameCountdown - 1 === 0 ? 'GO' : preGameCountdown - 1);
-        }, 1000);
-        return () => clearTimeout(t);
-    }
-  }, [preGameCountdown, pingPlayer, goPlayer]);
-
-  useEffect(() => {
-    if (preGameCountdown === null && timeLeft <= 5 && timeLeft > 0 && !gameOver && !isTransitioning) {
-        if (tickPlayer) {
-          tickPlayer.seekTo(0);
-          tickPlayer.play();
-        }
-        if (Platform.OS !== 'web') {
-           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-    }
-  }, [timeLeft, preGameCountdown, gameOver, isTransitioning, tickPlayer]);
-
-  useEffect(() => {
-    if (timeLeft === 0 && !isTransitioning && !gameOver && preGameCountdown === null && !isTimerPausedRef.current) {
-      handleTimeout();
-    }
-  }, [timeLeft, isTransitioning, gameOver, preGameCountdown]);
-
   const clearPowderEffect = () => {
-    isTimerPausedRef.current = false;
-    setIsTimerPaused(false);
-    setFreezeTimeLeft(0);
+    if (isTimerPausedRef.current) {
+      isTimerPausedRef.current = false;
+      setIsTimerPaused(false);
+      setFreezeTimeLeft(0);
+    }
   };
 
   const handleTimeout = () => {
@@ -197,19 +202,22 @@ export default function GameScreen() {
       userAnswer: null,
       correct: false,
       timeUp: true,
+      coinsEarned: 0,
+      multiplier: 0,
     };
     const newResults = [...results, result];
     setResults(newResults);
 
+    // Both modes: game over on 5 wrong
     if (newWrong >= 5) {
       setTimeout(() => {
         setGameOver(true);
-        navigateToResults(newResults, score, newWrong);
+        navigateToResults(newResults, score, newWrong, totalCoinsEarned);
       }, 2000);
       return;
     }
 
-    setTimeout(() => nextQuestion(newResults, score, newWrong), 1500);
+    setTimeout(() => nextQuestion(newResults, score, newWrong, totalCoinsEarned), 1500);
   };
 
   const handleSubmit = () => {
@@ -222,11 +230,22 @@ export default function GameScreen() {
 
     let newScore = score;
     let newWrong = wrongCount;
+    let earnedCoins = 0;
+    let multiplier = 0;
 
     if (isCorrect) {
       newScore = score + 1;
       setScore(newScore);
       setFeedback('correct');
+
+      // Calculate per-question coins
+      const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft);
+      earnedCoins = coinResult.total;
+      multiplier = coinResult.multiplier;
+      const newTotalCoins = totalCoinsEarned + earnedCoins;
+      setTotalCoinsEarned(newTotalCoins);
+      setLastCoinReward({ coins: earnedCoins, multiplier });
+
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -234,6 +253,7 @@ export default function GameScreen() {
       newWrong = wrongCount + 1;
       setWrongCount(newWrong);
       setFeedback('wrong');
+      setLastCoinReward(null);
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
@@ -250,37 +270,45 @@ export default function GameScreen() {
       userAnswer: answer,
       correct: isCorrect,
       timeUp: false,
+      coinsEarned: earnedCoins,
+      multiplier,
     };
     const newResults = [...results, result];
     setResults(newResults);
+    const newTotalCoins = totalCoinsEarned + earnedCoins;
 
+    // Both modes: game over on 5 wrong
     if (newWrong >= 5) {
       setTimeout(() => {
         setGameOver(true);
-        navigateToResults(newResults, newScore, newWrong);
+        navigateToResults(newResults, newScore, newWrong, newTotalCoins);
       }, 2000);
       return;
     }
 
-    if (questionNum >= totalQ) {
+    // Classic: level complete
+    if (mode === 'classic' && questionNum >= totalQ) {
       setTimeout(() => {
         setGameOver(true);
-        navigateToResults(newResults, newScore, newWrong);
+        navigateToResults(newResults, newScore, newWrong, newTotalCoins);
       }, 1500);
       return;
     }
 
-    setTimeout(() => nextQuestion(newResults, newScore, newWrong), 1200);
+    setTimeout(() => nextQuestion(newResults, newScore, newWrong, newTotalCoins), 1200);
   };
 
-  const nextQuestion = (currentResults: GameResult[], currentScore: number, currentWrong: number) => {
-    const newProblem = generateProblem(diff);
+  const nextQuestion = (currentResults: GameResult[], currentScore: number, currentWrong: number, currentCoins: number) => {
+    const newProblem = mode === 'classic' 
+      ? generateClassicProblem(classicLevel) 
+      : generateProblem(diff);
     setCurrentProblem(newProblem);
     setUserInput('');
     setQuestionNum((prev) => prev + 1);
     setTimeLeft(timeLimit);
     setFeedback(null);
     setIsTransitioning(false);
+    setLastCoinReward(null);
     clearPowderEffect();
     setUsedPowerUps([]);
 
@@ -294,7 +322,7 @@ export default function GameScreen() {
     startTimer();
   };
 
-  const navigateToResults = (finalResults: GameResult[], finalScore: number, finalWrong: number) => {
+  const navigateToResults = (finalResults: GameResult[], finalScore: number, finalWrong: number, finalCoins: number) => {
     router.replace({
       pathname: '/results',
       params: {
@@ -302,6 +330,9 @@ export default function GameScreen() {
         total: finalResults.length.toString(),
         wrong: finalWrong.toString(),
         difficulty: diff,
+        mode,
+        level: classicLevel.toString(),
+        coinsEarned: finalCoins.toString(),
         results: JSON.stringify(finalResults.map(r => ({
           display: r.problem.display,
           answer: r.problem.answer,
@@ -309,6 +340,8 @@ export default function GameScreen() {
           correct: r.correct,
           timeUp: r.timeUp,
           topic: r.problem.topic,
+          coinsEarned: r.coinsEarned,
+          multiplier: r.multiplier,
         }))),
       },
     });
@@ -361,7 +394,7 @@ export default function GameScreen() {
     if (used) {
       setUsedPowerUps(prev => [...prev, 'dust']);
       setTimeLeft(prev => prev + 30);
-      setAddedTimeAnim(Date.now()); // Trigger animation re-render with unique key
+      setAddedTimeAnim(Date.now());
       setTimeout(() => {
         setAddedTimeAnim(0);
       }, 1500);
@@ -449,6 +482,12 @@ export default function GameScreen() {
     }
   };
 
+  const getMultiplierColor = (m: number) => {
+    if (m >= 3) return '#FFD700';
+    if (m >= 2) return Colors.primary;
+    return Colors.textLight;
+  };
+
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -459,11 +498,16 @@ export default function GameScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <View style={styles.topInfo}>
-          <View style={[styles.badge, { backgroundColor: getDiffColor() }]}>
-            <Text style={[styles.badgeText, diff === 'difficult' && { color: Colors.text }]}>{getDiffLabel()}</Text>
+          <View style={styles.topBadgeRow}>
+            <View style={[styles.badge, { backgroundColor: getDiffColor() }]}>
+              <Text style={[styles.badgeText, diff === 'difficult' && { color: Colors.text }]}>{getDiffLabel()}</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: mode === 'survival' ? '#E74C3C' : Colors.blue }]}>
+              <Text style={styles.badgeText}>{mode === 'survival' ? '☠️' : `Lv.${classicLevel}`}</Text>
+            </View>
           </View>
           <Text style={styles.questionCount}>
-            Q{questionNum}/{totalQ}
+            {mode === 'survival' ? `Q${questionNum}` : `Q${questionNum}/${totalQ}`}
           </Text>
         </View>
         <View style={{ position: 'relative' }}>
@@ -486,6 +530,25 @@ export default function GameScreen() {
           <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
           <Text style={[styles.scoreText, { color: Colors.primary }]}>{score}</Text>
         </View>
+
+        {/* Coin counter */}
+        <View style={styles.coinCounter}>
+          <Ionicons name="sparkles" size={14} color="#FFD700" />
+          <Text style={styles.coinCounterText}>{totalCoinsEarned}</Text>
+          {lastCoinReward && feedback === 'correct' && (
+            <Animated.View
+              key={questionNum}
+              entering={FadeIn.duration(200)}
+              exiting={FadeOut.duration(400)}
+              style={styles.coinPopup}
+            >
+              <Text style={[styles.coinPopupText, { color: getMultiplierColor(lastCoinReward.multiplier) }]}>
+                +{lastCoinReward.coins} ({lastCoinReward.multiplier}×)
+              </Text>
+            </Animated.View>
+          )}
+        </View>
+
         <View style={styles.livesRow}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Ionicons
@@ -534,6 +597,20 @@ export default function GameScreen() {
               />
               <Text style={styles.feedbackText}>{getFeedbackText()}</Text>
             </View>
+            {/* Coin reward badge */}
+            {feedback === 'correct' && lastCoinReward && (
+              <Animated.View
+                key={`coin-${questionNum}`}
+                entering={FadeIn.delay(300).duration(300)}
+                style={styles.coinRewardBadge}
+              >
+                <Ionicons name="sparkles" size={16} color="#FFD700" />
+                <Text style={styles.coinRewardText}>+{lastCoinReward.coins}</Text>
+                <View style={[styles.multiplierTag, { backgroundColor: getMultiplierColor(lastCoinReward.multiplier) }]}>
+                  <Text style={styles.multiplierTagText}>{lastCoinReward.multiplier}×</Text>
+                </View>
+              </Animated.View>
+            )}
           </Animated.View>
         )}
       </View>
@@ -674,13 +751,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  topBadgeRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
   badge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.textWhite,
   },
@@ -705,8 +786,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Fredoka_700Bold',
   },
+  coinCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    position: 'relative',
+  },
+  coinCounterText: {
+    fontSize: 14,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#B8860B',
+  },
+  coinPopup: {
+    position: 'absolute',
+    top: -18,
+    right: -10,
+  },
+  coinPopupText: {
+    fontSize: 12,
+    fontFamily: 'Fredoka_700Bold',
+  },
   livesRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
   gameArea: {
@@ -747,7 +849,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   problemText: {
-    fontSize: 36,
+    fontSize: 32,
     fontFamily: 'Fredoka_700Bold',
     color: Colors.text,
     textAlign: 'center',
@@ -784,6 +886,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.textWhite,
+  },
+  coinRewardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  coinRewardText: {
+    fontSize: 16,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#B8860B',
+  },
+  multiplierTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  multiplierTagText: {
+    fontSize: 12,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#fff',
   },
   toggleRow: {
     flexDirection: 'row',
