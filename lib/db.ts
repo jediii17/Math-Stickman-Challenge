@@ -131,12 +131,19 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
     .update({ equipped: false })
     .eq('user_id', userId);
 
-  if (type === 'hair') unequipQuery = unequipQuery.like('accessory_id', 'hat-%');
-  else if (type === 'face') unequipQuery = unequipQuery.like('accessory_id', 'glasses-%');
-  else if (type === 'back') unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
-  else if (type === 'upper') unequipQuery = unequipQuery.like('accessory_id', 'shirt-%').neq('accessory_id', 'shirt-1').neq('accessory_id', 'shirt-5');
-  else if (type === 'lower') unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
-  else if (type === 'shoes') unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
+  if (type === 'hair') {
+    unequipQuery = unequipQuery.or('accessory_id.like.hat-%,accessory_id.like.hair-%');
+  } else if (type === 'face') {
+    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.like.face-%');
+  } else if (type === 'back') {
+    unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
+  } else if (type === 'upper') {
+    unequipQuery = unequipQuery.or('accessory_id.like.shirt-%,accessory_id.like.upper-%').neq('accessory_id', 'shirt-1').neq('accessory_id', 'shirt-5');
+  } else if (type === 'lower') {
+    unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
+  } else if (type === 'shoes') {
+    unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
+  }
 
   const { error: unequipError } = await unequipQuery;
   if (unequipError) {

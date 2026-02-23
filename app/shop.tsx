@@ -151,6 +151,33 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
             <Path d={`M${cx - headR * 1.05},${headCY} Q${cx - headR * 1.05},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.05},${headCY - headR * 1.2} ${cx + headR * 1.05},${headCY} L${cx + headR * 1.05},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.6} ${cx - headR * 0.5},${headCY - headR * 0.3} L${cx - headR * 0.5},${headCY + headR * 2.5} L${cx - headR * 1.05},${headCY + headR * 2.5} Z`} fill="#212121" stroke="#000000" />
           </G>
         )}
+        {id === 'hair-b5' && (
+          <G>
+            {/* Mohawk/Faux-hawk in orange */}
+            <Path d={`M${cx - headR * 0.4},${headCY} Q${cx - headR * 0.4},${headCY - headR * 1.8} ${cx},${headCY - headR * 2.0} Q${cx + headR * 0.4},${headCY - headR * 1.8} ${cx + headR * 0.4},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.4},${headCY} Z`} fill="#FF9800" stroke="#E65100" />
+            {/* Side fade */}
+            <Path d={`M${cx - headR * 1.0},${headCY} Q${cx - headR * 1.0},${headCY - headR * 0.8} ${cx - headR * 0.4},${headCY - headR * 0.6} L${cx - headR * 0.4},${headCY} Z`} fill="#FFB74D" stroke="#E65100" strokeWidth={0.5} />
+            <Path d={`M${cx + headR * 1.0},${headCY} Q${cx + headR * 1.0},${headCY - headR * 0.8} ${cx + headR * 0.4},${headCY - headR * 0.6} L${cx + headR * 0.4},${headCY} Z`} fill="#FFB74D" stroke="#E65100" strokeWidth={0.5} />
+          </G>
+        )}
+      </Svg>
+    );
+  }
+
+  if (id === 'hat-robot') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-15,-5 Q-15,-20 0,-20 Q15,-20 15,-5 L15,12 Q0,18 -15,12 Z`} fill="#37474F" stroke="#263238" strokeWidth={2} />
+          <Path d={`M-12,-2 Q0,-5 12,-2 L10,8 Q0,10 -10,8 Z`} fill="#111" />
+          <Path d={`M-8,2 L8,2`} stroke="#00E5FF" strokeWidth={3} strokeLinecap="round" />
+          <Circle cx={-4} cy={2} r={3} fill="#FFF" />
+          <Circle cx={4} cy={2} r={3} fill="#FFF" />
+          <Line x1={0} y1={-20} x2={0} y2={-30} stroke="#90A4AE" strokeWidth={2} />
+          <Circle cx={0} cy={-32} r={4} fill="#00E5FF" />
+          <Rect x={-18} y={0} width={4} height={6} fill="#78909C" />
+          <Rect x={14} y={0} width={4} height={6} fill="#78909C" />
+        </G>
       </Svg>
     );
   }
@@ -195,6 +222,413 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     );
   }
   
+  // --- New Creative Face Accessories ---
+  if (id === 'face-blush') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(2.5)">
+          <Ellipse cx={-12} cy={5} rx={5} ry={3} fill="#FF8A80" opacity={0.7} />
+          <Ellipse cx={12} cy={5} rx={5} ry={3} fill="#FF8A80" opacity={0.7} />
+          <Path d="M -2,0 Q 0,2 2,0" fill="none" stroke="#FFA000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'face-star') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Path d={`M-10,-8 L-7,-3 L-2,-3 L-6,2 L-4,8 L-10,5 L-16,8 L-14,2 L-18,-3 L-13,-3 Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
+          <Path d={`M10,-8 L13,-3 L18,-3 L14,2 L16,8 L10,5 L4,8 L6,2 L2,-3 L7,-3 Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
+          <Line x1={-2} y1={0} x2={2} y2={0} stroke="#FFC107" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'face-bandaid') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(2.5) rotate(-15)">
+          <Rect x={-8} y={-3} width={16} height={6} rx={2} fill="#FFCCBC" stroke="#D84315" strokeWidth={1} />
+          <Rect x={-3} y={-3} width={6} height={6} fill="#FFAB91" />
+          <Circle cx={-1} cy={-1} r={1} fill="#D84315" />
+          <Circle cx={1} cy={1} r={1} fill="#D84315" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'face-freckles') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+         <G transform="translate(50, 50) scale(2.5)">
+          <Circle cx={-12} cy={0} r={1.5} fill="#8D6E63" />
+          <Circle cx={-8} cy={2} r={2} fill="#8D6E63" />
+          <Circle cx={-4} cy={1} r={1.2} fill="#8D6E63" />
+          <Circle cx={12} cy={0} r={1.5} fill="#8D6E63" />
+          <Circle cx={8} cy={2} r={2} fill="#8D6E63" />
+          <Circle cx={4} cy={1} r={1.2} fill="#8D6E63" />
+          <Circle cx={0} cy={-2} r={1.2} fill="#8D6E63" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'face-cat') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(2.2)">
+          <Path d={`M-3,0 L3,0 L0,4 Z`} fill="#F48FB1" />
+          <Path d={`M0,4 Q-3,8 -6,6`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
+          <Path d={`M0,4 Q3,8 6,6`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
+          <Line x1={-4} y1={2} x2={-10} y2={-2} stroke="#000" strokeWidth={1} />
+          <Line x1={-4} y1={4} x2={-10} y2={4} stroke="#000" strokeWidth={1} />
+          <Line x1={-4} y1={6} x2={-10} y2={10} stroke="#000" strokeWidth={1} />
+          <Line x1={4} y1={2} x2={10} y2={-2} stroke="#000" strokeWidth={1} />
+          <Line x1={4} y1={4} x2={10} y2={4} stroke="#000" strokeWidth={1} />
+          <Line x1={4} y1={6} x2={10} y2={10} stroke="#000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'face-hero') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-18,-6 Q-18,8 -8,6 Q0,2 8,6 Q18,8 18,-6 Q0,-10 -18,-6 Z`} fill="#000000" />
+          <Circle cx={-10} cy={0} r={5} fill="#FFF" />
+          <Circle cx={10} cy={0} r={5} fill="#FFF" />
+        </G>
+      </Svg>
+    );
+  }
+  
+  // --- New Creative Boy Shirts ---
+  if (id === 'upper-b1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-10 L-10,10 Q0,14 10,10 L10,-10 Z`} fill="#ECEFF1" stroke="#CFD8DC" />
+          <Path d={`M-14,-6 L-10,-10 L-10,0 L-14,4 Z`} fill="#ECEFF1" stroke="#CFD8DC" />
+          <Path d={`M14,-6 L10,-10 L10,0 L14,4 Z`} fill="#ECEFF1" stroke="#CFD8DC" />
+          <Circle cx={0} cy={-2} r={3} fill="#2196F3" />
+          <Line x1={-6} y1={5} x2={6} y2={5} stroke="#B0BEC5" strokeWidth={1} strokeDasharray="2,2" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-b2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.7)">
+          <Path d={`M-10,-8 L-10,8 Q0,12 10,8 L10,-8 Z`} fill="#8BC34A" stroke="#689F38" />
+          <Path d={`M-3,-5 L0,-8 L3,-5 M-3,1 L0,-2 L3,1 M-3,7 L0,4 L3,7`} fill="none" stroke="#FFC107" strokeWidth={1.5} />
+          <Path d={`M-10,8 L-6,11 L-2,8 L2,11 L6,8 L10,11`} fill="none" stroke="#689F38" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-b3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Rect x={-10} y={-8} width={20} height={18} fill="#B0BEC5" stroke="#78909C" rx={2} />
+          <Rect x={-16} y={-8} width={6} height={10} fill="#90A4AE" stroke="#607D8B" rx={1} />
+          <Rect x={10} y={-8} width={6} height={10} fill="#90A4AE" stroke="#607D8B" rx={1} />
+          <Circle cx={0} cy={1} r={4} fill="#00BCD4" stroke="#0097A7" />
+          <Line x1={-6} y1={8} x2={6} y2={8} stroke="#78909C" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-b4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Path d={`M-8,-8 L-8,8 Q0,11 8,8 L8,-8 Q0,-3 -8,-8 Z`} fill="#F44336" stroke="#D32F2F" />
+          <Line x1={-6} y1={-6} x2={-6} y2={8} stroke="#FFF" strokeWidth={1.5} />
+          <Line x1={6} y1={-6} x2={6} y2={8} stroke="#FFF" strokeWidth={1.5} />
+          <Path d={`M-1,1 L1,-1 L1,6`} fill="none" stroke="#FFF" strokeWidth={2} strokeLinecap="round" />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Girl Shirts ---
+  if (id === 'upper-g1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Circle cx={-10} cy={-6} r={4} fill="#F48FB1" stroke="#D81B60" />
+          <Circle cx={10} cy={-6} r={4} fill="#F48FB1" stroke="#D81B60" />
+          <Path d={`M-8,-8 L-6,8 L0,11 L6,8 L8,-8 Q0,-5 -8,-8 Z`} fill="#F06292" stroke="#D81B60" />
+          <Path d={`M-6,8 L0,11 L6,8`} fill="none" stroke="#FFD700" strokeWidth={1} />
+          <Line x1={0} y1={-5} x2={0} y2={11} stroke="#FFD700" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-g2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-8 L-15,-4 L-11,2 L-8,0`} fill="#B39DDB" stroke="#9575CD" />
+          <Path d={`M10,-8 L15,-4 L11,2 L8,0`} fill="#B39DDB" stroke="#9575CD" />
+          <Path d={`M-10,-8 L-10,10 Q0,14 10,10 L10,-8 Z`} fill="#E1BEE7" stroke="#CE93D8" />
+          <Line x1={-10} y1={-2} x2={10} y2={-2} stroke="#FFCDD2" strokeWidth={2} />
+          <Line x1={-10} y1={2} x2={10} y2={2} stroke="#FFF9C4" strokeWidth={2} />
+          <Line x1={-10} y1={6} x2={10} y2={6} stroke="#C8E6C9" strokeWidth={2} />
+          <Path d={`M0,-4 L1,-1 L4,-1 L2,1 L3,4 L0,2 L-3,4 L-2,1 L-4,-1 L-1,-1 Z`} fill="#FFF" transform="scale(0.8) translate(0, 5)" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-g3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Path d={`M-9,-6 L-9,6 Q0,10 9,6 L9,-6 Q0,-10 -9,-6 Z`} fill="#4DD0E1" stroke="#00BCD4" />
+          <Path d={`M-6,0 Q-3,-3 0,0 Q-3,3 -6,0 Z`} fill="#B2EBF2" stroke="#00BCD4" strokeWidth={0.5} />
+          <Path d={`M0,0 Q3,-3 6,0 Q3,3 0,0 Z`} fill="#B2EBF2" stroke="#00BCD4" strokeWidth={0.5} />
+          <Circle cx={-3} cy={6} r={1} fill="#FFF" />
+          <Circle cx={4} cy={7} r={1.5} fill="#FFF" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'upper-g4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-8 L-18,-4 L-15,3 L-10,0`} fill="#FFF" stroke="#E0E0E0" />
+          <Path d={`M10,-8 L18,-4 L15,3 L10,0`} fill="#FFF" stroke="#E0E0E0" />
+          <Path d={`M-10,-8 L-11,10 Q0,12 11,10 L10,-8 Z`} fill="#FFF" stroke="#E0E0E0" />
+          <Line x1={-2} y1={-8} x2={-2} y2={10} stroke="#E0E0E0" strokeWidth={1} />
+          <Circle cx={2} cy={-2} r={1.5} fill="#F06292" />
+          <Circle cx={-6} cy={-2} r={1.5} fill="#F06292" />
+          <Circle cx={2} cy={4} r={1.5} fill="#F06292" />
+          <Circle cx={-6} cy={4} r={1.5} fill="#F06292" />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Boy Pants ---
+  if (id === 'lower-b1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-8,0 L8,0 L10,12 L1,12 L0,5 L-1,12 L-10,12 Z`} fill="#795548" stroke="#5D4037" strokeWidth={1} />
+          <Rect x={-11} y={4} width={5} height={6} fill="#8D6E63" stroke="#5D4037" rx={1} />
+          <Rect x={6} y={4} width={5} height={6} fill="#8D6E63" stroke="#5D4037" rx={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-b2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-8,0 L8,0 L10,12 L1,12 L0,5 L-1,12 L-10,12 Z`} fill="#1E88E5" />
+          <Path d={`M-8,0 L8,0 L10,8 L1,6 L0,3 L-1,6 L-10,8 Z`} fill="#E53935" stroke="#B71C1C" />
+          <Rect x={-8} y={0} width={16} height={3} fill="#FDD835" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-b3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Rect x={-8} y={0} width={6} height={12} fill="#B0BEC5" stroke="#78909C" rx={1} />
+          <Rect x={2} y={0} width={6} height={12} fill="#B0BEC5" stroke="#78909C" rx={1} />
+          <Circle cx={-5} cy={6} r={2} fill="#00BCD4" />
+          <Circle cx={5} cy={6} r={2} fill="#00BCD4" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-b4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-8,0 L8,0 L11,7 L8,12 L1,12 L0,5 L-1,12 L-8,12 L-11,7 Z`} fill="#212121" stroke="#000000" />
+          <Line x1={-9} y1={8} x2={-3} y2={10} stroke="#E53935" strokeWidth={1.5} />
+          <Line x1={9} y1={8} x2={3} y2={10} stroke="#E53935" strokeWidth={1.5} />
+          <Rect x={-8} y={0} width={16} height={2} fill="#E53935" />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Girl Pants/Skirts ---
+  if (id === 'lower-g1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.5)">
+          <Path d={`M-8,0 Q-16,6 -12,18 Q-4,10 0,14 Q0,5 0,0`} fill="#FCE4EC" stroke="#F48FB1" />
+          <Path d={`M0,0 Q0,5 0,14 Q4,10 12,18 Q16,6 8,0`} fill="#FCE4EC" stroke="#F48FB1" />
+          <Path d={`M-4,0 Q-10,10 -2,20 Q0,10 2,20 Q10,10 4,0`} fill="#F8BBD0" stroke="#F06292" opacity={0.8} />
+          <Rect x={-8} y={0} width={16} height={3} fill="#81C784" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-g2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-8,0 L8,0 L10,15 L1,15 L0,5 L-1,15 L-10,15 Z`} fill="#E1BEE7" />
+          <Line x1={-9} y1={3} x2={9} y2={3} stroke="#FFCDD2" strokeWidth={2} />
+          <Line x1={-9.5} y1={7} x2={9.5} y2={7} stroke="#FFE082" strokeWidth={2} />
+          <Line x1={-10} y1={11} x2={10} y2={11} stroke="#C8E6C9" strokeWidth={2} />
+          <Line x1={-10.5} y1={15} x2={10.5} y2={15} stroke="#BBDEFB" strokeWidth={2} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-g3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.5)">
+          <Path d={`M-8,0 Q-12,8 -2,15 L2,15 Q12,8 8,0 Z`} fill="#4DD0E1" stroke="#00BCD4" />
+          <Path d={`M-4,3 Q0,6 4,3 M-5,7 Q0,10 5,7 M-4,11 Q0,14 4,11`} fill="none" stroke="#26C6DA" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'lower-g4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.5)">
+          <Path d={`M-8,0 Q-14,6 -10,15 L-1,15 L0,5 L1,15 L10,15 Q14,6 8,0 Z`} fill="#FFF" stroke="#BDBDBD" />
+          <Line x1={-8} y1={0} x2={-10} y2={15} stroke="#E0E0E0" />
+          <Line x1={-4} y1={0} x2={-3} y2={15} stroke="#E0E0E0" />
+          <Line x1={4} y1={0} x2={3} y2={15} stroke="#E0E0E0" />
+          <Line x1={8} y1={0} x2={10} y2={15} stroke="#E0E0E0" />
+          <Line x1={-11} y1={5} x2={11} y2={5} stroke="#E0E0E0" />
+          <Line x1={-11} y1={10} x2={11} y2={10} stroke="#E0E0E0" />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Boys Shoes ---
+  if (id === 'shoes-b1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-5 L-10,12 L10,12 L10,2 L4,-5 Z`} fill="#B0BEC5" stroke="#78909C" strokeWidth={1} />
+          <Rect x={-6} y={12} width={12} height={6} fill="#455A64" />
+          <Path d={`M-3,18 L0,25 L3,18 Z`} fill="#FF5722" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-b2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-2 L-10,10 L12,10 L12,4 L4,-2 Z`} fill="#F44336" stroke="#D32F2F" strokeWidth={1} />
+          <Path d={`M-6,10 L-4,15 L-2,10 M2,10 L4,15 L6,10`} fill="none" stroke="#FFF" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-b3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.5)">
+          <Rect x={-12} y={2} width={24} height={10} rx={2} fill="#546E7A" stroke="#37474F" strokeWidth={1.5} />
+          <Line x1={-6} y1={2} x2={-6} y2={12} stroke="#37474F" strokeWidth={1.5} />
+          <Line x1={0} y1={2} x2={0} y2={12} stroke="#37474F" strokeWidth={1.5} />
+          <Line x1={6} y1={2} x2={6} y2={12} stroke="#37474F" strokeWidth={1.5} />
+          <Circle cx={0} cy={7} r={3} fill="#00E5FF" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-b4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.6)">
+          <Path d={`M-10,-5 L-10,10 L12,10 L12,4 L4,-5 Z`} fill="#212121" stroke="#000000" strokeWidth={1} />
+          <Line x1={6} y1={4} x2={6} y2={10} stroke="#000" strokeWidth={1.5} />
+          <Line x1={-10} y1={0} x2={2} y2={0} stroke="#E53935" strokeWidth={2} />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Girls Shoes ---
+  if (id === 'shoes-g1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.5)">
+          <Path d={`M-8,-4 L-8,10 L12,10 L12,2 L4,-4 Z`} fill="#F06292" stroke="#D81B60" strokeWidth={1} />
+          <Circle cx={-4} cy={14} r={3.5} fill="#4DD0E1" />
+          <Circle cx={8} cy={14} r={3.5} fill="#4DD0E1" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-g2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.7)">
+          <Path d={`M-4,0 Q-15,5 -18,10 Q0,8 18,10 Q15,5 4,0 Z`} fill="#26C6DA" stroke="#00ACC1" strokeWidth={1} />
+          <Line x1={0} y1={3} x2={-10} y2={8} stroke="#00ACC1" strokeWidth={1} />
+          <Line x1={0} y1={3} x2={10} y2={8} stroke="#00ACC1" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-g3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.7)">
+          <Ellipse cx={2} cy={6} rx={12} ry={6} fill="#FFF" stroke="#E0E0E0" />
+          <Ellipse cx={10} cy={0} rx={3} ry={6} fill="#FFF" stroke="#E0E0E0" transform="rotate(15 10 0)" />
+          <Ellipse cx={4} cy={-1} rx={3} ry={6} fill="#FFF" stroke="#E0E0E0" transform="rotate(-15 4 -1)" />
+          <Circle cx={10} cy={6} r={2} fill="#000" />
+          <Circle cx={12} cy={8} r={1.5} fill="#F48FB1" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'shoes-g4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.7)">
+          <Path d={`M-8,8 Q2,4 12,9 Q12,12 -8,12 Z`} fill="#F8BBD0" stroke="#F06292" />
+          <Line x1={-6} y1={0} x2={3} y2={6} stroke="#F06292" strokeWidth={1.5} />
+          <Line x1={3} y1={0} x2={-6} y2={6} stroke="#F06292" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
   if (id === 'shirt-1') {
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -274,6 +708,135 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
           <Path d="M0,0 Q25,40 40,25 Q35,10 0,5 Z" fill="#F48FB1" stroke="#D81B60" strokeWidth={1.5} />
           <Circle cx={-30} cy={-15} r={3} fill="#fff" opacity={0.6} />
           <Circle cx={30} cy={-15} r={3} fill="#fff" opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Boys Backs ---
+  if (id === 'back-b1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 40) scale(1.3)">
+          <Path
+            d={`M-10,-10 L-25,25 Q0,35 25,25 L10,-10 Z`}
+            fill="rgba(33, 150, 243, 0.8)"
+            stroke="#1976D2"
+            strokeWidth={1.5}
+          />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-b2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55) scale(1.2)">
+          <Path d={`M0,-5 Q-40,-35 -55,-10 L-40,-5 L-45,15 L-25,5 Z`} fill="#4CAF50" stroke="#388E3C" strokeWidth={1.5} />
+          <Path d={`M0,-5 Q40,-35 55,-10 L40,-5 L45,15 L25,5 Z`} fill="#4CAF50" stroke="#388E3C" strokeWidth={1.5} />
+          <Path d={`M0,-5 Q-15,-20 -55,-10`} fill="none" stroke="#2E7D32" strokeWidth={2} />
+          <Path d={`M0,-5 Q15,-20 55,-10`} fill="none" stroke="#2E7D32" strokeWidth={2} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-b3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.3)">
+          <Circle cx={0} cy={0} r={22} fill="#263238" stroke="#00E5FF" strokeWidth={3} />
+          <Circle cx={0} cy={0} r={14} fill="none" stroke="#00E5FF" strokeWidth={1.5} />
+          <Circle cx={0} cy={0} r={6} fill="#00E5FF" />
+          <Path d={`M0,-22 L0,-10 M0,10 L0,22`} stroke="#00E5FF" strokeWidth={2} />
+          <Path d={`M-22,0 L-10,0 M10,0 L22,0`} stroke="#00E5FF" strokeWidth={2} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-b4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.4)">
+          <Path d={`M-10,-10 L5,20 L15,15 L0,-15 Z`} fill="#795548" stroke="#5D4037" strokeWidth={1.5} />
+          <Path d={`M-10,-10 L0,-15`} stroke="#3E2723" strokeWidth={4} strokeLinecap="round" />
+          <Path d={`M5,20 L15,15`} stroke="#3E2723" strokeWidth={4} strokeLinecap="round" />
+          <Line x1={-5} y1={-13} x2={-15} y2={-30} stroke="#D7CCC8" strokeWidth={2} />
+          <Line x1={-1} y1={-14} x2={-8} y2={-33} stroke="#D7CCC8" strokeWidth={2} />
+          <Line x1={3} y1={-13} x2={-2} y2={-31} stroke="#D7CCC8" strokeWidth={2} />
+          <Path d={`M-15,-30 L-20,-25 M-15,-30 L-10,-35`} stroke="#FF5252" strokeWidth={2} />
+          <Path d={`M-8,-33 L-13,-28 M-8,-33 L-3,-38`} stroke="#FF5252" strokeWidth={2} />
+          <Path d={`M-2,-31 L-7,-26 M-2,-31 L3,-36`} stroke="#FF5252" strokeWidth={2} />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- New Creative Girls Backs ---
+  if (id === 'back-g1') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.3)">
+          <Path d={`M0,0 Q-30,-45 -45,-20 Q-30,5 0,0 Z`} fill="rgba(224, 64, 251, 0.4)" stroke="#E040FB" strokeWidth={1.5} />
+          <Path d={`M0,0 Q30,-45 45,-20 Q30,5 0,0 Z`} fill="rgba(224, 64, 251, 0.4)" stroke="#E040FB" strokeWidth={1.5} />
+          <Path d={`M0,5 Q-25,35 -35,20 Q-20,10 0,5 Z`} fill="rgba(0, 229, 255, 0.4)" stroke="#00E5FF" strokeWidth={1.5} />
+          <Path d={`M0,5 Q25,35 35,20 Q20,10 0,5 Z`} fill="rgba(0, 229, 255, 0.4)" stroke="#00E5FF" strokeWidth={1.5} />
+          <Circle cx={-25} cy={-15} r={1.5} fill="#FFF" />
+          <Circle cx={25} cy={-15} r={1.5} fill="#FFF" />
+          <Circle cx={-15} cy={20} r={1.5} fill="#FFF" />
+          <Circle cx={15} cy={20} r={1.5} fill="#FFF" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-g2') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 45) scale(1.3)">
+          <Path d={`M0,0 Q-35,-25 -40,0 Q-35,25 0,0 Z`} fill="#E91E63" stroke="#C2185B" strokeWidth={2} />
+          <Path d={`M0,0 Q35,-25 40,0 Q35,25 0,0 Z`} fill="#E91E63" stroke="#C2185B" strokeWidth={2} />
+          <Path d={`M0,5 Q-10,25 -20,40 L-10,35 L0,5 Z`} fill="#D81B60" stroke="#AD1457" strokeWidth={1.5} />
+          <Path d={`M0,5 Q10,25 20,40 L10,35 L0,5 Z`} fill="#D81B60" stroke="#AD1457" strokeWidth={1.5} />
+          <Circle cx={0} cy={0} r={8} fill="#F06292" stroke="#C2185B" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-g3') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 40) scale(1.3)">
+          <Path
+            d={`M-12,-5 L-28,25 L0,30 L28,25 L12,-5 Z`}
+            fill="#673AB7"
+            stroke="#512DA8"
+            strokeWidth={1.5}
+          />
+          <Path d={`M-12,12 L-10,16 L-6,16 L-9,18 L-8,22 L-12,20 L-16,22 L-15,18 L-18,16 L-14,16 Z`} fill="#FFEB3B" />
+          <Path d={`M10,18 L12,22 L16,22 L13,24 L14,28 L10,26 L6,28 L7,24 L4,22 L8,22 Z`} fill="#FFEB3B" transform="scale(0.7) translate(15, -10)" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'back-g4') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.4)">
+          <Rect x={-14} y={-10} width={28} height={24} rx={8} fill="#8D6E63" stroke="#5D4037" strokeWidth={1.5} />
+          <Circle cx={-10} cy={-12} r={5} fill="#8D6E63" stroke="#5D4037" strokeWidth={1.5} />
+          <Circle cx={-10} cy={-12} r={2.5} fill="#D7CCC8" />
+          <Circle cx={10} cy={-12} r={5} fill="#8D6E63" stroke="#5D4037" strokeWidth={1.5} />
+          <Circle cx={10} cy={-12} r={2.5} fill="#D7CCC8" />
+          <Circle cx={-5} cy={-2} r={2} fill="#3E2723" />
+          <Circle cx={5} cy={-2} r={2} fill="#3E2723" />
+          <Ellipse cx={0} cy={3} rx={4} ry={3} fill="#D7CCC8" />
+          <Circle cx={0} cy={2} r={1.5} fill="#3E2723" />
+          <Path d={`M-2,4 Q0,6 2,4`} fill="none" stroke="#3E2723" strokeWidth={1} />
         </G>
       </Svg>
     );
@@ -847,7 +1410,7 @@ const styles = StyleSheet.create({
   // ── Item grid ──
   list: { padding: 8 },
   itemCard: {
-    flex: 1,
+    width: '46%',
     backgroundColor: Colors.card,
     margin: 8,
     padding: 14,

@@ -1,0 +1,528 @@
+components/AnimatedStickman.tsx(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+components/AnimatedStickman.tsx(13,20): error TS2307: Cannot find module '@/constants/colors' or its corresponding type declarations.
+components/AnimatedStickman.tsx(14,30): error TS2307: Cannot find module '@/hooks/useGameState' or its corresponding type declarations.
+components/AnimatedStickman.tsx(67,5): error TS2322: Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'string | readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; ... 4 more ...; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+  Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+    Type '{ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+      Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+        Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '{ matrix: AnimatableNumericValue[]; } & { perspective?: never; rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; }'.
+          Property 'matrix' is missing in type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' but required in type '{ matrix: AnimatableNumericValue[]; }'.
+components/AnimatedStickman.tsx(77,5): error TS2322: Type '({ translateY: number; rotate?: undefined; } | { rotate: string; translateY?: undefined; })[]' is not assignable to type 'string | readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; ... 4 more ...; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+  Type '({ translateY: number; rotate?: undefined; } | { rotate: string; translateY?: undefined; })[]' is not assignable to type 'readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+    Type '{ translateY: number; rotate?: undefined; } | { rotate: string; translateY?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+      Type '{ translateY: number; rotate?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+        Type '{ translateY: number; rotate?: undefined; }' is not assignable to type '{ matrix: AnimatableNumericValue[]; } & { perspective?: never; rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; }'.
+          Property 'matrix' is missing in type '{ translateY: number; rotate?: undefined; }' but required in type '{ matrix: AnimatableNumericValue[]; }'.
+components/AnimatedStickman.tsx(84,5): error TS2322: Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'string | readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; ... 4 more ...; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+  Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+    Type '{ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+      Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+        Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '{ matrix: AnimatableNumericValue[]; } & { perspective?: never; rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; }'.
+          Property 'matrix' is missing in type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' but required in type '{ matrix: AnimatableNumericValue[]; }'.
+components/AnimatedStickman.tsx(94,5): error TS2322: Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'string | readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; ... 4 more ...; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+  Type '({ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; })[]' is not assignable to type 'readonly (({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; }))[]'.
+    Type '{ translateX: number; translateY?: undefined; rotate?: undefined; } | { translateY: number; translateX?: undefined; rotate?: undefined; } | { rotate: string; translateX?: undefined; translateY?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+      Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '({ perspective: AnimatableNumericValue; } & { rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; matrix?: never; }) | ... 11 more ... | ({ ...; } & { ...; })'.
+        Type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' is not assignable to type '{ matrix: AnimatableNumericValue[]; } & { perspective?: never; rotate?: never; scale?: never; rotateX?: never; rotateY?: never; rotateZ?: never; scaleX?: never; scaleY?: never; translateX?: never; translateY?: never; skewX?: never; skewY?: never; }'.
+          Property 'matrix' is missing in type '{ translateX: number; translateY?: undefined; rotate?: undefined; }' but required in type '{ matrix: AnimatableNumericValue[]; }'.
+components/AnimatedStickman.tsx(137,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(139,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(140,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(142,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(158,85): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(158,122): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(159,85): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(159,122): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(162,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(164,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(165,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(167,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(184,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(186,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(187,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(189,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(205,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(207,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(207,67): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(207,93): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(208,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(209,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(209,67): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(209,93): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(210,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(212,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(213,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(214,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(215,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(224,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(225,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(227,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(229,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(238,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(240,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(241,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(243,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(245,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(246,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(247,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(256,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(258,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(260,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(261,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(262,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(272,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(274,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(275,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(277,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(279,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(280,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(289,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(291,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(291,67): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(291,93): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(292,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(292,67): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(292,93): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(294,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(295,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(296,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(297,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(299,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(308,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(310,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(312,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(313,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(315,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(316,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(325,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(327,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(327,67): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(327,89): error TS2304: Cannot find name 'laEndY'.
+components/AnimatedStickman.tsx(328,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(328,67): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(328,89): error TS2304: Cannot find name 'raEndY'.
+components/AnimatedStickman.tsx(330,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(332,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(333,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(334,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(335,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(336,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(350,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(352,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(361,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(370,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(371,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(390,25): error TS2304: Cannot find name 'bodyLen'.
+components/AnimatedStickman.tsx(392,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(393,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(402,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(412,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(413,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(423,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(424,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(425,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(434,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(435,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(447,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(448,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(458,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(459,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(464,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(465,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(474,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(476,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(478,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(480,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(489,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(491,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(492,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(494,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(495,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(497,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(498,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(507,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(508,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(513,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(514,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(515,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(516,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(518,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(528,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(529,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(530,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(531,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(532,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(541,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(543,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(545,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(546,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(547,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(548,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(549,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(559,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(560,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(562,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(563,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(564,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(573,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(575,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(580,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(581,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(582,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(583,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(585,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(586,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(587,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(602,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(613,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(615,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(616,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(618,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(619,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(620,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(621,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(628,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(630,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(631,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(632,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(639,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(641,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(642,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(649,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(651,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(652,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(653,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(654,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(655,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(662,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(664,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(665,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(666,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(667,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(675,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(686,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(687,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(688,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(690,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(691,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(698,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(699,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(700,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(701,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(703,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(704,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(711,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(713,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(714,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(715,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(717,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(718,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(719,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(721,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(722,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(723,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(732,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(734,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(735,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(737,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(738,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(740,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(741,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(742,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(743,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(750,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(752,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(754,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(756,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(758,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(760,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(767,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(768,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(775,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(776,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(777,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(784,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(786,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(788,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(789,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(790,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(791,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(793,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(794,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(795,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(796,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(797,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(799,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(800,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(811,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(813,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(814,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(825,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(826,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(827,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(828,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(835,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(837,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(844,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(850,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(852,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(853,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(855,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(856,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(858,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(859,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(866,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(867,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(868,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(875,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(876,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(877,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(878,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(885,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(887,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(893,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(899,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(901,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(902,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(903,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(912,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(913,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(919,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(920,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(926,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(927,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(933,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(934,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(935,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(941,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(942,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(943,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(944,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(945,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(946,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(952,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(953,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(959,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(960,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(966,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(967,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(968,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(969,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(975,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(976,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(982,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(984,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(986,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(987,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1003,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1004,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1005,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1006,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1007,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1008,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1015,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1016,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1017,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1018,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1026,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1027,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1028,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1029,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1030,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1031,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1039,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1040,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1041,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1048,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1049,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1050,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1057,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1058,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1059,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1060,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1061,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1062,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1070,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1071,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1072,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1073,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1074,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1075,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1076,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1077,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1084,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1085,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1086,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1087,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1088,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1089,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1090,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1091,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1092,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1093,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1100,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1101,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1102,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1103,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1113,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1125,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1126,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1127,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1133,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1134,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1135,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1143,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1144,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1145,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1146,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1153,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1154,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1155,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1162,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1163,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1164,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1165,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1166,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1167,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1174,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1175,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1176,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1177,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1186,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1187,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1188,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1189,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1196,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1197,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1198,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1199,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1206,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1207,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1208,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1209,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1210,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1211,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1218,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1219,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1220,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1221,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1230,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1242,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1243,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1244,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1250,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1251,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1252,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1259,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1260,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1261,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1262,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1268,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1269,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1270,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1276,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1277,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1278,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1279,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1280,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1281,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1287,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1288,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1289,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1290,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1298,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1299,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1300,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1301,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1307,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1308,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1309,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1310,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1316,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1317,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1318,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1319,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1320,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1321,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1327,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1328,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1329,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1330,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1344,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1346,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1348,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1357,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1358,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1370,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1371,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1372,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1380,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1381,18): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1382,18): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1383,18): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1384,18): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1385,18): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1392,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1393,10): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1394,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1408,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1409,10): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1410,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1424,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1426,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1444,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1445,10): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1447,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1457,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1459,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1460,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/AnimatedStickman.tsx(1462,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+node_modules/@types/node/module.d.ts(804,13): error TS2403: Subsequent variable declarations must have the same type.  Variable 'require' must be of type 'NodeRequire', but here has type 'Require'.
+node_modules/react-native-reanimated/lib/typescript/component/ScrollView.d.ts(2,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-reanimated/lib/typescript/createAnimatedComponent/AnimatedComponent.d.ts(2,13): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-reanimated/lib/typescript/jestUtils.d.ts(1,40): error TS2307: Cannot find module 'react-test-renderer' or its corresponding type declarations.
+node_modules/react-native-svg/lib/typescript/elements/filters/FeBlend.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeColorMatrix.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeComponentTransfer.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeComponentTransferFunction.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeComposite.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeDropShadow.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeFlood.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeGaussianBlur.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeMerge.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeMergeNode.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/FeOffset.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/elements/filters/Filter.d.ts(1,8): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native-svg/lib/typescript/lib/extract/types.d.ts(2,13): error TS1259: Module '"/Users/jedidialemuel/mmi/Math-Stickman-Challenge/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/react-native/src/types/globals.d.ts(10,1): error TS6200: Definitions of the following identifiers conflict with those in another file: EndingType, BlobPart, BufferSource, FormData, RequestInfo, XMLHttpRequestResponseType, AbortSignal, AbortController
+node_modules/react-native/src/types/globals.d.ts(166,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Blob' must be of type '{ new (blobParts?: BlobPart[], options?: BlobPropertyBag): Blob; prototype: Blob; }', but here has type '{ new (blobParts?: (string | Blob)[], options?: BlobOptions): Blob; prototype: Blob; }'.
+node_modules/react-native/src/types/globals.d.ts(180,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'File' must be of type '{ new (fileBits: BlobPart[], fileName: string, options?: FilePropertyBag): File; prototype: File; }', but here has type '{ new (fileParts: BlobPart[], name: string, options?: FilePropertyBag): File; prototype: File; }'.
+node_modules/react-native/src/types/globals.d.ts(266,5): error TS2717: Subsequent property declarations must have the same type.  Property 'body' must be of type 'BodyInit', but here has type 'BodyInit_'.
+node_modules/react-native/src/types/globals.d.ts(275,5): error TS2717: Subsequent property declarations must have the same type.  Property 'signal' must be of type 'AbortSignal', but here has type 'AbortSignal'.
+node_modules/react-native/src/types/globals.d.ts(285,14): error TS2717: Subsequent property declarations must have the same type.  Property 'signal' must be of type 'AbortSignal', but here has type 'AbortSignal'.
+node_modules/react-native/src/types/globals.d.ts(289,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Request' must be of type '{ new (input: RequestInfo | URL, init?: RequestInit): Request; prototype: Request; }', but here has type '{ new (input: string | Request, init?: RequestInit): Request; prototype: Request; }'.
+node_modules/react-native/src/types/globals.d.ts(313,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Response' must be of type '{ new (body?: BodyInit, init?: ResponseInit): Response; prototype: Response; error(): Response; json(data: any, init?: ResponseInit): Response; redirect(url: string | URL, status?: number): Response; }', but here has type '{ new (body?: BodyInit_, init?: ResponseInit): Response; prototype: Response; error(): Response; json(data: any, init?: ResponseInit): Response; redirect: (url: string | URL, status?: number) => Response; }'.
+node_modules/react-native/src/types/globals.d.ts(398,5): error TS2717: Subsequent property declarations must have the same type.  Property 'abort' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(399,5): error TS2717: Subsequent property declarations must have the same type.  Property 'error' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(400,5): error TS2717: Subsequent property declarations must have the same type.  Property 'load' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(401,5): error TS2717: Subsequent property declarations must have the same type.  Property 'loadend' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(402,5): error TS2717: Subsequent property declarations must have the same type.  Property 'loadstart' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(403,5): error TS2717: Subsequent property declarations must have the same type.  Property 'progress' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(404,5): error TS2717: Subsequent property declarations must have the same type.  Property 'timeout' must be of type 'ProgressEvent<XMLHttpRequestEventTarget>', but here has type 'ProgressEvent<EventTarget>'.
+node_modules/react-native/src/types/globals.d.ts(471,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'URL' must be of type '{ new (url: string | URL, base?: string | URL): URL; prototype: URL; canParse(url: string | URL, base?: string | URL): boolean; createObjectURL(obj: Blob | MediaSource): string; parse(url: string | URL, base?: string | URL): URL; revokeObjectURL(url: string): void; }', but here has type '{ new (url: string | URL, base?: string | URL): URL; prototype: URL; createObjectURL(obj: Blob): string; revokeObjectURL(url: string): void; }'.
+node_modules/react-native/src/types/globals.d.ts(534,5): error TS2717: Subsequent property declarations must have the same type.  Property 'onopen' must be of type '(this: WebSocket, ev: Event) => any', but here has type '() => void'.
+node_modules/react-native/src/types/globals.d.ts(535,5): error TS2717: Subsequent property declarations must have the same type.  Property 'onmessage' must be of type '(this: WebSocket, ev: MessageEvent<any>) => any', but here has type '(event: WebSocketMessageEvent) => void'.
+node_modules/react-native/src/types/globals.d.ts(536,5): error TS2717: Subsequent property declarations must have the same type.  Property 'onerror' must be of type '(this: WebSocket, ev: Event) => any', but here has type '(event: WebSocketErrorEvent) => void'.
+node_modules/react-native/src/types/globals.d.ts(537,5): error TS2717: Subsequent property declarations must have the same type.  Property 'onclose' must be of type '(this: WebSocket, ev: CloseEvent) => any', but here has type '(event: WebSocketCloseEvent) => void'.
+node_modules/react-native/src/types/globals.d.ts(538,5): error TS2717: Subsequent property declarations must have the same type.  Property 'addEventListener' must be of type '{ <K extends keyof WebSocketEventMap>(type: K, listener: (this: WebSocket, ev: WebSocketEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void; (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void; }', but here has type 'WebsocketEventListener'.
+node_modules/react-native/src/types/globals.d.ts(539,5): error TS2717: Subsequent property declarations must have the same type.  Property 'removeEventListener' must be of type '{ <K extends keyof WebSocketEventMap>(type: K, listener: (this: WebSocket, ev: WebSocketEventMap[K]) => any, options?: boolean | EventListenerOptions): void; (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void; }', but here has type 'WebsocketEventListener'.
+node_modules/react-native/src/types/globals.d.ts(542,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'WebSocket' must be of type '{ new (url: string | URL, protocols?: string | string[]): WebSocket; prototype: WebSocket; readonly CONNECTING: 0; readonly OPEN: 1; readonly CLOSING: 2; readonly CLOSED: 3; }', but here has type '{ new (uri: string, protocols?: string | string[], options?: { [optionName: string]: any; headers: { [headerName: string]: string; }; }): WebSocket; prototype: WebSocket; readonly CLOSED: number; readonly CLOSING: number; readonly CONNECTING: number; readonly OPEN: number; }'.
+node_modules/react-native/src/types/globals.d.ts(627,14): error TS2717: Subsequent property declarations must have the same type.  Property 'error' must be of type 'DOMException', but here has type 'Error'.
+node_modules/react-native/src/types/globals.d.ts(640,14): error TS2717: Subsequent property declarations must have the same type.  Property 'readyState' must be of type '0 | 2 | 1', but here has type 'number'.
+node_modules/typescript/lib/lib.dom.d.ts(23,1): error TS6200: Definitions of the following identifiers conflict with those in another file: EndingType, BlobPart, BufferSource, FormData, RequestInfo, XMLHttpRequestResponseType, AbortSignal, AbortController
+node_modules/typescript/lib/lib.dom.d.ts(32640,11): error TS2430: Interface 'URL' incorrectly extends interface 'import("node:url").URL'.
+  The types returned by 'searchParams[Symbol.iterator]()' are incompatible between these types.
+    Property '[Symbol.dispose]' is missing in type 'IterableIterator<[string, string]>' but required in type 'URLSearchParamsIterator<[string, string]>'.
+node_modules/typescript/lib/lib.dom.d.ts(32759,11): error TS2430: Interface 'URLSearchParams' incorrectly extends interface 'import("node:url").URLSearchParams'.
+  The types returned by '[Symbol.iterator]()' are incompatible between these types.
+    Property '[Symbol.dispose]' is missing in type 'IterableIterator<[string, string]>' but required in type 'URLSearchParamsIterator<[string, string]>'.

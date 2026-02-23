@@ -55,14 +55,14 @@ const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 
 /** Maps any accessory ID to its equipment slot */
 function getSlotForAccessory(id: string): AccessoryType | null {
   if (id.startsWith('hat-') || id.startsWith('hair-')) return 'hair';
-  if (id.startsWith('glasses-')) return 'face';
+  if (id.startsWith('glasses-') || id.startsWith('face-')) return 'face';
   if (id.startsWith('shoes-')) return 'shoes';
   // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand
   if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
   // 'lower' items: shirt-5 (skirt), lower-*
   if (id === 'shirt-5' || id.startsWith('lower-')) return 'lower';
-  // 'upper' items: remaining shirts (shirt-2, shirt-3, shirt-4)
-  if (id.startsWith('shirt-')) return 'upper';
+  // 'upper' items: remaining shirts (shirt-2, shirt-3, shirt-4) and new upper-* items
+  if (id.startsWith('shirt-') || id.startsWith('upper-')) return 'upper';
   return null;
 }
 
