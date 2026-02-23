@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Text, Pressable, ScrollView, Dimensions, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -29,6 +29,57 @@ const NODE_SIZE = 60;
 const LEVEL_SPACING = 110; // vertical gap between levels
 const MAP_PADDING_BOTTOM = 120;
 const MAP_PADDING_TOP = 80;
+
+// --- Seasonal Configuration ---
+const SEASONS = [
+  {
+    name: 'Spring',
+    colors: ['#DCEDC8', '#A5D6A7', '#81C784'] as const,
+    icon: 'flower-outline', // Ionicons
+    decorations: [
+      { family: 'MaterialCommunityIcons', name: 'flower-tulip', color: 'rgba(233, 30, 99, 0.4)' },
+      { family: 'MaterialCommunityIcons', name: 'pine-tree', color: 'rgba(56, 142, 60, 0.3)' },
+      { family: 'MaterialCommunityIcons', name: 'butterfly', color: 'rgba(156, 39, 176, 0.3)' },
+      { family: 'MaterialCommunityIcons', name: 'flower', color: 'rgba(255, 235, 59, 0.5)' },
+    ],
+  },
+  {
+    name: 'Summer',
+    colors: ['#B3E5FC', '#81D4FA', '#4FC3F7'] as const,
+    icon: 'sunny-outline', // Ionicons
+    decorations: [
+      { family: 'MaterialCommunityIcons', name: 'palm-tree', color: 'rgba(46, 125, 50, 0.4)' },
+      { family: 'MaterialCommunityIcons', name: 'white-balance-sunny', color: 'rgba(255, 193, 7, 0.4)' },
+      { family: 'MaterialCommunityIcons', name: 'weather-cloudy', color: 'rgba(255, 255, 255, 0.5)' },
+    ],
+  },
+  {
+    name: 'Autumn',
+    colors: ['#FFE0B2', '#FFB74D', '#FFA726'] as const,
+    icon: 'leaf-outline', // Ionicons
+    decorations: [
+      { family: 'MaterialCommunityIcons', name: 'leaf-maple', color: 'rgba(216, 67, 21, 0.4)' },
+      { family: 'MaterialCommunityIcons', name: 'pine-tree', color: 'rgba(191, 54, 12, 0.3)' },
+      { family: 'MaterialCommunityIcons', name: 'mushroom-outline', color: 'rgba(121, 85, 72, 0.4)' },
+    ],
+  },
+  {
+    name: 'Winter',
+    colors: ['#E1F5FE', '#B3E5FC', '#E8EAF6'] as const,
+    icon: 'snow-outline', // Ionicons
+    decorations: [
+      { family: 'MaterialCommunityIcons', name: 'snowflake', color: 'rgba(255, 255, 255, 0.7)' },
+      { family: 'MaterialCommunityIcons', name: 'pine-tree', color: 'rgba(144, 164, 174, 0.4)' },
+      { family: 'MaterialCommunityIcons', name: 'snowman', color: 'rgba(255, 255, 255, 0.6)' },
+    ],
+  }
+];
+
+// Pseudo-random generator for consistent decoration placement
+function seededRandom(seed: number) {
+  const x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+}
 
 interface LevelNodeProps {
   level: number;
@@ -141,6 +192,29 @@ export default function ClassicMapScreen() {
   
   // Total map height (bottom-to-top: level 1 at bottom, last at top)
   const totalMapHeight = totalLevels * LEVEL_SPACING + MAP_PADDING_BOTTOM + MAP_PADDING_TOP;
+
+  // Determine Current Season
+  const seasonIndex = Math.floor((classicLevel - 1) / 25) % 4;
+  const currentSeason = SEASONS[seasonIndex];
+  
+  // Generate consistent background decorations based on level height
+  const decorations = React.useMemo(() => {
+    const decs = [];
+    const numDecorations = totalLevels * 2.5; // Roughly 2.5 items per level space
+    
+    for (let i = 0; i < numDecorations; i++) {
+      // Use index and season as seed
+      const seed = i + (seasonIndex * 1000);
+      const decType = currentSeason.decorations[Math.floor(seededRandom(seed) * currentSeason.decorations.length)];
+      
+      const size = 30 + seededRandom(seed + 1) * 50; // 30 to 80
+      const x = seededRandom(seed + 2) * width;
+      const y = totalMapHeight - (seededRandom(seed + 3) * totalMapHeight);
+      
+      decs.push({ id: `dec-${i}`, ...decType, size, x, y });
+    }
+    return decs;
+  }, [totalLevels, seasonIndex, totalMapHeight]);
   
   // Calculate node positions — bottom-to-top with S-curve
   const getPosition = (index: number) => {
@@ -250,7 +324,7 @@ export default function ClassicMapScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#E8F5E9', '#C8E6C9', '#A5D6A7']}
+        colors={currentSeason.colors}
         style={StyleSheet.absoluteFill}
       />
       
@@ -259,7 +333,10 @@ export default function ClassicMapScreen() {
         <Pressable onPress={() => router.replace('/difficulty')} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
-        <Text style={styles.title}>Classic Adventure</Text>
+        <View style={styles.titleContainer}>
+           <Ionicons name={currentSeason.icon as any} size={20} color={Colors.text} style={{ marginRight: 6 }} />
+           <Text style={styles.title}>{currentSeason.name} Map</Text>
+        </View>
         <View style={styles.levelBadge}>
           <Text style={styles.levelBadgeText}>Lv.{classicLevel}</Text>
         </View>
@@ -273,6 +350,20 @@ export default function ClassicMapScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.mapArea}>
+          {/* Background Decorations */}
+          {decorations.map((dec) => (
+            <View 
+              key={dec.id} 
+              style={[styles.decorationIcon, { left: dec.x - dec.size/2, top: dec.y - dec.size/2 }]}
+            >
+              {dec.family === 'MaterialCommunityIcons' ? (
+                 <MaterialCommunityIcons name={dec.name as any} size={dec.size} color={dec.color} />
+              ) : (
+                 <Ionicons name={dec.name as any} size={dec.size} color={dec.color} />
+              )}
+            </View>
+          ))}
+
           {/* Draw connecting paths */}
           {points.map((p, i) => {
             if (i === points.length - 1) return null;
@@ -367,8 +458,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: 'Fredoka_700Bold',
     color: Colors.text,
   },
@@ -386,6 +481,10 @@ const styles = StyleSheet.create({
   mapArea: {
     flex: 1,
     position: 'relative',
+  },
+  decorationIcon: {
+    position: 'absolute',
+    zIndex: 0, 
   },
   pathLine: {
     position: 'absolute',
