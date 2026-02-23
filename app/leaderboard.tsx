@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Text, Pressable, FlatList, Platform, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, StyleSheet, Text, Pressable, FlatList, Platform, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,26 +10,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import * as db from '@/lib/db';
 import StickmanCoin, { abbreviateCoins } from '@/components/StickmanCoin';
 
+// ─── Types ───
+type TabKey = 'coins' | 'classic' | 'survival_easy' | 'survival_average' | 'survival_difficult';
+
+interface Tab {
+  key: TabKey;
+  label: string;
+  icon: string;
+  color: string;
+}
+
+const TABS: Tab[] = [
+  { key: 'coins', label: 'Coins', icon: 'gold', color: '#FFD700' },
+  { key: 'classic', label: 'Classic', icon: 'map-marker-path', color: '#3498DB' },
+  { key: 'survival_easy', label: 'Easy', icon: 'sword-cross', color: '#2ECC71' },
+  { key: 'survival_average', label: 'Average', icon: 'sword-cross', color: '#F39C12' },
+  { key: 'survival_difficult', label: 'Hard', icon: 'skull-crossbones', color: '#E74C3C' },
+];
+
 interface LeaderboardEntry {
   id: string;
   username: string;
-  coins: number;
+  value: number;
   rank: number;
 }
 
+// ─── Helpers ───
 function getRankBadgeColors(rank: number): [string, string] {
-  if (rank === 1) return ['#FFD700', '#F39C12']; // Gold
-  if (rank === 2) return ['#E0E0E0', '#9E9E9E']; // Silver
-  if (rank === 3) return ['#CD7F32', '#A0522D']; // Bronze
-  return ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']; // Normal
+  if (rank === 1) return ['#FFD700', '#F39C12'];
+  if (rank === 2) return ['#E0E0E0', '#9E9E9E'];
+  if (rank === 3) return ['#CD7F32', '#A0522D'];
+  return ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)'];
 }
 
 function getRowStyle(rank: number, isCurrentUser: boolean) {
   if (isCurrentUser) {
-    return {
-      backgroundColor: 'rgba(46, 204, 113, 0.15)',
-      borderColor: 'rgba(46, 204, 113, 0.6)',
-    };
+    return { backgroundColor: 'rgba(46, 204, 113, 0.15)', borderColor: 'rgba(46, 204, 113, 0.6)' };
   }
   if (rank === 1) return { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: 'rgba(255, 215, 0, 0.3)' };
   if (rank === 2) return { backgroundColor: 'rgba(192, 192, 192, 0.08)', borderColor: 'rgba(192, 192, 192, 0.25)' };
@@ -37,15 +53,24 @@ function getRowStyle(rank: number, isCurrentUser: boolean) {
   return { backgroundColor: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255, 255, 255, 0.08)' };
 }
 
-function LeaderboardRow({ entry, rank, isCurrentUser }: { entry: LeaderboardEntry; rank: number; isCurrentUser: boolean }) {
+function getValueLabel(tab: TabKey, value: number): string {
+  switch (tab) {
+    case 'coins': return abbreviateCoins(value);
+    case 'classic': return `Lv.${value}`;
+    default: return `${value}Q`;
+  }
+}
+
+// ─── Row Component ───
+function LeaderboardRow({ entry, rank, isCurrentUser, activeTab }: {
+  entry: LeaderboardEntry; rank: number; isCurrentUser: boolean; activeTab: TabKey;
+}) {
   const rowStyle = getRowStyle(rank, isCurrentUser);
   const isTop3 = rank <= 3;
 
   return (
-    <Animated.View entering={FadeInDown.delay(rank * 30).springify()}>
+    <Animated.View entering={FadeInDown.delay(Math.min(rank * 30, 600)).springify()}>
       <View style={[styles.row, rowStyle]}>
-        
-        {/* Rank Badge */}
         <LinearGradient
           colors={getRankBadgeColors(rank)}
           style={[styles.rankBadge, isTop3 && styles.rankBadgeGlow]}
@@ -59,7 +84,6 @@ function LeaderboardRow({ entry, rank, isCurrentUser }: { entry: LeaderboardEntr
           )}
         </LinearGradient>
 
-        {/* Username */}
         <View style={styles.nameContainer}>
           <Text style={[styles.username, isTop3 && styles.topUsername, isCurrentUser && styles.currentUserName]} numberOfLines={1}>
             {entry.username}
@@ -71,22 +95,22 @@ function LeaderboardRow({ entry, rank, isCurrentUser }: { entry: LeaderboardEntr
           )}
         </View>
 
-        {/* Coins */}
-        <View style={styles.coinsContainer}>
-          <StickmanCoin size={16} animated={false} />
-          <Text style={[styles.coinsText, isTop3 && styles.topCoinsText]}>
-            {abbreviateCoins(entry.coins)}
+        <View style={styles.valueContainer}>
+          {activeTab === 'coins' && <StickmanCoin size={16} animated={false} />}
+          <Text style={[styles.valueText, isTop3 && styles.topValueText]}>
+            {getValueLabel(activeTab, entry.value)}
           </Text>
         </View>
-
       </View>
     </Animated.View>
   );
 }
 
+// ─── Main Screen ───
 export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabKey>('coins');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,9 +118,34 @@ export default function LeaderboardScreen() {
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const fetchLeaderboard = useCallback(async () => {
+  const fetchLeaderboard = useCallback(async (tab: TabKey) => {
     try {
-      const data = await db.getLeaderboard(50, 0);
+      let data: LeaderboardEntry[] = [];
+
+      switch (tab) {
+        case 'coins': {
+          const coins = await db.getLeaderboard(50, 0);
+          data = coins.map(e => ({ id: e.id, username: e.username, value: e.coins, rank: e.rank }));
+          break;
+        }
+        case 'classic': {
+          data = await db.getClassicLeaderboard(50, 0);
+          break;
+        }
+        case 'survival_easy': {
+          data = await db.getSurvivalLeaderboard('easy', 50);
+          break;
+        }
+        case 'survival_average': {
+          data = await db.getSurvivalLeaderboard('average', 50);
+          break;
+        }
+        case 'survival_difficult': {
+          data = await db.getSurvivalLeaderboard('difficult', 50);
+          break;
+        }
+      }
+
       setLeaderboard(data);
     } catch (e) {
       console.warn('Failed to fetch leaderboard:', e);
@@ -107,16 +156,19 @@ export default function LeaderboardScreen() {
   }, []);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    setLoading(true);
+    setLeaderboard([]);
+    fetchLeaderboard(activeTab);
+  }, [activeTab, fetchLeaderboard]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    fetchLeaderboard(activeTab);
+  }, [activeTab, fetchLeaderboard]);
 
   const currentUserEntry = user ? leaderboard.find(e => e.id === user.id) : null;
   const currentUserRank = currentUserEntry?.rank || 0;
+  const activeTabInfo = TABS.find(t => t.key === activeTab)!;
 
   return (
     <LinearGradient
@@ -126,7 +178,7 @@ export default function LeaderboardScreen() {
       end={{ x: 0.3, y: 1 }}
     >
       <View style={{ paddingTop: topPadding, paddingBottom: bottomPadding, flex: 1 }}>
-        
+
         {/* Header */}
         <View style={styles.headerArea}>
           <View style={styles.headerRow}>
@@ -139,16 +191,45 @@ export default function LeaderboardScreen() {
 
           <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.trophyArea}>
             <View style={styles.trophyGlow}>
-              <MaterialCommunityIcons name="trophy-award" size={64} color="#FFD700" />
+              <MaterialCommunityIcons name="trophy-award" size={54} color="#FFD700" />
             </View>
-            <Text style={styles.trophySubtext}>Top Players by Total Coins</Text>
           </Animated.View>
+
+          {/* Tab Bar */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabBar}
+            contentContainerStyle={styles.tabBarContent}
+          >
+            {TABS.map(tab => (
+              <Pressable
+                key={tab.key}
+                style={[
+                  styles.tab,
+                  activeTab === tab.key && [styles.activeTab, { borderColor: tab.color }],
+                ]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                <MaterialCommunityIcons
+                  name={tab.icon as any}
+                  size={16}
+                  color={activeTab === tab.key ? tab.color : 'rgba(255,255,255,0.5)'}
+                />
+                <Text style={[
+                  styles.tabLabel,
+                  activeTab === tab.key && { color: tab.color, fontFamily: 'Fredoka_700Bold' },
+                ]}>{tab.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
           {/* Current user rank badge */}
           {!isGuest && user && currentUserRank > 0 && (
             <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.myRankBadge}>
               <Text style={styles.myRankLabel}>Your Rank</Text>
-              <Text style={styles.myRankNumber}>#{currentUserRank}</Text>
+              <Text style={[styles.myRankNumber, { color: activeTabInfo.color }]}>#{currentUserRank}</Text>
+              <Text style={styles.myRankValue}>{getValueLabel(activeTab, currentUserEntry!.value)}</Text>
             </Animated.View>
           )}
           {isGuest && (
@@ -163,7 +244,7 @@ export default function LeaderboardScreen() {
         <View style={styles.listContainer}>
           {loading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#FFD700" />
+              <ActivityIndicator size="large" color={activeTabInfo.color} />
               <Text style={styles.loadingText}>Loading legends...</Text>
             </View>
           ) : leaderboard.length === 0 ? (
@@ -181,12 +262,13 @@ export default function LeaderboardScreen() {
                   entry={item}
                   rank={item.rank}
                   isCurrentUser={!isGuest && user?.id === item.id}
+                  activeTab={activeTab}
                 />
               )}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTabInfo.color} />
               }
             />
           )}
@@ -202,13 +284,13 @@ const styles = StyleSheet.create({
   },
   headerArea: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
     marginTop: 8,
   },
   backBtn: {
@@ -232,7 +314,7 @@ const styles = StyleSheet.create({
   },
   trophyArea: {
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
   },
   trophyGlow: {
     shadowColor: '#FFD700',
@@ -241,11 +323,32 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  trophySubtext: {
-    fontSize: 14,
+  tabBar: {
+    maxHeight: 50,
+    marginBottom: 8,
+  },
+  tabBarContent: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  activeTab: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  tabLabel: {
+    fontSize: 13,
     fontFamily: 'Fredoka_500Medium',
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.7)',
   },
   myRankBadge: {
     alignSelf: 'center',
@@ -256,7 +359,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 24,
-    marginTop: 16,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
@@ -270,12 +373,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Fredoka_700Bold',
     color: '#FFD700',
   },
+  myRankValue: {
+    fontSize: 14,
+    fontFamily: 'Fredoka_600SemiBold',
+    color: 'rgba(255,255,255,0.8)',
+  },
   loginPrompt: {
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 16,
+    marginTop: 10,
     backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -387,7 +495,7 @@ const styles = StyleSheet.create({
     color: '#F1C40F',
     letterSpacing: 1,
   },
-  coinsContainer: {
+  valueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -397,12 +505,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-  coinsText: {
+  valueText: {
     fontSize: 15,
     fontFamily: 'Fredoka_600SemiBold',
     color: 'rgba(255,255,255,0.7)',
   },
-  topCoinsText: {
+  topValueText: {
     color: '#FFD700',
     fontFamily: 'Fredoka_700Bold',
   },

@@ -258,7 +258,7 @@ export default function GameScreen() {
       setFeedback('correct');
 
       // Calculate per-question coins
-      const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft);
+      const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft, mode, questionNum);
       earnedCoins = coinResult.total;
       multiplier = coinResult.multiplier;
       const newTotalCoins = totalCoinsEarned + earnedCoins;

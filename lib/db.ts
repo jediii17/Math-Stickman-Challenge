@@ -203,6 +203,7 @@ export async function saveGameSession(
   totalQuestions: number,
   wrongCount: number,
   coinsEarned: number,
+  gameMode: string = 'survival',
 ) {
   const { error } = await supabase
     .from('game_sessions')
@@ -213,8 +214,22 @@ export async function saveGameSession(
       total_questions: totalQuestions,
       wrong_count: wrongCount,
       coins_earned: coinsEarned,
+      game_mode: gameMode,
     });
-  if (error) throw error;
+  if (error) {
+    // game_mode column might not exist yet - try without it
+    const { error: fallbackError } = await supabase
+      .from('game_sessions')
+      .insert({
+        user_id: userId,
+        difficulty,
+        score,
+        total_questions: totalQuestions,
+        wrong_count: wrongCount,
+        coins_earned: coinsEarned,
+      });
+    if (fallbackError) throw fallbackError;
+  }
 }
 
 export async function getUserHighScores(userId: string) {
@@ -265,6 +280,114 @@ export async function getLeaderboard(limit: number = 50, offset: number = 0) {
     ...entry,
     rank: offset + i + 1,
   })) as { id: string; username: string; coins: number; rank: number }[];
+}
+
+// --- Classic Level Leaderboard ---
+
+export async function getClassicLeaderboard(limit: number = 50, offset: number = 0) {
+  // Try RPC first (server-side RANK)
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc('get_classic_leaderboard', { result_limit: limit, result_offset: offset });
+
+  if (!rpcError && rpcData) {
+    return (rpcData as any[]).map(e => ({
+      id: e.id,
+      username: e.username,
+      value: e.classic_level,
+      rank: e.rank,
+    }));
+  }
+
+  // Fallback: direct query with client-side ranking
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, classic_level')
+    .order('classic_level', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Classic leaderboard error:', JSON.stringify(error));
+    return [];
+  }
+
+  return (data || []).map((entry, i) => ({
+    id: entry.id,
+    username: entry.username,
+    value: entry.classic_level,
+    rank: offset + i + 1,
+  }));
+}
+
+// --- Survival Leaderboard (best score per difficulty, shows all users) ---
+
+export async function getSurvivalLeaderboard(difficulty: string, limit: number = 50, offset: number = 0) {
+  // Try RPC first (server-side RANK with LEFT JOIN)
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc('get_survival_leaderboard', { p_difficulty: difficulty, result_limit: limit, result_offset: offset });
+
+  if (!rpcError && rpcData) {
+    return (rpcData as any[]).map(e => ({
+      id: e.id,
+      username: e.username,
+      value: e.best_score,
+      rank: e.rank,
+    }));
+  }
+
+  console.warn('Survival RPC fallback, error:', rpcError?.message);
+
+  // Fallback: fetch profiles + sessions client-side
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, username')
+    .range(offset, offset + limit - 1);
+
+  if (profileError || !profiles) {
+    console.error('Survival leaderboard profile error:', JSON.stringify(profileError));
+    return [];
+  }
+
+  // Try fetching with game_mode filter first
+  let sessions: any[] | null = null;
+  const { data: sessionsData, error: sessionsError } = await supabase
+    .from('game_sessions')
+    .select('user_id, score')
+    .eq('difficulty', difficulty)
+    .eq('game_mode', 'survival');
+
+  if (!sessionsError) {
+    sessions = sessionsData;
+  } else {
+    // game_mode column might not exist yet - try without it
+    const { data: fallbackData } = await supabase
+      .from('game_sessions')
+      .select('user_id, score')
+      .eq('difficulty', difficulty);
+    sessions = fallbackData;
+  }
+
+  const bestScores = new Map<string, number>();
+  if (sessions) {
+    for (const row of sessions) {
+      const existing = bestScores.get(row.user_id) || 0;
+      if (row.score > existing) {
+        bestScores.set(row.user_id, row.score);
+      }
+    }
+  }
+
+  const merged = profiles.map(p => ({
+    id: p.id,
+    username: p.username,
+    value: bestScores.get(p.id) || 0,
+  }));
+
+  merged.sort((a, b) => b.value - a.value);
+
+  return merged.slice(0, limit).map((entry, i) => ({
+    ...entry,
+    rank: offset + i + 1,
+  }));
 }
 // --- Shop Items ---
 

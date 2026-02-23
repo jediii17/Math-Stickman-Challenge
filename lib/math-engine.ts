@@ -398,11 +398,20 @@ export function getTotalQuestions(_difficulty: Difficulty): number {
 
 // ─── Coin calculation ───
 
-export function getBaseCoinReward(difficulty: Difficulty): number {
+export function getBaseCoinReward(difficulty: Difficulty, mode: GameMode = 'survival'): number {
+  if (mode === 'classic') {
+    // Classic mode: unchanged
+    switch (difficulty) {
+      case 'easy': return 1;
+      case 'average': return 2;
+      case 'difficult': return 3;
+    }
+  }
+  // Survival mode: buff difficult
   switch (difficulty) {
     case 'easy': return 1;
     case 'average': return 2;
-    case 'difficult': return 3;
+    case 'difficult': return 4;
   }
 }
 
@@ -418,8 +427,31 @@ export function getCoinMultiplier(timeLimit: number, timeLeft: number): number {
   return 1;
 }
 
-export function calculateQuestionCoins(difficulty: Difficulty, timeLimit: number, timeLeft: number): { base: number; multiplier: number; total: number } {
-  const base = getBaseCoinReward(difficulty);
+/**
+ * Get diminishing returns factor for easy survival mode.
+ * Q1-10: 100%, Q11-20: 50%, Q21+: 0%
+ */
+function getEasySurvivalFactor(questionNum: number): number {
+  if (questionNum <= 10) return 1;
+  if (questionNum <= 20) return 0.5;
+  return 0;
+}
+
+export function calculateQuestionCoins(
+  difficulty: Difficulty,
+  timeLimit: number,
+  timeLeft: number,
+  mode: GameMode = 'survival',
+  questionNum: number = 1,
+): { base: number; multiplier: number; total: number } {
+  const base = getBaseCoinReward(difficulty, mode);
   const multiplier = getCoinMultiplier(timeLimit, timeLeft);
-  return { base, multiplier, total: base * multiplier };
+  let total = base * multiplier;
+
+  // Apply diminishing returns for easy survival
+  if (mode === 'survival' && difficulty === 'easy') {
+    total = Math.ceil(total * getEasySurvivalFactor(questionNum));
+  }
+
+  return { base, multiplier, total };
 }

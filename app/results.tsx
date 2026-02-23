@@ -243,6 +243,7 @@ export default function ResultsScreen() {
           total,
           wrongCount,
           earnedCoins,
+          mode,
         );
         await refreshUser();
       }
