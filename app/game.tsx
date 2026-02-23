@@ -237,10 +237,30 @@ export default function GameScreen() {
 
     let isCorrect = false;
     if (currentProblem.stringAnswer) {
-      // Direct string match OR smart calculation block match (e.g. 2/4 typed for 1/2 answer)
-      const simplifiedInput = simplifyFractionStr(userInput);
-      isCorrect = userInput === currentProblem.stringAnswer || 
-                  (simplifiedInput !== null && simplifiedInput === currentProblem.stringAnswer);
+      const trimmedInput = userInput.trim();
+      // 1. Direct string match
+      if (trimmedInput === currentProblem.stringAnswer) {
+        isCorrect = true;
+      } else {
+        // 2. Simplify user input and compare (e.g. "2/4" → "1/2")
+        const simplifiedInput = simplifyFractionStr(trimmedInput);
+        if (simplifiedInput !== null && simplifiedInput === currentProblem.stringAnswer) {
+          isCorrect = true;
+        } else if (trimmedInput.includes('/')) {
+          // 3. Numeric equivalence fallback — parse user fraction and compare values
+          const parts = trimmedInput.split('/');
+          if (parts.length === 2) {
+            const num = parseInt(parts[0], 10);
+            const den = parseInt(parts[1], 10);
+            if (!isNaN(num) && !isNaN(den) && den !== 0) {
+              const userValue = num / den;
+              if (Math.abs(userValue - currentProblem.answer) < 0.0001) {
+                isCorrect = true;
+              }
+            }
+          }
+        }
+      }
     } else {
       isCorrect = parseInt(userInput, 10) === currentProblem.answer;
     }
@@ -479,8 +499,9 @@ export default function GameScreen() {
 
   const getFeedbackText = () => {
     if (feedback === 'correct') return 'Correct!';
-    if (feedback === 'wrong') return `Wrong! Answer: ${currentProblem.answer}`;
-    if (feedback === 'timeout') return `Time's up! Answer: ${currentProblem.answer}`;
+    const correctAnswer = currentProblem.stringAnswer || currentProblem.answer;
+    if (feedback === 'wrong') return `Wrong! Answer: ${correctAnswer}`;
+    if (feedback === 'timeout') return `Time's up! Answer: ${correctAnswer}`;
     return '';
   };
 
@@ -572,41 +593,51 @@ export default function GameScreen() {
         </View>
       </View>
 
-      <View style={styles.scoreRow}>
-        <View style={styles.scoreItem}>
-          <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
-          <Text style={[styles.scoreText, { color: Colors.primary }]}>{score}</Text>
-        </View>
+      {/* ── Stickman Arena with overlaid HUD ── */}
+      {!scribbleMode && (
+        <View style={styles.arenaContainer}>
+          {/* Stickman display */}
+          <View style={styles.stickmanArena}>
+            <Stickman wrongCount={wrongCount} size={Math.min(Math.round(screenWidth * 0.35), 140)} />
+          </View>
 
-        {/* Coin counter */}
-        <View style={styles.coinCounter}>
-          <Ionicons name="sparkles" size={14} color="#FFD700" />
-          <Text style={styles.coinCounterText}>{totalCoinsEarned}</Text>
-          {lastCoinReward && feedback === 'correct' && (
-            <Animated.View
-              key={questionNum}
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(400)}
-              style={styles.coinPopup}
-            >
-              <Text style={[styles.coinPopupText, { color: getMultiplierColor(lastCoinReward.multiplier) }]}>
-                +{lastCoinReward.coins.toLocaleString()} ({lastCoinReward.multiplier}×)
-              </Text>
-            </Animated.View>
-          )}
-        </View>
+          {/* Overlaid Hearts — top left */}
+          <View style={styles.heartsOverlay}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Ionicons
+                key={i}
+                name={i < wrongCount ? 'heart-dislike' : 'heart'}
+                size={16}
+                color={i < wrongCount ? 'rgba(200,200,200,0.8)' : '#E74C3C'}
+              />
+            ))}
+          </View>
 
-        <View style={styles.livesRow}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Ionicons
-              key={i}
-              name={i < wrongCount ? 'heart-dislike' : 'heart'}
-              size={20}
-              color={i < wrongCount ? '#ccc' : Colors.tertiary}
-            />
-          ))}
+          {/* Overlaid Score + Coins — top right */}
+          <View style={styles.statsOverlay}>
+            <View style={styles.statBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#fff" />
+              <Text style={styles.statBadgeText}>{score}</Text>
+            </View>
+            <View style={[styles.statBadge, { backgroundColor: 'rgba(184, 134, 11, 0.9)' }]}>
+              <StickmanCoin size={12} animated={false} />
+              <Text style={styles.statBadgeText}>{totalCoinsEarned}</Text>
+              {lastCoinReward && feedback === 'correct' && (
+                <Animated.View
+                  key={questionNum}
+                  entering={FadeIn.duration(200)}
+                  exiting={FadeOut.duration(400)}
+                  style={styles.coinPopup}
+                >
+                  <Text style={[styles.coinPopupText, { color: getMultiplierColor(lastCoinReward.multiplier) }]}>
+                    +{lastCoinReward.coins.toLocaleString()}
+                  </Text>
+                </Animated.View>
+              )}
+            </View>
+          </View>
         </View>
-      </View>
+      )}
 
       {isTimerPaused && (
         <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(300)} style={styles.freezeBanner}>
@@ -617,13 +648,8 @@ export default function GameScreen() {
 
       {isTimerPaused && <Snowflakes />}
 
+      {/* ── Problem + Feedback Area ── */}
       <View style={styles.gameArea}>
-        {!scribbleMode && (
-          <View style={styles.stickmanArea}>
-            <Stickman wrongCount={wrongCount} size={140} />
-          </View>
-        )}
-
         <Animated.View style={[styles.problemCard, problemAnimStyle]}>
           <Text style={styles.topicLabel}>{currentProblem.topic}</Text>
           <Text style={styles.problemText}>{currentProblem.display} = ?</Text>
@@ -644,7 +670,6 @@ export default function GameScreen() {
               />
               <Text style={styles.feedbackText}>{getFeedbackText()}</Text>
             </View>
-            {/* Coin reward badge */}
             {feedback === 'correct' && lastCoinReward && (
               <Animated.View
                 key={`coin-${questionNum}`}
@@ -862,46 +887,76 @@ const styles = StyleSheet.create({
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.text,
   },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-  },
-  scoreItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  scoreText: {
-    fontSize: 16,
-    fontFamily: 'Fredoka_700Bold',
-  },
-  coinCounter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  // ── Arena + HUD Overlays ──
+  arenaContainer: {
+    marginHorizontal: 16,
+    marginTop: 4,
     position: 'relative',
   },
-  coinCounterText: {
-    fontSize: 14,
+  stickmanArena: {
+    width: '100%',
+    height: 160,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  heartsOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 12,
+    flexDirection: 'row',
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  statsOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(46, 204, 113, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  statBadgeText: {
+    fontSize: 13,
     fontFamily: 'Fredoka_700Bold',
-    color: '#B8860B',
+    color: '#fff',
   },
   coinPopup: {
     position: 'absolute',
-    top: -18,
-    right: -10,
+    top: -20,
+    right: -8,
   },
   coinPopupText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Fredoka_700Bold',
-  },
-  livesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   gameArea: {
     flex: 1,
@@ -909,18 +964,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     paddingHorizontal: 20,
-  },
-  stickmanArea: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 20,
-    padding: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   problemCard: {
     backgroundColor: Colors.card,

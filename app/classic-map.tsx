@@ -17,6 +17,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
+  FadeOut,
   FadeOutDown,
   useAnimatedScrollHandler,
   useAnimatedReaction,
@@ -280,6 +281,9 @@ export default function ClassicMapScreen() {
   const [isWalking, setIsWalking] = useState(false);
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const [showHereIndicator, setShowHereIndicator] = useState(false);
+  // Track stickman position in state to avoid reading shared values during render
+  const stickmanPosRef = useRef({ x: 0, y: 0 });
 
   // Show all levels from 1 up to current + a few locked ahead
   const totalLevels = classicLevel + EXTRA_LOCKED_LEVELS;
@@ -383,6 +387,7 @@ export default function ClassicMapScreen() {
       const { x, y } = points[currentIndex];
       stickmanX.value = x;
       stickmanY.value = y;
+      stickmanPosRef.current = { x, y };
     }
     
     // Scroll to current level position
@@ -422,44 +427,43 @@ export default function ClassicMapScreen() {
     if (targetIndex === -1) return;
 
     const { x: targetX, y: targetY } = points[targetIndex];
-    
-    // We remove the old behavior here that just instantly called launchGame(level)
-    // if the user clicked their current player level location. We now treat the current
-    // player level exactly like any other clicked level: walk to it and show the Modal.
-    const currentIndex = levels.indexOf(classicLevel);
 
     // Walk to the level
     setIsWalking(true);
     setPendingLevel(level);
     
-    // Find current stickman position index (closest node)
-    let startIndex = currentIndex;
-    if (startIndex === -1) startIndex = 0; // Fallback
+    // Use ref to find closest node (avoids reading shared value during render)
+    const curX = stickmanPosRef.current.x;
+    const curY = stickmanPosRef.current.y;
     
-    // We might be at a different level currently if we previously walked
-    // Let's find the closest node to where the stickman ACTUALLY is right now to start the path
     let closestIndex = 0;
     let minDistance = Infinity;
-    const curX = stickmanX.value;
-    const curY = stickmanY.value;
-    
     for (let i = 0; i < points.length; i++) {
-        const d = Math.sqrt(Math.pow(points[i].x - curX, 2) + Math.pow(points[i].y - curY, 2));
-        if (d < minDistance) {
-            minDistance = d;
-            closestIndex = i;
-        }
+      const d = Math.sqrt(Math.pow(points[i].x - curX, 2) + Math.pow(points[i].y - curY, 2));
+      if (d < minDistance) {
+        minDistance = d;
+        closestIndex = i;
+      }
     }
     
-    // If stickman is arbitrarily placed, just start from closest node
-    startIndex = closestIndex;
+    const startIndex = closestIndex;
+    const levelDiff = Math.abs(targetIndex - startIndex);
+    
+    // If jump is > 20 levels, teleport instantly instead of walking
+    if (levelDiff > 20) {
+      stickmanX.value = targetX;
+      stickmanY.value = targetY;
+      stickmanPosRef.current = { x: targetX, y: targetY };
+      onWalkComplete(level);
+      return;
+    }
     
     // Determine path direction
     const step = startIndex < targetIndex ? 1 : -1;
     
     // Build animation sequence Arrays
-    const seqX = [];
-    const seqY = [];
+    const seqX: any[] = [];
+    const seqY: any[] = [];
     
     // Base speed per node-to-node jump
     const jumpDuration = 400; 
@@ -469,24 +473,19 @@ export default function ClassicMapScreen() {
     while (pathIndex !== targetIndex) {
       pathIndex += step;
       const nextPoint = points[pathIndex];
-      
-      // We attach the completion callback ONLY to the very last movement step
       const isLastStep = pathIndex === targetIndex;
       
       seqX.push(
         withTiming(nextPoint.x, { duration: jumpDuration, easing: Easing.linear })
       );
       
-      // Every time we move, we flip the stickman if needed
-      // To do this mid-sequence, we'd need a more complex worklet. 
-      // For now, let's just use the final facing direction, or set it immediately if step is 1/-1
-      // Actually, a simpler way: just figure out the first move's direction
+      // Flip stickman direction on first step
       if (pathIndex === startIndex + step) {
-         if (nextPoint.x < curX) {
-           scaleX.value = -1;
-         } else {
-           scaleX.value = 1;
-         }
+        if (nextPoint.x < curX) {
+          scaleX.value = -1;
+        } else {
+          scaleX.value = 1;
+        }
       }
       
       seqY.push(
@@ -501,8 +500,9 @@ export default function ClassicMapScreen() {
     if (seqX.length > 0) {
       stickmanX.value = withSequence(...seqX);
       stickmanY.value = withSequence(...seqY);
+      // Update ref to final position
+      stickmanPosRef.current = { x: targetX, y: targetY };
     } else {
-      // If length is 0, we're already there
       onWalkComplete(level);
     }
   };
@@ -559,12 +559,18 @@ export default function ClassicMapScreen() {
   };
   
   const scrollToCurrentLevel = () => {
-    const currentIndex = levels.indexOf(classicLevel);
-    if (currentIndex !== -1 && scrollRef.current) {
-      const { y } = points[currentIndex];
-      const scrollTarget = Math.max(0, y - screenHeight / 2);
+    // Find where the stickman currently is (tracked node)
+    const curX = stickmanPosRef.current.x;
+    const curY = stickmanPosRef.current.y;
+    
+    if (scrollRef.current) {
+      const scrollTarget = Math.max(0, curY - screenHeight / 2);
       scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
     }
+    
+    // Show the "You're here" indicator above the stickman
+    setShowHereIndicator(true);
+    setTimeout(() => setShowHereIndicator(false), 2500);
   };
 
   return (
@@ -683,6 +689,28 @@ export default function ClassicMapScreen() {
           <Animated.View style={stickmanAnimStyle}>
             <AnimatedStickman size={110} hideArms={false} />
           </Animated.View>
+
+          {/* "You're here" floating indicator above stickman */}
+          {showHereIndicator && (
+            <Animated.View 
+              entering={FadeIn.duration(300)}
+              exiting={FadeOut.delay(1500).duration(500)}
+              style={{
+                position: 'absolute',
+                left: stickmanPosRef.current.x - 60,
+                top: stickmanPosRef.current.y - NODE_SIZE - 75 - 44,
+                width: 120,
+                alignItems: 'center',
+                zIndex: 200,
+              }}
+            >
+              <View style={styles.hereIndicator}>
+                <Ionicons name="location" size={16} color="#fff" />
+                <Text style={styles.hereIndicatorText}>You're here!</Text>
+              </View>
+              <View style={styles.hereIndicatorArrow} />
+            </Animated.View>
+          )}
         </View>
       </ScrollView>
       
@@ -705,47 +733,60 @@ export default function ClassicMapScreen() {
         animationType="fade"
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />
           
           <Animated.View 
             entering={FadeInDown.duration(300).easing(Easing.out(Easing.ease))}
-            style={styles.modalContainer}
+            style={[styles.modalContainer, { width: width * 0.85, maxWidth: 380 }]}
           >
+            {/* Header with gradient feel */}
             <View style={[styles.modalHeader, { backgroundColor: currentSeason.colors[1] }]}>
-              <Ionicons name={currentSeason.icon as any} size={28} color="#fff" />
+              <View style={styles.modalLevelCircle}>
+                <Text style={styles.modalLevelNumber}>{selectedLevel}</Text>
+              </View>
               <Text style={styles.modalTitle}>Level {selectedLevel}</Text>
+              <View style={[styles.modalSeasonTag, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                <Ionicons name={currentSeason.icon as any} size={14} color="#fff" />
+                <Text style={styles.modalSeasonText}>{currentSeason.name}</Text>
+              </View>
             </View>
             
             <View style={styles.modalBody}>
+              {/* Stars for completed levels */}
               {selectedLevel !== null && selectedLevel < classicLevel && (
                 <View style={styles.modalStarsContainer}>
-                  <Ionicons name="star" size={32} color="#FFD700" />
-                  <Ionicons name="star" size={42} color="#FFD700" style={{ marginTop: -8 }} />
-                  <Ionicons name="star" size={32} color="#FFD700" />
+                  <Ionicons name="star" size={28} color="#FFD700" />
+                  <Ionicons name="star" size={36} color="#FFD700" style={{ marginTop: -6 }} />
+                  <Ionicons name="star" size={28} color="#FFD700" />
                 </View>
               )}
               
               <Text style={styles.modalText}>
-                Ready to play this level?
+                {selectedLevel !== null && selectedLevel < classicLevel
+                  ? 'Replay this level?'
+                  : 'Ready to take on the challenge?'}
               </Text>
               
               <View style={styles.modalButtons}>
                 <TouchableOpacity 
                   style={styles.cancelBtn} 
                   onPress={() => setSelectedLevel(null)}
+                  activeOpacity={0.7}
                 >
+                  <Ionicons name="arrow-back" size={16} color="#888" />
                   <Text style={styles.cancelBtnText}>Back</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles.playBtn} 
+                  style={[styles.playBtn, { backgroundColor: currentSeason.colors[1] }]} 
                   onPress={() => {
                     if (selectedLevel) launchGame(selectedLevel);
                     setSelectedLevel(null);
                   }}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="play" size={18} color="#fff" style={{ marginRight: 6 }} />
-                  <Text style={styles.playBtnText}>Start Level</Text>
+                  <Ionicons name="play" size={20} color="#fff" />
+                  <Text style={styles.playBtnText}>Play!</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -904,48 +945,80 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContainer: {
-    maxWidth: 500,
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 10,
+    paddingTop: 24,
+    paddingBottom: 18,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  modalLevelCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+    marginBottom: 4,
+  },
+  modalLevelNumber: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 22,
+    color: '#fff',
   },
   modalTitle: {
     fontFamily: 'Fredoka_700Bold',
-    fontSize: 28,
+    fontSize: 24,
+    color: '#fff',
+  },
+  modalSeasonTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  modalSeasonText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 12,
     color: '#fff',
   },
   modalBody: {
-    padding: 24,
+    paddingHorizontal: 28,
+    paddingTop: 20,
+    paddingBottom: 24,
     alignItems: 'center',
   },
   modalStarsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 20,
+    gap: 6,
+    marginBottom: 16,
   },
   modalText: {
     fontFamily: 'Fredoka_500Medium',
-    fontSize: 18,
+    fontSize: 17,
     color: Colors.text,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
+    lineHeight: 24,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -953,36 +1026,69 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-  },
-  cancelBtnText: {
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 18,
-    color: '#757575',
-  },
-  playBtn: {
-    flex: 1,
+    flex: 0.4,
     flexDirection: 'row',
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 18,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+  },
+  cancelBtnText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 16,
+    color: '#888',
+  },
+  playBtn: {
+    flex: 0.6,
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 18,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.primary,
+    gap: 8,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
   playBtnText: {
     fontFamily: 'Fredoka_700Bold',
     fontSize: 18,
     color: '#fff',
+  },
+  hereIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#E74C3C',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  hereIndicatorText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 14,
+    color: '#fff',
+  },
+  hereIndicatorArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#E74C3C',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
 import Svg, { Path, Ellipse, Line, G, Circle, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -434,6 +434,7 @@ export default function ShopScreen() {
 
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
@@ -627,7 +628,7 @@ export default function ShopScreen() {
         <>
           {/* Preview area with trial badge */}
           <View style={[styles.previewArea, trialItem && styles.previewAreaTrial]}>
-            <Stickman wrongCount={0} size={150} previewOverrides={previewOverrides} />
+            <Stickman wrongCount={0} size={Math.min(Math.round(screenWidth * 0.38), 150)} previewOverrides={previewOverrides} />
             {trialItem && (
               <View style={styles.trialBadge}>
                 <Ionicons name="eye" size={12} color={Colors.primary} />
@@ -762,6 +763,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 2,
     borderColor: 'transparent',
+    overflow: 'hidden',
   },
   previewAreaTrial: {
     borderColor: Colors.primary,
