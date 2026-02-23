@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Pressable, ScrollView, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Text, Pressable, ScrollView, Dimensions, Platform, Modal, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
@@ -11,11 +12,16 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
+  withRepeat,
   Easing,
   FadeIn,
   FadeInDown,
-  runOnJS,
+  FadeInUp,
+  FadeOutDown,
+  useAnimatedScrollHandler,
+  useAnimatedReaction,
 } from 'react-native-reanimated';
+import { runOnJS } from 'react-native-worklets';
 import Colors from '@/constants/colors';
 import { useGameState } from '@/hooks/useGameState';
 import AnimatedStickman from '@/components/AnimatedStickman';
@@ -24,7 +30,7 @@ import { getClassicDifficulty } from '@/lib/math-engine';
 const { width, height: screenHeight } = Dimensions.get('window');
 
 // Configuration
-const EXTRA_LOCKED_LEVELS = 3; // show a few locked levels ahead
+const EXTRA_LOCKED_LEVELS = 28; // show a few locked levels ahead
 const NODE_SIZE = 60;
 const LEVEL_SPACING = 110; // vertical gap between levels
 const MAP_PADDING_BOTTOM = 120;
@@ -172,6 +178,90 @@ function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
   );
 }
 
+function AnnoyingHereButton({ onPress, bottomPadding, direction, stickmanY, scrollY }: { onPress: () => void, bottomPadding: number, direction: 'above' | 'below', stickmanY: any, scrollY: any }) {
+  const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    // Annoying wiggle and pulse effect
+    rotation.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 60 }),
+        withTiming(8, { duration: 60 }),
+        withTiming(-8, { duration: 60 }),
+        withTiming(8, { duration: 60 }),
+        withTiming(0, { duration: 60 }),
+        withDelay(1000, withTiming(0, { duration: 0 }))
+      ),
+      -1,
+      false
+    );
+    
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.15, { duration: 150 }),
+        withTiming(1, { duration: 150 }),
+        withDelay(1000, withTiming(1, { duration: 0 }))
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${rotation.value}deg` },
+      { scale: scale.value }
+    ]
+  }));
+
+  const customExit = () => {
+    'worklet';
+    // Calculate the stickman's current screen Y position
+    // stickmanY is map-coordinate, scrollY is the scroll offset
+    // The screen height center is where the button is naturally anchored if it were at 0,0 relative to container
+    // However, the container is at the bottom.
+    
+    // Position of button in screen coordinates
+    const buttonScreenY = screenHeight - bottomPadding - 30 - 25; // 25 is half button height roughly
+    const stickmanScreenY = stickmanY.value - scrollY.value - 90; // 90 is center offset roughly
+    
+    const targetY = stickmanScreenY - buttonScreenY;
+    
+    return {
+      animations: {
+        transform: [
+          { translateY: withTiming(targetY, { duration: 600, easing: Easing.out(Easing.quad) }) },
+          { scale: withTiming(0, { duration: 600 }) },
+        ],
+        opacity: withTiming(0, { duration: 400 }),
+      },
+      initialValues: {
+        transform: [{ translateY: 0 }, { scale: 1 }],
+        opacity: 1,
+      },
+    };
+  };
+
+  return (
+    <Animated.View 
+      entering={FadeInUp.springify()} 
+      exiting={customExit}
+      style={[styles.hereBtnContainer, { bottom: bottomPadding + 30 }]}
+    >
+      <Animated.View style={animStyle}>
+        <Pressable 
+          style={({ pressed }) => [styles.hereBtn, pressed && { opacity: 0.8 }]}
+          onPress={onPress}
+        >
+          <Ionicons name={direction === 'above' ? "arrow-up" : "arrow-down"} size={20} color="#fff" />
+          <Text style={styles.hereBtnText}>You're here</Text>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 export default function ClassicMapScreen() {
   const insets = useSafeAreaInsets();
   const { classicLevel } = useGameState();
@@ -183,8 +273,11 @@ export default function ClassicMapScreen() {
   // Stickman walking animation values
   const stickmanX = useSharedValue(0);
   const stickmanY = useSharedValue(0);
+  const scrollY = useSharedValue(0);
+  const scaleX = useSharedValue(1); // Used to flip the stickman left/right based on walk direction
   const [isWalking, setIsWalking] = useState(false);
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
 
   // Show all levels from 1 up to current + a few locked ahead
   const totalLevels = classicLevel + EXTRA_LOCKED_LEVELS;
@@ -193,28 +286,71 @@ export default function ClassicMapScreen() {
   // Total map height (bottom-to-top: level 1 at bottom, last at top)
   const totalMapHeight = totalLevels * LEVEL_SPACING + MAP_PADDING_BOTTOM + MAP_PADDING_TOP;
 
-  // Determine Current Season
-  const seasonIndex = Math.floor((classicLevel - 1) / 25) % 4;
-  const currentSeason = SEASONS[seasonIndex];
+  // Determine Current Season based on scroll position (default to player's current level season)
+  const playerSeasonIndex = Math.floor((classicLevel - 1) / 25) % 4; // Use 25 since chunks use 25
+  const [displayedSeasonIndex, setDisplayedSeasonIndex] = useState(playerSeasonIndex);
+  const [hereDirection, setHereDirection] = useState<'above' | 'below' | null>(null);
+  const currentSeason = SEASONS[playerSeasonIndex]; // Fixed color for back bar background
+  const displayedSeason = SEASONS[displayedSeasonIndex];
   
-  // Generate consistent background decorations based on level height
+  // Generate consistent background decorations per level space
   const decorations = React.useMemo(() => {
     const decs = [];
-    const numDecorations = totalLevels * 2.5; // Roughly 2.5 items per level space
     
-    for (let i = 0; i < numDecorations; i++) {
-      // Use index and season as seed
-      const seed = i + (seasonIndex * 1000);
-      const decType = currentSeason.decorations[Math.floor(seededRandom(seed) * currentSeason.decorations.length)];
+    for (let level = 1; level <= totalLevels; level++) {
+      const decSeasonIndex = Math.floor((level - 1) / 25) % 4;
+      const decSeason = SEASONS[decSeasonIndex];
       
-      const size = 30 + seededRandom(seed + 1) * 50; // 30 to 80
-      const x = seededRandom(seed + 2) * width;
-      const y = totalMapHeight - (seededRandom(seed + 3) * totalMapHeight);
+      // We generate around 2-3 items per level chunk
+      const itemsThisLevel = 2 + Math.floor(seededRandom(level * 100) * 2);
       
-      decs.push({ id: `dec-${i}`, ...decType, size, x, y });
+      for (let j = 0; j < itemsThisLevel; j++) {
+        const seed = level * 1000 + j;
+        const decType = decSeason.decorations[Math.floor(seededRandom(seed) * decSeason.decorations.length)];
+        
+        const size = 30 + seededRandom(seed + 1) * 50; // 30 to 80
+        
+        // Base Y position on the level's Y position
+        const levelY = totalMapHeight - MAP_PADDING_BOTTOM - ((level - 1) * LEVEL_SPACING);
+        
+        // Scatter Y within +/- LEVEL_SPACING/2
+        const yOffset = (seededRandom(seed + 2) - 0.5) * LEVEL_SPACING;
+        const y = levelY + yOffset;
+        
+        const x = seededRandom(seed + 3) * width;
+        
+        decs.push({ id: `dec-${level}-${j}`, ...decType, size, x, y });
+      }
     }
     return decs;
-  }, [totalLevels, seasonIndex, totalMapHeight]);
+  }, [totalLevels, totalMapHeight]);
+  
+  // Calculate seasonal background chunks calculate chunks of 25 levels
+  const seasonChunks = React.useMemo(() => {
+    const chunks = [];
+    for (let startLevel = 1; startLevel <= totalLevels; startLevel += 25) {
+      const endLevel = Math.min(startLevel + 24, totalLevels);
+      const chunkSeasonIndex = Math.floor((startLevel - 1) / 25) % 4;
+      
+      // Calculate start and end Y positions for this chunk
+      // Levels are drawn bottom-to-top. Level 1 is at the bottom.
+      const startP = totalMapHeight - MAP_PADDING_BOTTOM - ((startLevel - 1) * LEVEL_SPACING);
+      const endP = totalMapHeight - MAP_PADDING_BOTTOM - ((endLevel - 1) * LEVEL_SPACING);
+      
+      // Give a little padding below and above the levels
+      const paddingY = 55;
+      const bottomY = startP + paddingY + (startLevel === 1 ? MAP_PADDING_BOTTOM : 0);
+      const topY = endP - paddingY - (endLevel === totalLevels ? MAP_PADDING_TOP : 0);
+      
+      chunks.push({
+        id: `chunk-${startLevel}`,
+        season: SEASONS[chunkSeasonIndex],
+        top: topY,
+        height: bottomY - topY,
+      });
+    }
+    return chunks;
+  }, [totalLevels, totalMapHeight]);
   
   // Calculate node positions — bottom-to-top with S-curve
   const getPosition = (index: number) => {
@@ -265,6 +401,7 @@ export default function ClassicMapScreen() {
     width: 90,
     height: 90,
     zIndex: 100,
+    transform: [{ scaleX: scaleX.value }]
   }));
 
   const launchGame = (level: number) => {
@@ -284,49 +421,154 @@ export default function ClassicMapScreen() {
 
     const { x: targetX, y: targetY } = points[targetIndex];
     
-    // If already at this level, just launch
+    // We remove the old behavior here that just instantly called launchGame(level)
+    // if the user clicked their current player level location. We now treat the current
+    // player level exactly like any other clicked level: walk to it and show the Modal.
     const currentIndex = levels.indexOf(classicLevel);
-    if (currentIndex !== -1) {
-      const { x: curX, y: curY } = points[currentIndex];
-      if (Math.abs(curX - targetX) < 5 && Math.abs(curY - targetY) < 5) {
-        launchGame(level);
-        return;
-      }
-    }
 
     // Walk to the level
     setIsWalking(true);
     setPendingLevel(level);
     
-    const duration = 800;
+    // Find current stickman position index (closest node)
+    let startIndex = currentIndex;
+    if (startIndex === -1) startIndex = 0; // Fallback
     
-    stickmanX.value = withTiming(targetX, { 
-      duration, 
-      easing: Easing.inOut(Easing.cubic) 
-    });
-    stickmanY.value = withTiming(targetY, { 
-      duration, 
-      easing: Easing.inOut(Easing.cubic) 
-    }, (finished) => {
-      if (finished) {
-        runOnJS(onWalkComplete)(level);
+    // We might be at a different level currently if we previously walked
+    // Let's find the closest node to where the stickman ACTUALLY is right now to start the path
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    const curX = stickmanX.value;
+    const curY = stickmanY.value;
+    
+    for (let i = 0; i < points.length; i++) {
+        const d = Math.sqrt(Math.pow(points[i].x - curX, 2) + Math.pow(points[i].y - curY, 2));
+        if (d < minDistance) {
+            minDistance = d;
+            closestIndex = i;
+        }
+    }
+    
+    // If stickman is arbitrarily placed, just start from closest node
+    startIndex = closestIndex;
+    
+    // Determine path direction
+    const step = startIndex < targetIndex ? 1 : -1;
+    
+    // Build animation sequence Arrays
+    const seqX = [];
+    const seqY = [];
+    
+    // Base speed per node-to-node jump
+    const jumpDuration = 400; 
+    
+    let pathIndex = startIndex;
+    
+    while (pathIndex !== targetIndex) {
+      pathIndex += step;
+      const nextPoint = points[pathIndex];
+      
+      // We attach the completion callback ONLY to the very last movement step
+      const isLastStep = pathIndex === targetIndex;
+      
+      seqX.push(
+        withTiming(nextPoint.x, { duration: jumpDuration, easing: Easing.linear })
+      );
+      
+      // Every time we move, we flip the stickman if needed
+      // To do this mid-sequence, we'd need a more complex worklet. 
+      // For now, let's just use the final facing direction, or set it immediately if step is 1/-1
+      // Actually, a simpler way: just figure out the first move's direction
+      if (pathIndex === startIndex + step) {
+         if (nextPoint.x < curX) {
+           scaleX.value = -1;
+         } else {
+           scaleX.value = 1;
+         }
       }
-    });
+      
+      seqY.push(
+        withTiming(nextPoint.y, { duration: jumpDuration, easing: Easing.linear }, (finished) => {
+          if (finished && isLastStep) {
+            runOnJS(onWalkComplete)(level);
+          }
+        })
+      );
+    }
+    
+    if (seqX.length > 0) {
+      stickmanX.value = withSequence(...seqX);
+      stickmanY.value = withSequence(...seqY);
+    } else {
+      // If length is 0, we're already there
+      onWalkComplete(level);
+    }
   };
 
   const onWalkComplete = (level: number) => {
     setIsWalking(false);
     setPendingLevel(null);
-    // Launch the game after arriving
-    setTimeout(() => launchGame(level), 300);
+    scaleX.value = 1; // Reset stickman facing right on stop
+    // Prompt the user to start the level instead of automatic launch
+    setSelectedLevel(level);
+  };
+
+  // Use a reaction to sync state with shared values safely outside the render cycle
+  useAnimatedReaction(
+    () => ({
+      scroll: scrollY.value,
+      sY: stickmanY.value,
+    }),
+    (current) => {
+      // Calculate off-screen status
+      const scrollOffset = current.scroll;
+      const actualStickmanY = current.sY - NODE_SIZE - 75; 
+      const actualStickmanBottom = actualStickmanY + 90;
+      
+      const screenTop = scrollOffset + topPadding + 60;
+      const screenBottom = scrollOffset + screenHeight;
+      
+      const isCompletelyAboveScreen = actualStickmanBottom < screenTop;
+      const isCompletelyBelowScreen = actualStickmanY > screenBottom;
+
+      if (isCompletelyAboveScreen) {
+        runOnJS(setHereDirection)('above');
+      } else if (isCompletelyBelowScreen) {
+        runOnJS(setHereDirection)('below');
+      } else {
+        runOnJS(setHereDirection)(null);
+      }
+    },
+    [topPadding, screenHeight]
+  );
+
+  const handleScroll = (event: any) => {
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    scrollY.value = scrollOffset;
+    
+    const screenCenterY = scrollOffset + screenHeight / 2;
+    const rawLevel = (totalMapHeight - MAP_PADDING_BOTTOM - screenCenterY) / LEVEL_SPACING + 1;
+    const visibleLevel = Math.max(1, Math.min(Math.round(rawLevel), totalLevels));
+    const newSeasonIndex = Math.floor((visibleLevel - 1) / 25) % 4;
+    
+    if (newSeasonIndex !== displayedSeasonIndex) {
+      setDisplayedSeasonIndex(newSeasonIndex);
+    }
+  };
+  
+  const scrollToCurrentLevel = () => {
+    const currentIndex = levels.indexOf(classicLevel);
+    if (currentIndex !== -1 && scrollRef.current) {
+      const { y } = points[currentIndex];
+      const scrollTarget = Math.max(0, y - screenHeight / 2);
+      scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
+    }
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={currentSeason.colors}
-        style={StyleSheet.absoluteFill}
-      />
+      {/* We will render gradients inside the ScrollView so they scroll naturally */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: currentSeason.colors[2] }]} />
       
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: topPadding + 8 }]}>
@@ -334,8 +576,8 @@ export default function ClassicMapScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <View style={styles.titleContainer}>
-           <Ionicons name={currentSeason.icon as any} size={20} color={Colors.text} style={{ marginRight: 6 }} />
-           <Text style={styles.title}>{currentSeason.name} Map</Text>
+           <Ionicons name={displayedSeason.icon as any} size={20} color={Colors.text} style={{ marginRight: 6 }} />
+           <Text style={styles.title}>{displayedSeason.name} Map</Text>
         </View>
         <View style={styles.levelBadge}>
           <Text style={styles.levelBadgeText}>Lv.{classicLevel}</Text>
@@ -348,8 +590,24 @@ export default function ClassicMapScreen() {
           height: totalMapHeight,
         }}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16} // 60fps
       >
         <View style={styles.mapArea}>
+          {/* Seasonal Background Gradients */}
+          {seasonChunks.map((chunk) => (
+            <LinearGradient
+              key={chunk.id}
+              colors={chunk.season.colors}
+              style={[
+                styles.seasonBackground,
+                { top: chunk.top, height: chunk.height }
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          ))}
+
           {/* Background Decorations */}
           {decorations.map((dec) => (
             <View 
@@ -425,6 +683,66 @@ export default function ClassicMapScreen() {
           </Animated.View>
         </View>
       </ScrollView>
+      
+      {/* "You are here" Floating Button */}
+      {hereDirection && (
+        <AnnoyingHereButton onPress={scrollToCurrentLevel} bottomPadding={bottomPadding} direction={hereDirection} stickmanY={stickmanY} scrollY={scrollY} />
+      )}
+      
+      {/* Level Start Confirmation Modal */}
+      <Modal
+        visible={selectedLevel !== null}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          
+          <Animated.View 
+            entering={FadeInDown.duration(300).easing(Easing.out(Easing.ease))}
+            style={styles.modalContainer}
+          >
+            <View style={[styles.modalHeader, { backgroundColor: currentSeason.colors[1] }]}>
+              <Ionicons name={currentSeason.icon as any} size={28} color="#fff" />
+              <Text style={styles.modalTitle}>Level {selectedLevel}</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {selectedLevel !== null && selectedLevel < classicLevel && (
+                <View style={styles.modalStarsContainer}>
+                  <Ionicons name="star" size={32} color="#FFD700" />
+                  <Ionicons name="star" size={42} color="#FFD700" style={{ marginTop: -8 }} />
+                  <Ionicons name="star" size={32} color="#FFD700" />
+                </View>
+              )}
+              
+              <Text style={styles.modalText}>
+                Ready to play this level?
+              </Text>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn} 
+                  onPress={() => setSelectedLevel(null)}
+                >
+                  <Text style={styles.cancelBtnText}>Back</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.playBtn} 
+                  onPress={() => {
+                    if (selectedLevel) launchGame(selectedLevel);
+                    setSelectedLevel(null);
+                  }}
+                >
+                  <Ionicons name="play" size={18} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.playBtnText}>Start Level</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -481,6 +799,13 @@ const styles = StyleSheet.create({
   mapArea: {
     flex: 1,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  seasonBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: -1,
   },
   decorationIcon: {
     position: 'absolute',
@@ -539,5 +864,116 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.textLight,
+  },
+  hereBtnContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+    zIndex: 50,
+  },
+  hereBtn: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  hereBtnText: {
+    color: '#fff',
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 16,
+    marginLeft: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  modalContainer: {
+    width: width * 0.85,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  modalTitle: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 28,
+    color: '#fff',
+  },
+  modalBody: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalStarsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  modalText: {
+    fontFamily: 'Fredoka_500Medium',
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+  },
+  cancelBtnText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 18,
+    color: '#757575',
+  },
+  playBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  playBtnText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 18,
+    color: '#fff',
   },
 });

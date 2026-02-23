@@ -14,6 +14,7 @@ import {
   Fredoka_600SemiBold,
   Fredoka_700Bold,
 } from "@expo-google-fonts/fredoka";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import mobileAds from 'react-native-google-mobile-ads';
 
 SplashScreen.preventAutoHideAsync();
@@ -51,6 +52,7 @@ export default function RootLayout() {
     Fredoka_500Medium,
     Fredoka_600SemiBold,
     Fredoka_700Bold,
+    ...MaterialCommunityIcons.font,
   });
 
   const player = useAudioPlayer(require("@/assets/sounds/bgm.mp3"));

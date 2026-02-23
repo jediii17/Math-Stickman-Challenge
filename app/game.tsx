@@ -5,6 +5,9 @@ import {
   Text,
   Pressable,
   Platform,
+  Modal,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -17,6 +20,8 @@ import Animated, {
   FadeIn,
   FadeOut,
   ZoomIn,
+  FadeInDown,
+  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +32,7 @@ import Stickman from '@/components/Stickman';
 import ScribbleArea from '@/components/ScribbleArea';
 import Snowflakes from '@/components/Snowflakes';
 import Colors from '@/constants/colors';
+import { BlurView } from 'expo-blur';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import AdBanner from '@/components/AdBanner';
@@ -82,6 +88,7 @@ export default function GameScreen() {
   const [showFireflyHint, setShowFireflyHint] = useState(false);
   const [showPotionHeal, setShowPotionHeal] = useState(false);
   const [lastCoinReward, setLastCoinReward] = useState<{ coins: number; multiplier: number } | null>(null);
+  const [showQuitModal, setShowQuitModal] = useState(false);
 
   const isTimerPausedRef = useRef(false);
 
@@ -225,8 +232,11 @@ export default function GameScreen() {
     stopTimer();
     setIsTransitioning(true);
 
-    const answer = parseInt(userInput, 10);
-    const isCorrect = answer === currentProblem.answer;
+    const isCorrect = currentProblem.stringAnswer 
+      ? userInput === currentProblem.stringAnswer
+      : parseInt(userInput, 10) === currentProblem.answer;
+
+    const answerValue = currentProblem.stringAnswer ? 0 : parseInt(userInput, 10); // 0 is placeholder for results log if it's a fraction
 
     let newScore = score;
     let newWrong = wrongCount;
@@ -267,7 +277,7 @@ export default function GameScreen() {
 
     const result: GameResult = {
       problem: currentProblem,
-      userAnswer: answer,
+      userAnswer: currentProblem.stringAnswer ? userInput : parseInt(userInput, 10) as any,
       correct: isCorrect,
       timeUp: false,
       coinsEarned: earnedCoins,
@@ -349,7 +359,11 @@ export default function GameScreen() {
 
   const handleNumberPress = (value: string) => {
     if (isTransitioning || gameOver || preGameCountdown !== null) return;
-    if (userInput.length < 5) {
+    
+    // Prevent multiple slashes
+    if (value === '/' && userInput.includes('/')) return;
+
+    if (userInput.length < 7) {
       setUserInput((prev) => prev + value);
     }
   };
@@ -435,7 +449,7 @@ export default function GameScreen() {
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       setTimeout(() => {
-        const ansStr = currentProblem.answer.toString();
+        const ansStr = currentProblem.stringAnswer || currentProblem.answer.toString();
         const currentLen = userInput.length;
         if (currentLen < ansStr.length) {
           setUserInput(prev => prev + ansStr[currentLen]);
@@ -491,10 +505,34 @@ export default function GameScreen() {
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
 
+  const handleBackPress = () => {
+    isTimerPausedRef.current = true;
+    setIsTimerPaused(true);
+    setShowQuitModal(true);
+  };
+
+  const handleConfirmQuit = () => {
+    if (mode === 'classic') {
+      router.replace('/classic-map');
+    } else {
+      router.replace('/difficulty');
+    }
+  };
+
+  const handleCancelQuit = () => {
+    setShowQuitModal(false);
+    isTimerPausedRef.current = false;
+    setIsTimerPaused(false);
+    // Unfreeze logic relies on freezeTimeLeft, so if not frozen by powder just let it tick normally
+    if (freezeTimeLeft <= 0) {
+      startTimer();
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding + 8 }]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={handleBackPress} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <View style={styles.topInfo}>
@@ -724,6 +762,51 @@ export default function GameScreen() {
           </Animated.View>
         </View>
       )}
+      
+      {/* Quit Confirmation Modal */}
+      <Modal
+        visible={showQuitModal}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          
+          <Animated.View 
+            entering={FadeInDown.duration(300).easing(Easing.out(Easing.ease))}
+            style={styles.modalContainer}
+          >
+            <View style={[styles.modalHeader, { backgroundColor: Colors.error }]}>
+              <Ionicons name="warning" size={28} color="#fff" />
+              <Text style={styles.modalTitle}>Surrender?</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalText}>
+                Are you sure you want to quit the game? All current progress will be lost!
+              </Text>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn} 
+                  onPress={handleCancelQuit}
+                >
+                  <Text style={styles.cancelBtnText}>Keep Playing</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quitBtn} 
+                  onPress={handleConfirmQuit}
+                >
+                  <Ionicons name="exit" size={18} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.quitBtnText}>Quit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       <AdBanner />
     </View>
   );
@@ -1052,5 +1135,83 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 15,
     elevation: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContainer: {
+    width: Dimensions.get('window').width * 0.85,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  modalTitle: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 28,
+    color: '#fff',
+  },
+  modalBody: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontFamily: 'Fredoka_500Medium',
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+  },
+  cancelBtnText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 16,
+    color: '#757575',
+  },
+  quitBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  quitBtnText: {
+    fontFamily: 'Fredoka_700Bold',
+    fontSize: 16,
+    color: '#fff',
   },
 });

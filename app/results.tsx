@@ -32,12 +32,13 @@ const { width } = Dimensions.get('window');
 interface ResultItem {
   display: string;
   answer: number;
-  userAnswer: number | null;
+  userAnswer: number | string | null;
   correct: boolean;
   timeUp: boolean;
   topic: string;
   coinsEarned?: number;
   multiplier?: number;
+  problem?: any;
 }
 
 function StarItem({ index, filled }: { index: number; filled: boolean }) {
@@ -114,7 +115,9 @@ function ResultRow({ item }: { item: ResultItem }) {
             {item.userAnswer}
           </Text>
         )}
-        <Text style={rowStyles.correctAnswer}>= {item.answer}</Text>
+        <Text style={rowStyles.correctAnswer}>
+          = {item.problem?.stringAnswer || item.answer}
+        </Text>
       </View>
     </View>
   );
@@ -292,7 +295,11 @@ export default function ResultsScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.replace('/');
+    if (mode === 'classic') {
+      router.replace('/classic-map');
+    } else {
+      router.replace('/difficulty');
+    }
   };
 
   useEffect(() => {

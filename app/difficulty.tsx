@@ -93,14 +93,14 @@ export default function DifficultyScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.push({ pathname: '/game', params: { difficulty: d, mode: 'survival' } });
+    router.replace({ pathname: '/game', params: { difficulty: d, mode: 'survival' } });
   };
 
   const handleClassic = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    router.push('/classic-map');
+    router.replace('/classic-map');
   };
 
   const handleSurvival = () => {

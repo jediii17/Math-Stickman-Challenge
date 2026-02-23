@@ -40,7 +40,8 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
     ['1', '2', '3'],
     ['4', '5', '6'],
     ['7', '8', '9'],
-    ['del', '0', 'go'],
+    ['/', '0', 'del'],
+    ['go'],
   ];
 
   return (
@@ -72,8 +73,7 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
                   key={key}
                   style={({ pressed }) => [
                     styles.key,
-                    styles.specialKey,
-                    { backgroundColor: Colors.primary },
+                    styles.goKey,
                     pressed && styles.keyPressed,
                     disabled && styles.keyDisabled,
                   ]}
@@ -128,6 +128,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
+  },
+  goKey: {
+    width: 256 + 16, // 80*3 + 8*2
+    backgroundColor: Colors.primary,
+    shadowOpacity: 0.15,
   },
   specialKey: {
     shadowOpacity: 0.15,

@@ -9,8 +9,9 @@ export interface MathProblem {
   answer: number;
   display: string;
   topic: string;
-  // For fraction problems, store extra info for display
+  // For fraction problems, store extra info for display and verification
   fractionAnswer?: { numerator: number; denominator: number };
+  stringAnswer?: string;
 }
 
 function randomInt(min: number, max: number): number {
@@ -158,10 +159,11 @@ function generateSimilarFractionAdd(): MathProblem {
   const simpDen = denom / g;
   return {
     num1: n1, num2: n2, operation: 'fraction_add',
-    answer: simpDen === 1 ? simpNum : simpNum, // Store numerator as answer for integer input
+    answer: simpNum / simpDen, 
     display: `${n1}/${denom} + ${n2}/${denom}`,
     topic: getTopicName('fraction_add'),
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
+    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
   };
 }
 
@@ -177,10 +179,11 @@ function generateSimilarFractionSub(): MathProblem {
   const simpDen = denom / g;
   return {
     num1: n1, num2: n2, operation: 'fraction_subtract',
-    answer: simpNum,
+    answer: simpNum / simpDen,
     display: `${n1}/${denom} - ${n2}/${denom}`,
     topic: getTopicName('fraction_subtract'),
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
+    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
   };
 }
 
@@ -198,10 +201,11 @@ function generateDissimilarFractionAdd(): MathProblem {
   const simpDen = commonDen / g;
   return {
     num1: n1, num2: n2, operation: 'fraction_add',
-    answer: simpNum,
+    answer: simpNum / simpDen,
     display: `${n1}/${d1} + ${n2}/${d2}`,
     topic: 'Dissimilar Fraction Addition',
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
+    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
   };
 }
 
@@ -231,10 +235,11 @@ function generateDissimilarFractionSub(): MathProblem {
   const simpDen = commonDen2 / g;
   return {
     num1: realN1, num2: realN2, operation: 'fraction_subtract',
-    answer: simpNum,
+    answer: simpNum / simpDen,
     display: `${realN1}/${realD1} - ${realN2}/${realD2}`,
     topic: 'Dissimilar Fraction Subtraction',
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
+    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
   };
 }
 
@@ -280,28 +285,60 @@ export function generateProblem(difficulty: Difficulty): MathProblem {
   return pickRandom(operations)();
 }
 
-/** Generate a problem for Classic mode based on level */
-export function generateClassicProblem(level: number): MathProblem {
-  if (level <= 150) {
-    // Easy only
-    return generateProblem('easy');
-  } else if (level <= 400) {
-    // Average only
-    return generateProblem('average');
-  } else {
-    // Mostly difficult, with some easy/average mixed in
-    const roll = Math.random();
-    if (roll < 0.1) return generateProblem('easy');
-    if (roll < 0.25) return generateProblem('average');
-    return generateProblem('difficult');
-  }
-}
-
 /** Get the difficulty label for a classic level */
 export function getClassicDifficulty(level: number): Difficulty {
-  if (level <= 150) return 'easy';
-  if (level <= 400) return 'average';
+  if (level <= 25) return 'easy';
+  if (level <= 50) return 'average';
   return 'difficult';
+}
+
+/** Get the hardness multiplier based on level seasons (every 25 levels) */
+export function getSeasonalHardness(level: number): number {
+  return Math.floor((level - 1) / 25);
+}
+
+/** Generate a problem for Classic mode based on level */
+export function generateClassicProblem(level: number): MathProblem {
+  const hardness = getSeasonalHardness(level);
+  const diff = getClassicDifficulty(level);
+  
+  // Custom logic for Season 4 (Level 76+) to make it fraction-heavy
+  if (level >= 76) {
+    const roll = Math.random();
+    if (roll < 0.75) {
+      // 75% chance of fractions in Season 4
+      const fracOps = [
+        () => generateSimilarFractionAdd(),
+        () => generateSimilarFractionSub(),
+        () => generateDissimilarFractionAdd(),
+        () => generateDissimilarFractionSub(),
+      ];
+      return pickRandom(fracOps)();
+    }
+  }
+
+  // Basic generation based on difficulty
+  const baseProblem = generateProblem(diff);
+  
+  // Apply seasonal hardness: slightly increase numbers if hardness > some threshold
+  if (hardness > 0 && !baseProblem.stringAnswer) {
+    const scale = 1 + (hardness * 0.1); 
+    baseProblem.num1 = Math.round(baseProblem.num1 * scale);
+    baseProblem.num2 = Math.round(baseProblem.num2 * scale);
+    
+    // Recalculate answer based on operation
+    switch (baseProblem.operation) {
+      case 'add': baseProblem.answer = baseProblem.num1 + baseProblem.num2; break;
+      case 'subtract': baseProblem.answer = baseProblem.num1 - baseProblem.num2; break;
+      case 'multiply': baseProblem.answer = baseProblem.num1 * baseProblem.num2; break;
+      case 'divide': 
+        baseProblem.num1 = baseProblem.num2 * baseProblem.answer; 
+        break;
+    }
+    baseProblem.display = baseProblem.display.replace(/\d+/, baseProblem.num1.toString()).replace(/\d+$/, baseProblem.num2.toString());
+  }
+  
+  return baseProblem;
 }
 
 // ─── Time & question config ───
