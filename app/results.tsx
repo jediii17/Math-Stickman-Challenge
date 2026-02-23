@@ -6,7 +6,6 @@ import {
   Pressable,
   Platform,
   FlatList,
-  Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,12 +21,13 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
+import StickmanCoin from '@/components/StickmanCoin';
 import type { Difficulty, GameMode } from '@/lib/math-engine';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import * as dbLib from '@/lib/db';
 
-const { width } = Dimensions.get('window');
+
 
 interface ResultItem {
   display: string;
@@ -335,8 +335,8 @@ export default function ResultsScreen() {
           </View>
           <Text style={styles.percentText}>{percentage}% correct</Text>
           <View style={styles.coinBadge}>
-            <Ionicons name="sparkles" size={16} color="#FFD700" />
-            <Text style={styles.coinText}>+{earnedCoins} coins</Text>
+            <StickmanCoin size={18} />
+            <Text style={styles.coinText}>+{earnedCoins.toLocaleString()} coins</Text>
           </View>
         </Animated.View>
       </LinearGradient>

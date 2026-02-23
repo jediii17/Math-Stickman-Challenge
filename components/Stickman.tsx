@@ -43,11 +43,11 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
       );
     }
     if (wrongCount >= 5) {
-      headFallY.value = withTiming(size * 0.45, {
+      headFallY.value = withTiming(size * 1.6 * 0.5, { // Fall distance
         duration: 900,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       });
-      headFallX.value = withTiming(size * 0.22, {
+      headFallX.value = withTiming(size * 1.15 * 0.2, {
         duration: 900,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       });
@@ -74,17 +74,21 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   }));
 
   // ── Layout constants ──
-  const cx = size / 2;
-  const groundY = size * 0.92;
-  const headCY = size * 0.22;
-  const headR = size * 0.1;
+  const w = size * 5.2;  // Card width – stretch edge to edge
+  const h = size * 1.6;  // Card height (tall rectangle)
+  const k = size * 1.15; // Stickman scale
+
+  const cx = w / 2;
+  const groundY = h * 0.78;
+  const headCY = h * 0.25;
+  const headR = k * 0.1;
   const bodyTop = headCY + headR;
-  const bodyLen = size * 0.35;
+  const bodyLen = k * 0.35;
   const bodyBot = bodyTop + bodyLen;
-  const legLen = size * 0.22;
+  const legLen = k * 0.22;
   const armY = bodyTop + bodyLen * 0.2;
-  const armLen = size * 0.18;
-  const sw = size * 0.035; // stroke width
+  const armLen = k * 0.18;
+  const sw = k * 0.035; // stroke width
   const jointR = sw * 0.9;
 
   // Colors
@@ -117,7 +121,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const raEndX = cx + armLen;
   const raEndY = armY + armLen * 0.5;
 
-  const hasHat = equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3' || equipped.hair === 'hat-4';
+  const hasHat = equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3' || equipped.hair === 'hat-4' || (equipped.hair && equipped.hair.startsWith('hair-'));
   const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3';
   const hasUpper = !!equipped.upper;
   const hasLower = !!equipped.lower;
@@ -189,6 +193,78 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
             <Path d={`M${cx - headR},${headCY - headR} L${cx - headR * 0.8},${headCY - headR * 1.2}`} stroke="#FFD700" strokeWidth={1} />
             <Path d={`M${cx + headR},${headCY - headR} L${cx + headR * 0.8},${headCY - headR * 1.2}`} stroke="#FFD700" strokeWidth={1} />
           </G>
+        </G>
+      );
+    }
+    
+    // --- New Hair Styles ---
+    if (equipped.hair === 'hair-b1') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 1.1},${headCY} L${cx - headR * 1.0},${headCY - headR * 0.8} L${cx - headR * 0.6},${headCY - headR * 0.5} L${cx - headR * 0.2},${headCY - headR * 1.2} L${cx + headR * 0.2},${headCY - headR * 0.6} L${cx + headR * 0.8},${headCY - headR * 1.0} L${cx + headR * 1.1},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.1},${headCY} Z`} fill="#2196F3" stroke="#1565C0" strokeLinejoin="round" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-b2') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 1.1},${headCY + headR * 0.2} Q${cx - headR * 1.1},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.1},${headCY - headR * 1.2} ${cx + headR * 1.1},${headCY + headR * 0.2} Q${cx + headR * 0.5},${headCY - headR * 0.3} ${cx},${headCY - headR * 0.1} Q${cx - headR * 0.5},${headCY - headR * 0.3} ${cx - headR * 1.1},${headCY + headR * 0.2} Z`} fill="#795548" stroke="#5D4037" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-b3') {
+      return (
+        <G>
+           <Path d={`M${cx - headR * 1.1},${headCY} Q${cx - headR * 1.1},${headCY - headR * 1.3} ${cx + headR * 0.3},${headCY - headR * 1.2} Q${cx + headR * 1.1},${headCY - headR * 0.5} ${cx + headR * 1.1},${headCY + headR * 0.2} Q${cx + headR * 0.5},${headCY - headR * 0.5} ${cx - headR * 1.1},${headCY} Z`} fill="#263238" stroke="#000000" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-b4') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 0.9},${headCY} L${cx - headR * 0.9},${headCY - headR * 0.9} Q${cx},${headCY - headR * 1.3} ${cx + headR * 0.9},${headCY - headR * 0.9} L${cx + headR * 0.9},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.9},${headCY} Z`} fill="#4CAF50" stroke="#388E3C" />
+          <Path d={`M${cx - headR * 0.8},${headCY - headR * 0.3} L${cx + headR * 0.8},${headCY - headR * 0.3}`} stroke="#388E3C" strokeWidth={1} strokeDasharray="2,2" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-g1') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 0.9},${headCY - headR * 0.5} Q${cx - headR * 1.8},${headCY - headR * 1.2} ${cx - headR * 2.2},${headCY} Q${cx - headR * 1.5},${headCY - headR * 0.2} ${cx - headR * 0.9},${headCY - headR * 0.2} Z`} fill="#F48FB1" stroke="#D81B60" />
+          <Path d={`M${cx + headR * 0.9},${headCY - headR * 0.5} Q${cx + headR * 1.8},${headCY - headR * 1.2} ${cx + headR * 2.2},${headCY} Q${cx + headR * 1.5},${headCY - headR * 0.2} ${cx + headR * 0.9},${headCY - headR * 0.2} Z`} fill="#F48FB1" stroke="#D81B60" />
+          <Circle cx={cx - headR * 0.9} cy={headCY - headR * 0.35} r={headR * 0.2} fill="#00BCD4" />
+          <Circle cx={cx + headR * 0.9} cy={headCY - headR * 0.35} r={headR * 0.2} fill="#00BCD4" />
+          <Path d={`M${cx - headR * 1.05},${headCY} Q${cx - headR * 1.05},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.05},${headCY - headR * 1.2} ${cx + headR * 1.05},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.05},${headCY} Z`} fill="#F06292" stroke="#D81B60" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-g2') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 1.0},${headCY} Q${cx - headR * 1.0},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.0},${headCY - headR * 1.2} ${cx + headR * 1.0},${headCY} Q${cx + headR * 1.3},${headCY + headR * 0.5} ${cx + headR * 1.0},${headCY + headR * 2.5} Q${cx + headR * 0.5},${headCY + headR * 1.5} ${cx + headR * 0.5},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.5},${headCY - headR * 0.3} Q${cx - headR * 0.5},${headCY + headR * 1.5} ${cx - headR * 1.0},${headCY + headR * 2.5} Q${cx - headR * 1.3},${headCY + headR * 0.5} ${cx - headR * 1.0},${headCY} Z`} fill="#AB47BC" stroke="#8E24AA" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-g3') {
+      return (
+        <G>
+           <Path d={`M${cx - headR * 1.1},${headCY + headR} L${cx - headR * 1.1},${headCY - headR * 0.5} Q${cx - headR * 1.1},${headCY - headR * 1.3} ${cx},${headCY - headR * 1.3} Q${cx + headR * 1.1},${headCY - headR * 1.3} ${cx + headR * 1.1},${headCY - headR * 0.5} L${cx + headR * 1.1},${headCY + headR} Q${cx + headR * 0.5},${headCY} ${cx},${headCY - headR * 0.3} Q${cx - headR * 0.5},${headCY} ${cx - headR * 1.1},${headCY + headR} Z`} fill="#FFD54F" stroke="#FFB300" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-g4') {
+      return (
+        <G>
+          <Path d={`M${cx},${headCY - headR * 1.0} Q${cx + headR * 1.5},${headCY - headR * 2.5} ${cx + headR * 2.0},${headCY - headR * 0.5} Q${cx + headR * 1.0},${headCY - headR * 0.5} ${cx},${headCY - headR * 0.8} Z`} fill="#EF5350" stroke="#D32F2F" />
+          <Path d={`M${cx - headR * 1.0},${headCY} Q${cx - headR * 1.0},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.0},${headCY - headR * 1.2} ${cx + headR * 1.0},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.0},${headCY} Z`} fill="#F44336" stroke="#D32F2F" />
+          <Circle cx={cx} cy={headCY - headR * 0.9} r={headR * 0.2} fill="#FFEB3B" />
+        </G>
+      );
+    }
+    if (equipped.hair === 'hair-g5') {
+      return (
+        <G>
+          <Path d={`M${cx - headR * 1.05},${headCY} Q${cx - headR * 1.05},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.05},${headCY - headR * 1.2} ${cx + headR * 1.05},${headCY} L${cx + headR * 1.05},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.6} ${cx - headR * 0.5},${headCY - headR * 0.3} L${cx - headR * 0.5},${headCY + headR * 2.5} L${cx - headR * 1.05},${headCY + headR * 2.5} Z`} fill="#212121" stroke="#000000" />
         </G>
       );
     }
@@ -585,7 +661,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   // ── Fallen parts on the ground ──
   const renderFallenParts = () => {
     const parts: React.ReactNode[] = [];
-    const fallY = groundY - size * 0.04;
+    const fallY = groundY - k * 0.04;
 
     // Fallen left leg
     if (!showLL) {
@@ -596,15 +672,15 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
             x1={fx}
             y1={fallY}
             x2={fx + legLen * 0.7}
-            y2={fallY - size * 0.015}
+            y2={fallY - k * 0.015}
             stroke={dismCol}
             strokeWidth={sw * 0.8}
             strokeLinecap="round"
           />
           <Circle cx={fx} cy={fallY} r={jointR * 0.7} fill={dismCol} />
           {hasBoots && equipped.shoes && (
-            <G transform={`translate(${fx + legLen * 0.5}, ${fallY - size * 0.025})`}>
-              {renderLeftBoot(equipped.shoes, 0, 0, size * 0.06, size * 0.04)}
+            <G transform={`translate(${fx + legLen * 0.5}, ${fallY - k * 0.025})`}>
+              {renderLeftBoot(equipped.shoes, 0, 0, k * 0.06, k * 0.04)}
             </G>
           )}
         </G>
@@ -620,15 +696,15 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
             x1={fx}
             y1={fallY}
             x2={fx + legLen * 0.65}
-            y2={fallY + size * 0.01}
+            y2={fallY + k * 0.01}
             stroke={dismCol}
             strokeWidth={sw * 0.8}
             strokeLinecap="round"
           />
-          <Circle cx={fx + legLen * 0.65} cy={fallY + size * 0.01} r={jointR * 0.7} fill={dismCol} />
+          <Circle cx={fx + legLen * 0.65} cy={fallY + k * 0.01} r={jointR * 0.7} fill={dismCol} />
           {hasBoots && equipped.shoes && (
-            <G transform={`translate(${fx + legLen * 0.65 - size * 0.01}, ${fallY - size * 0.01})`}>
-               {renderRightBoot(equipped.shoes, 0, 0, size * 0.06, size * 0.04)}
+            <G transform={`translate(${fx + legLen * 0.65 - k * 0.01}, ${fallY - k * 0.01})`}>
+               {renderRightBoot(equipped.shoes, 0, 0, k * 0.06, k * 0.04)}
             </G>
           )}
         </G>
@@ -637,14 +713,14 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
 
     // Fallen left arm
     if (!showLA) {
-      const fx = size * 0.08;
+      const fx = k * 0.08;
       parts.push(
         <G key="fallen-la" opacity={0.55}>
           <Line
             x1={fx}
             y1={fallY}
             x2={fx + armLen * 0.6}
-            y2={fallY - size * 0.02}
+            y2={fallY - k * 0.02}
             stroke={dismCol}
             strokeWidth={sw * 0.8}
             strokeLinecap="round"
@@ -652,24 +728,24 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
           {(hasUpper || hasLower) && (
             <G transform={`translate(${fx}, ${fallY})`}>
-               <Rect y={-size * 0.01} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
+               <Rect y={-k * 0.01} width={k * 0.08} height={k * 0.025} fill={getClothesColor()} />
             </G>
           )}
-          <Circle cx={fx + armLen * 0.6} cy={fallY - size * 0.02} r={jointR * 0.6} fill={dismCol} />
+          <Circle cx={fx + armLen * 0.6} cy={fallY - k * 0.02} r={jointR * 0.6} fill={dismCol} />
         </G>
       );
     }
 
     // Fallen right arm
     if (!showRA) {
-      const fx = size * 0.75;
+      const fx = cx + legLen * 1.2;
       parts.push(
         <G key="fallen-ra" opacity={0.55}>
           <Line
             x1={fx}
             y1={fallY}
             x2={fx + armLen * 0.55}
-            y2={fallY + size * 0.01}
+            y2={fallY + k * 0.01}
             stroke={dismCol}
             strokeWidth={sw * 0.8}
             strokeLinecap="round"
@@ -677,10 +753,10 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
           {(hasUpper || hasLower) && (
             <G transform={`translate(${fx}, ${fallY})`}>
-               <Rect y={-size * 0.01} width={size * 0.08} height={size * 0.025} fill={getClothesColor()} />
+               <Rect y={-k * 0.01} width={k * 0.08} height={k * 0.025} fill={getClothesColor()} />
             </G>
           )}
-          <Circle cx={fx + armLen * 0.55} cy={fallY + size * 0.01} r={jointR * 0.6} fill={dismCol} />
+          <Circle cx={fx + armLen * 0.55} cy={fallY + k * 0.01} r={jointR * 0.6} fill={dismCol} />
         </G>
       );
     }
@@ -690,8 +766,8 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
 
   return (
     <View style={styles.container}>
-      <Animated.View style={bodyAnimStyle}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Animated.View style={[bodyAnimStyle, { borderRadius: 16, overflow: 'hidden' }]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           <Defs>
             <LinearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={skyTop} />
@@ -705,88 +781,150 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           </Defs>
 
           {/* Sky background */}
-          <Rect x={0} y={0} width={size} height={size} rx={16} fill="url(#skyGrad)" />
+          <Rect x={0} y={0} width={w} height={h} rx={16} fill="url(#skyGrad)" />
+
+          {/* ── Clouds ── */}
+          <G opacity={0.6}>
+            {/* Cloud 1 - top left */}
+            <Ellipse cx={w * 0.18} cy={h * 0.08} rx={w * 0.1} ry={h * 0.025} fill="#fff" />
+            <Ellipse cx={w * 0.14} cy={h * 0.07} rx={w * 0.06} ry={h * 0.02} fill="#fff" />
+            <Ellipse cx={w * 0.22} cy={h * 0.065} rx={w * 0.07} ry={h * 0.022} fill="#fff" />
+            {/* Cloud 2 - top right */}
+            <Ellipse cx={w * 0.78} cy={h * 0.06} rx={w * 0.09} ry={h * 0.022} fill="#fff" />
+            <Ellipse cx={w * 0.74} cy={h * 0.05} rx={w * 0.055} ry={h * 0.018} fill="#fff" />
+            <Ellipse cx={w * 0.83} cy={h * 0.048} rx={w * 0.06} ry={h * 0.02} fill="#fff" />
+            {/* Cloud 3 - mid right */}
+            <Ellipse cx={w * 0.88} cy={h * 0.15} rx={w * 0.07} ry={h * 0.018} fill="#fff" />
+            <Ellipse cx={w * 0.85} cy={h * 0.14} rx={w * 0.045} ry={h * 0.015} fill="#fff" />
+          </G>
 
           {/* Grass ground */}
           <Rect
             x={0}
-            y={groundY - size * 0.02}
-            width={size}
-            height={size * 0.1 + size * 0.02}
+            y={groundY - k * 0.02}
+            width={w}
+            height={h - (groundY - k * 0.02) + 10}
             rx={0}
             fill={groundCol}
           />
-          {/* Grass tufts */}
-          <Path
-            d={`M${size * 0.05},${groundY} Q${size * 0.08},${groundY - size * 0.03} ${size * 0.11},${groundY}
-               M${size * 0.3},${groundY} Q${size * 0.33},${groundY - size * 0.025} ${size * 0.36},${groundY}
-               M${size * 0.6},${groundY} Q${size * 0.63},${groundY - size * 0.03} ${size * 0.66},${groundY}
-               M${size * 0.82},${groundY} Q${size * 0.85},${groundY - size * 0.02} ${size * 0.88},${groundY}`}
-            stroke={groundDark}
-            strokeWidth={1.5}
-            fill="none"
+          {/* Darker grass strip */}
+          <Rect
+            x={0}
+            y={groundY - k * 0.005}
+            width={w}
+            height={k * 0.025}
+            fill={groundDark}
+            opacity={0.4}
           />
 
+          {/* ── Background Rocks and Trees ── */}
+          <G>
+            {/* Rock 1 - far left */}
+            <Path d={`M${w * 0.05},${groundY} Q${w * 0.04},${groundY - k * 0.05} ${w * 0.07},${groundY - k * 0.06} Q${w * 0.1},${groundY - k * 0.05} ${w * 0.12},${groundY} Z`} fill="#9E9E9E" stroke="#757575" strokeWidth={1} />
+            
+            {/* Pine Tree 1 - left */}
+            <G transform={`translate(${w * 0.2}, ${groundY})`}>
+              <Rect x={-k * 0.02} y={-k * 0.12} width={k * 0.04} height={k * 0.12} fill="#5D4037" />
+              <Path d={`M${-k * 0.16},${-k * 0.12} L0,${-k * 0.45} L${k * 0.16},${-k * 0.12} Z`} fill="#2E7D32" />
+              <Path d={`M${-k * 0.12},${-k * 0.25} L0,${-k * 0.55} L${k * 0.12},${-k * 0.25} Z`} fill="#388E3C" />
+            </G>
+
+            {/* Rock 2 - mid-left */}
+            <Path d={`M${w * 0.35},${groundY} Q${w * 0.37},${groundY - k * 0.08} ${w * 0.4},${groundY} Z`} fill="#BDBDBD" stroke="#9E9E9E" strokeWidth={1} />
+
+            {/* Round Tree 1 - mid-right */}
+            <G transform={`translate(${w * 0.6}, ${groundY})`}>
+              <Rect x={-k * 0.03} y={-k * 0.15} width={k * 0.06} height={k * 0.15} fill="#4E342E" />
+              <Circle cx={0} cy={-k * 0.25} r={k * 0.16} fill="#1B5E20" />
+              <Circle cx={-k * 0.06} cy={-k * 0.3} r={k * 0.1} fill="#2E7D32" />
+              <Circle cx={k * 0.08} cy={-k * 0.24} r={k * 0.08} fill="#388E3C" />
+            </G>
+
+            {/* Rock 3 - right */}
+            <Path d={`M${w * 0.75},${groundY} Q${w * 0.78},${groundY - k * 0.1} ${w * 0.81},${groundY - k * 0.07} L${w * 0.84},${groundY} Z`} fill="#757575" stroke="#616161" strokeWidth={1} />
+
+            {/* Pine Tree 2 - far right */}
+            <G transform={`translate(${w * 0.9}, ${groundY})`}>
+              <Rect x={-k * 0.018} y={-k * 0.1} width={k * 0.036} height={k * 0.1} fill="#5D4037" />
+              <Path d={`M${-k * 0.14},${-k * 0.1} L0,${-k * 0.35} L${k * 0.14},${-k * 0.1} Z`} fill="#1B5E20" />
+              <Path d={`M${-k * 0.1},${-k * 0.22} L0,${-k * 0.45} L${k * 0.05},${-k * 0.22} Z`} fill="#2E7D32" />
+            </G>
+          </G>
+
+          {/* ── Grass tufts across full width ── */}
+          <G>
+            <Path
+              d={`M${w * 0.02},${groundY} Q${w * 0.04},${groundY - k * 0.03} ${w * 0.06},${groundY}
+                 M${w * 0.09},${groundY} Q${w * 0.11},${groundY - k * 0.02} ${w * 0.13},${groundY}
+                 M${w * 0.16},${groundY} Q${w * 0.18},${groundY - k * 0.025} ${w * 0.20},${groundY}
+                 M${w * 0.25},${groundY} Q${w * 0.27},${groundY - k * 0.018} ${w * 0.29},${groundY}
+                 M${w * 0.34},${groundY} Q${w * 0.36},${groundY - k * 0.022} ${w * 0.38},${groundY}
+                 M${w * 0.43},${groundY} Q${w * 0.45},${groundY - k * 0.015} ${w * 0.47},${groundY}
+                 M${w * 0.52},${groundY} Q${w * 0.54},${groundY - k * 0.028} ${w * 0.56},${groundY}
+                 M${w * 0.61},${groundY} Q${w * 0.63},${groundY - k * 0.02} ${w * 0.65},${groundY}
+                 M${w * 0.70},${groundY} Q${w * 0.72},${groundY - k * 0.025} ${w * 0.74},${groundY}
+                 M${w * 0.78},${groundY} Q${w * 0.80},${groundY - k * 0.018} ${w * 0.82},${groundY}
+                 M${w * 0.86},${groundY} Q${w * 0.88},${groundY - k * 0.022} ${w * 0.90},${groundY}
+                 M${w * 0.93},${groundY} Q${w * 0.95},${groundY - k * 0.02} ${w * 0.97},${groundY}`}
+              stroke={groundDark}
+              strokeWidth={1.5}
+              fill="none"
+            />
+          </G>
+
+          {/* ── Small flowers with stems ── */}
+          <G>
+            {/* Flower 1 - pink */}
+            <Line x1={w * 0.07} y1={groundY} x2={w * 0.07} y2={groundY - k * 0.04} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.07} cy={groundY - k * 0.045} r={k * 0.012} fill="#F06292" />
+            <Circle cx={w * 0.07} cy={groundY - k * 0.045} r={k * 0.006} fill="#FFEB3B" />
+            {/* Flower 2 - orange */}
+            <Line x1={w * 0.18} y1={groundY} x2={w * 0.18} y2={groundY - k * 0.035} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.18} cy={groundY - k * 0.04} r={k * 0.01} fill="#FF7043" />
+            <Circle cx={w * 0.18} cy={groundY - k * 0.04} r={k * 0.005} fill="#FFF176" />
+            {/* Flower 3 - purple */}
+            <Line x1={w * 0.55} y1={groundY} x2={w * 0.55} y2={groundY - k * 0.038} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.55} cy={groundY - k * 0.043} r={k * 0.011} fill="#AB47BC" />
+            <Circle cx={w * 0.55} cy={groundY - k * 0.043} r={k * 0.005} fill="#FFEB3B" />
+            {/* Flower 4 - yellow */}
+            <Line x1={w * 0.72} y1={groundY} x2={w * 0.72} y2={groundY - k * 0.03} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.72} cy={groundY - k * 0.035} r={k * 0.009} fill="#FFEB3B" />
+            <Circle cx={w * 0.72} cy={groundY - k * 0.035} r={k * 0.004} fill="#FF7043" />
+            {/* Flower 5 - red */}
+            <Line x1={w * 0.88} y1={groundY} x2={w * 0.88} y2={groundY - k * 0.032} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.88} cy={groundY - k * 0.037} r={k * 0.01} fill="#EF5350" />
+            <Circle cx={w * 0.88} cy={groundY - k * 0.037} r={k * 0.005} fill="#FFF176" />
+            {/* Flower 6 - blue */}
+            <Line x1={w * 0.35} y1={groundY} x2={w * 0.35} y2={groundY - k * 0.028} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.35} cy={groundY - k * 0.033} r={k * 0.008} fill="#42A5F5" />
+            <Circle cx={w * 0.35} cy={groundY - k * 0.033} r={k * 0.004} fill="#FFF176" />
+            {/* Flower 7 - white */}
+            <Line x1={w * 0.95} y1={groundY} x2={w * 0.95} y2={groundY - k * 0.025} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.95} cy={groundY - k * 0.03} r={k * 0.008} fill="#fff" />
+            <Circle cx={w * 0.95} cy={groundY - k * 0.03} r={k * 0.004} fill="#FFEB3B" />
+          </G>
+
           {/* ── Gallows ── */}
-          {/* Base beam */}
-          <Line
-            x1={size * 0.1}
-            y1={groundY}
-            x2={size * 0.55}
-            y2={groundY}
-            stroke="url(#woodGrad)"
-            strokeWidth={sw * 1.8}
-            strokeLinecap="round"
-          />
-          {/* Vertical beam */}
-          <Line
-            x1={size * 0.22}
-            y1={groundY}
-            x2={size * 0.22}
-            y2={size * 0.06}
-            stroke="url(#woodGrad)"
-            strokeWidth={sw * 1.6}
-            strokeLinecap="round"
-          />
-          {/* Top beam */}
-          <Line
-            x1={size * 0.22}
-            y1={size * 0.06}
-            x2={cx + sw}
-            y2={size * 0.06}
-            stroke="url(#woodGrad)"
-            strokeWidth={sw * 1.6}
-            strokeLinecap="round"
-          />
-          {/* Diagonal support brace */}
-          <Line
-            x1={size * 0.22}
-            y1={size * 0.18}
-            x2={size * 0.34}
-            y2={size * 0.06}
-            stroke={woodDark}
-            strokeWidth={sw * 0.9}
-            strokeLinecap="round"
-          />
-          {/* Rope */}
-          <Line
-            x1={cx}
-            y1={size * 0.06}
-            x2={cx}
-            y2={headCY - headR - size * 0.015}
-            stroke={ropeCol}
-            strokeWidth={sw * 0.7}
-            strokeLinecap="round"
-          />
-          {/* Noose loop */}
-          <Circle
-            cx={cx}
-            cy={headCY - headR - size * 0.008}
-            r={sw * 0.9}
-            fill="none"
-            stroke={ropeCol}
-            strokeWidth={sw * 0.6}
-          />
+          {(() => {
+            const gVertX = cx - k * 0.28;
+            const gTopY = h * 0.05;
+            return (
+              <G>
+                {/* Base beam */}
+                <Line x1={gVertX - k * 0.15} y1={groundY} x2={cx + k * 0.15} y2={groundY} stroke="url(#woodGrad)" strokeWidth={sw * 1.8} strokeLinecap="round" />
+                {/* Vertical beam */}
+                <Line x1={gVertX} y1={groundY} x2={gVertX} y2={gTopY} stroke="url(#woodGrad)" strokeWidth={sw * 1.6} strokeLinecap="round" />
+                {/* Top beam */}
+                <Line x1={gVertX} y1={gTopY} x2={cx + sw} y2={gTopY} stroke="url(#woodGrad)" strokeWidth={sw * 1.6} strokeLinecap="round" />
+                {/* Diagonal support brace */}
+                <Line x1={gVertX} y1={gTopY + k * 0.14} x2={gVertX + k * 0.14} y2={gTopY} stroke={woodDark} strokeWidth={sw * 0.9} strokeLinecap="round" />
+                {/* Rope */}
+                <Line x1={cx} y1={gTopY} x2={cx} y2={headCY - headR - k * 0.015} stroke={ropeCol} strokeWidth={sw * 0.7} strokeLinecap="round" />
+                {/* Noose loop */}
+                <Circle cx={cx} cy={headCY - headR - k * 0.008} r={sw * 0.9} fill="none" stroke={ropeCol} strokeWidth={sw * 0.6} />
+              </G>
+            );
+          })()}
 
           {/* ── Behind Clothing (Cape) ── */}
           {renderBehindClothes()}

@@ -150,97 +150,137 @@ function generateDivision(difficulty: Difficulty): MathProblem {
 
 /** Similar fractions: same denominator */
 function generateSimilarFractionAdd(): MathProblem {
-  const denom = randomInt(2, 9);
-  const n1 = randomInt(1, denom - 1);
-  const n2 = randomInt(1, denom - 1);
-  const ansNum = n1 + n2;
-  const g = gcd(ansNum, denom);
-  const simpNum = ansNum / g;
-  const simpDen = denom / g;
+  let denom = 0, n1 = 0, n2 = 0, ansNum = 0, g = 0, simpNum = 0, simpDen = 0;
+  do {
+    denom = randomInt(2, 9);
+    n1 = randomInt(1, denom - 1);
+    n2 = randomInt(1, denom - 1);
+    ansNum = n1 + n2;
+    g = gcd(ansNum, denom);
+    simpNum = ansNum / g;
+    simpDen = denom / g;
+  } while (simpDen === 1); // Ensure answer is strictly a fraction
+
   return {
     num1: n1, num2: n2, operation: 'fraction_add',
     answer: simpNum / simpDen, 
     display: `${n1}/${denom} + ${n2}/${denom}`,
     topic: getTopicName('fraction_add'),
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
-    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
+    stringAnswer: `${simpNum}/${simpDen}`, // Guaranteed not a whole number
   };
 }
 
 function generateSimilarFractionSub(): MathProblem {
-  const denom = randomInt(2, 9);
-  let n1 = randomInt(2, denom);
-  let n2 = randomInt(1, n1 - 1 || 1);
-  if (n1 <= n2) { [n1, n2] = [n2, n1]; }
-  if (n1 === n2) { n1 = n2 + 1; }
-  const ansNum = n1 - n2;
-  const g = gcd(ansNum, denom);
-  const simpNum = ansNum / g;
-  const simpDen = denom / g;
+  let denom = 0, n1 = 0, n2 = 0, ansNum = 0, g = 0, simpNum = 0, simpDen = 0;
+  do {
+    denom = randomInt(2, 9);
+    n1 = randomInt(2, denom);
+    n2 = randomInt(1, n1 - 1 || 1);
+    if (n1 === n2) { n1 = n2 + 1; }
+    ansNum = n1 - n2;
+    g = gcd(ansNum, denom);
+    simpNum = ansNum / g;
+    simpDen = denom / g;
+  } while (simpDen === 1 || ansNum === 0);
+
   return {
     num1: n1, num2: n2, operation: 'fraction_subtract',
     answer: simpNum / simpDen,
     display: `${n1}/${denom} - ${n2}/${denom}`,
     topic: getTopicName('fraction_subtract'),
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
-    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
+    stringAnswer: `${simpNum}/${simpDen}`,
   };
 }
 
 /** Dissimilar fractions: different denominators */
 function generateDissimilarFractionAdd(): MathProblem {
-  const d1 = randomInt(2, 6);
-  let d2 = randomInt(2, 6);
-  while (d2 === d1) d2 = randomInt(2, 6);
-  const n1 = randomInt(1, d1 - 1);
-  const n2 = randomInt(1, d2 - 1);
-  const commonDen = lcm(d1, d2);
-  const ansNum = n1 * (commonDen / d1) + n2 * (commonDen / d2);
-  const g = gcd(ansNum, commonDen);
-  const simpNum = ansNum / g;
-  const simpDen = commonDen / g;
+  let d1 = 0, d2 = 0, n1 = 0, n2 = 0, commonDen = 0, ansNum = 0, g = 0, simpNum = 0, simpDen = 0;
+  do {
+    d1 = randomInt(2, 6);
+    d2 = randomInt(2, 6);
+    while (d2 === d1) d2 = randomInt(2, 6);
+    n1 = randomInt(1, d1 - 1);
+    n2 = randomInt(1, d2 - 1);
+    commonDen = lcm(d1, d2);
+    ansNum = n1 * (commonDen / d1) + n2 * (commonDen / d2);
+    g = gcd(ansNum, commonDen);
+    simpNum = ansNum / g;
+    simpDen = commonDen / g;
+  } while (simpDen === 1);
+
   return {
     num1: n1, num2: n2, operation: 'fraction_add',
     answer: simpNum / simpDen,
     display: `${n1}/${d1} + ${n2}/${d2}`,
     topic: 'Dissimilar Fraction Addition',
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
-    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
+    stringAnswer: `${simpNum}/${simpDen}`,
   };
 }
 
 function generateDissimilarFractionSub(): MathProblem {
-  const d1 = randomInt(2, 6);
-  let d2 = randomInt(2, 6);
-  while (d2 === d1) d2 = randomInt(2, 6);
-  const commonDen = lcm(d1, d2);
-  // Ensure positive result
-  let n1 = randomInt(1, d1 - 1);
-  let n2 = randomInt(1, d2 - 1);
-  const val1 = n1 * (commonDen / d1);
-  const val2 = n2 * (commonDen / d2);
-  if (val1 < val2) { [n1, n2] = [n2, n1]; } // swap to keep positive
-  const realN1 = val1 >= val2 ? n1 : n2;
-  const realD1 = val1 >= val2 ? d1 : d2;
-  const realN2 = val1 >= val2 ? n2 : n1;
-  const realD2 = val1 >= val2 ? d2 : d1;
-  const commonDen2 = lcm(realD1, realD2);
-  const ansNum = realN1 * (commonDen2 / realD1) - realN2 * (commonDen2 / realD2);
-  if (ansNum <= 0) {
-    // Fallback to similar fraction
-    return generateSimilarFractionSub();
-  }
-  const g = gcd(ansNum, commonDen2);
-  const simpNum = ansNum / g;
-  const simpDen = commonDen2 / g;
+  let d1 = 0, d2 = 0, commonDen2 = 0, realN1 = 0, realD1 = 0, realN2 = 0, realD2 = 0, ansNum = 0, g = 0, simpNum = 0, simpDen = 0;
+  do {
+    d1 = randomInt(2, 6);
+    d2 = randomInt(2, 6);
+    while (d2 === d1) d2 = randomInt(2, 6);
+    const commonDen = lcm(d1, d2);
+    let n1 = randomInt(1, d1 - 1);
+    let n2 = randomInt(1, d2 - 1);
+    const val1 = n1 * (commonDen / d1);
+    const val2 = n2 * (commonDen / d2);
+    
+    realN1 = val1 >= val2 ? n1 : n2;
+    realD1 = val1 >= val2 ? d1 : d2;
+    realN2 = val1 >= val2 ? n2 : n1;
+    realD2 = val1 >= val2 ? d2 : d1;
+    
+    // Ensure they aren't equivalent resulting in 0
+    if (realN1 * realD2 === realN2 * realD1) {
+      ansNum = 0; simpDen = 1; continue;
+    }
+    
+    commonDen2 = lcm(realD1, realD2);
+    ansNum = realN1 * (commonDen2 / realD1) - realN2 * (commonDen2 / realD2);
+    g = gcd(ansNum, commonDen2);
+    simpNum = ansNum / g;
+    simpDen = commonDen2 / g;
+  } while (simpDen === 1 || ansNum <= 0);
+
   return {
     num1: realN1, num2: realN2, operation: 'fraction_subtract',
     answer: simpNum / simpDen,
     display: `${realN1}/${realD1} - ${realN2}/${realD2}`,
     topic: 'Dissimilar Fraction Subtraction',
     fractionAnswer: { numerator: simpNum, denominator: simpDen },
-    stringAnswer: simpDen === 1 ? `${simpNum}` : `${simpNum}/${simpDen}`,
+    stringAnswer: `${simpNum}/${simpDen}`,
   };
+}
+
+/** Simplify a raw fraction string input (e.g., "2/4" -> "1/2") */
+export function simplifyFractionStr(input: string): string | null {
+  if (!input.includes('/')) return null;
+  const parts = input.split('/');
+  if (parts.length !== 2) return null;
+  
+  const num = parseInt(parts[0], 10);
+  const den = parseInt(parts[1], 10);
+  
+  if (isNaN(num) || isNaN(den) || den === 0) return null;
+  
+  const g = gcd(Math.abs(num), Math.abs(den));
+  const simpNum = num / g;
+  const simpDen = den / g;
+  
+  // As per requirements, we do not want to parse fractions into digits (e.g., "4/4" -> "1") 
+  // if they are strictly being verified as fraction answers. But user inputting "2/2" for "1/1" is conceptually a whole number. 
+  // Since we eliminated whole-number fraction answers, simpDen should never be 1 if it's correct.
+  // We'll still strictly return the fraction format for accurate matching against stringAnswer.
+  if (simpDen === 1) return null; 
+  
+  return `${simpNum}/${simpDen}`;
 }
 
 // ─── Main generators ───

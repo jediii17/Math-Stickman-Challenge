@@ -54,7 +54,7 @@ const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 
 
 /** Maps any accessory ID to its equipment slot */
 function getSlotForAccessory(id: string): AccessoryType | null {
-  if (id.startsWith('hat-')) return 'hair';
+  if (id.startsWith('hat-') || id.startsWith('hair-')) return 'hair';
   if (id.startsWith('glasses-')) return 'face';
   if (id.startsWith('shoes-')) return 'shoes';
   // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand

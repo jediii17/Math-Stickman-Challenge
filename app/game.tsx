@@ -7,7 +7,7 @@ import {
   Platform,
   Modal,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -32,6 +32,7 @@ import Stickman from '@/components/Stickman';
 import ScribbleArea from '@/components/ScribbleArea';
 import Snowflakes from '@/components/Snowflakes';
 import Colors from '@/constants/colors';
+import StickmanCoin from '@/components/StickmanCoin';
 import { BlurView } from 'expo-blur';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ import {
   generateClassicProblem,
   getTimeLimit,
   calculateQuestionCoins,
+  simplifyFractionStr,
   type Difficulty,
   type GameMode,
   type MathProblem,
@@ -59,6 +61,7 @@ interface GameResult {
 export default function GameScreen() {
   const params = useLocalSearchParams<{ difficulty: Difficulty; mode?: GameMode; level?: string }>();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   const diff = (params.difficulty as Difficulty) || 'easy';
   const mode: GameMode = (params.mode as GameMode) || 'survival';
@@ -232,9 +235,15 @@ export default function GameScreen() {
     stopTimer();
     setIsTransitioning(true);
 
-    const isCorrect = currentProblem.stringAnswer 
-      ? userInput === currentProblem.stringAnswer
-      : parseInt(userInput, 10) === currentProblem.answer;
+    let isCorrect = false;
+    if (currentProblem.stringAnswer) {
+      // Direct string match OR smart calculation block match (e.g. 2/4 typed for 1/2 answer)
+      const simplifiedInput = simplifyFractionStr(userInput);
+      isCorrect = userInput === currentProblem.stringAnswer || 
+                  (simplifiedInput !== null && simplifiedInput === currentProblem.stringAnswer);
+    } else {
+      isCorrect = parseInt(userInput, 10) === currentProblem.answer;
+    }
 
     const answerValue = currentProblem.stringAnswer ? 0 : parseInt(userInput, 10); // 0 is placeholder for results log if it's a fraction
 
@@ -581,7 +590,7 @@ export default function GameScreen() {
               style={styles.coinPopup}
             >
               <Text style={[styles.coinPopupText, { color: getMultiplierColor(lastCoinReward.multiplier) }]}>
-                +{lastCoinReward.coins} ({lastCoinReward.multiplier}×)
+                +{lastCoinReward.coins.toLocaleString()} ({lastCoinReward.multiplier}×)
               </Text>
             </Animated.View>
           )}
@@ -642,8 +651,8 @@ export default function GameScreen() {
                 entering={FadeIn.delay(300).duration(300)}
                 style={styles.coinRewardBadge}
               >
-                <Ionicons name="sparkles" size={16} color="#FFD700" />
-                <Text style={styles.coinRewardText}>+{lastCoinReward.coins}</Text>
+                <StickmanCoin size={18} animated={false} />
+                <Text style={styles.coinRewardText}>+{lastCoinReward.coins.toLocaleString()}</Text>
                 <View style={[styles.multiplierTag, { backgroundColor: getMultiplierColor(lastCoinReward.multiplier) }]}>
                   <Text style={styles.multiplierTagText}>{lastCoinReward.multiplier}×</Text>
                 </View>
@@ -774,7 +783,7 @@ export default function GameScreen() {
           
           <Animated.View 
             entering={FadeInDown.duration(300).easing(Easing.out(Easing.ease))}
-            style={styles.modalContainer}
+            style={[styles.modalContainer, { width: Math.min(screenWidth * 0.85, 500) }]}
           >
             <View style={[styles.modalHeader, { backgroundColor: Colors.error }]}>
               <Ionicons name="warning" size={28} color="#fff" />
@@ -807,7 +816,7 @@ export default function GameScreen() {
         </View>
       </Modal>
 
-      <AdBanner />
+      {/* <AdBanner /> */}
     </View>
   );
 }
@@ -902,9 +911,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   stickmanArea: {
+    width: '100%',
     backgroundColor: 'rgba(255,255,255,0.7)',
     borderRadius: 20,
     padding: 8,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1143,7 +1154,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContainer: {
-    width: Dimensions.get('window').width * 0.85,
     backgroundColor: '#fff',
     borderRadius: 24,
     overflow: 'hidden',

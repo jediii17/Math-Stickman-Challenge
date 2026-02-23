@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Pressable, ScrollView, Dimensions, Platform, Modal, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, Pressable, ScrollView, useWindowDimensions, Platform, Modal, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ import { useGameState } from '@/hooks/useGameState';
 import AnimatedStickman from '@/components/AnimatedStickman';
 import { getClassicDifficulty } from '@/lib/math-engine';
 
-const { width, height: screenHeight } = Dimensions.get('window');
+// width and screenHeight are now obtained via useWindowDimensions() inside each component
 
 // Configuration
 const EXTRA_LOCKED_LEVELS = 28; // show a few locked levels ahead
@@ -178,9 +178,10 @@ function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
   );
 }
 
-function AnnoyingHereButton({ onPress, bottomPadding, direction, stickmanY, scrollY }: { onPress: () => void, bottomPadding: number, direction: 'above' | 'below', stickmanY: any, scrollY: any }) {
+function AnnoyingHereButton({ onPress, bottomPadding, direction, stickmanY, scrollY, screenHeight }: { onPress: () => void, bottomPadding: number, direction: 'above' | 'below', stickmanY: any, scrollY: any, screenHeight: number }) {
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
+  // screenHeight is now passed as a prop
 
   useEffect(() => {
     // Annoying wiggle and pulse effect
@@ -266,6 +267,7 @@ export default function ClassicMapScreen() {
   const insets = useSafeAreaInsets();
   const { classicLevel } = useGameState();
   const scrollRef = useRef<ScrollView>(null);
+  const { width, height: screenHeight } = useWindowDimensions();
   
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -679,14 +681,21 @@ export default function ClassicMapScreen() {
 
           {/* Walking Stickman (AnimatedStickman with accessories) */}
           <Animated.View style={stickmanAnimStyle}>
-            <AnimatedStickman size={90} hideArms={false} />
+            <AnimatedStickman size={110} hideArms={false} />
           </Animated.View>
         </View>
       </ScrollView>
       
       {/* "You are here" Floating Button */}
       {hereDirection && (
-        <AnnoyingHereButton onPress={scrollToCurrentLevel} bottomPadding={bottomPadding} direction={hereDirection} stickmanY={stickmanY} scrollY={scrollY} />
+        <AnnoyingHereButton 
+          onPress={scrollToCurrentLevel} 
+          bottomPadding={bottomPadding} 
+          direction={hereDirection} 
+          stickmanY={stickmanY} 
+          scrollY={scrollY}
+          screenHeight={screenHeight}
+        />
       )}
       
       {/* Level Start Confirmation Modal */}
@@ -898,7 +907,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   modalContainer: {
-    width: width * 0.85,
+    maxWidth: 500,
     backgroundColor: '#fff',
     borderRadius: 24,
     overflow: 'hidden',

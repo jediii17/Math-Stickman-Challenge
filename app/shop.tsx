@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import Svg, { Path, Ellipse, Line, G, Circle, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,49 +9,11 @@ import { useGameState, Accessory, PowerUps, AccessoryType } from '@/hooks/useGam
 import Stickman from '@/components/Stickman';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudioPlayer } from 'expo-audio';
+import * as db from '@/lib/db';
+import { ShopItem } from '@/lib/db';
+import StickmanCoin from '@/components/StickmanCoin';
 
-const SHOP_ITEMS: Accessory[] = [
-  { id: 'hat-1', type: 'hair', name: 'Cool Cap', price: 50, owned: false },
-  { id: 'hat-2', type: 'hair', name: 'Boy Cap', price: 60, owned: false },
-  { id: 'hat-3', type: 'hair', name: 'Girl Hat', price: 60, owned: false },
-  { id: 'hat-4', type: 'hair', name: 'Fairy Crown', price: 150, owned: false },
-  { id: 'glasses-1', type: 'face', name: 'Sunglasses', price: 30, owned: false },
-  { id: 'glasses-2', type: 'face', name: 'Boy Glasses', price: 40, owned: false },
-  { id: 'glasses-3', type: 'face', name: 'Girl Glasses', price: 40, owned: false },
-  { id: 'shirt-1', type: 'back', name: 'Hero Cape', price: 100, owned: false },
-  { id: 'shirt-2', type: 'upper', name: 'Boy Shirt', price: 80, owned: false },
-  { id: 'shirt-3', type: 'upper', name: 'Princess Top', price: 80, owned: false },
-  { id: 'shirt-4', type: 'upper', name: 'Light Pink Tee', price: 90, owned: false },
-  { id: 'shirt-5', type: 'lower', name: 'Pink Ruffle Skirt', price: 110, owned: false },
-  { id: 'lower-1', type: 'lower', name: 'Boy Shorts', price: 50, owned: false },
-  { id: 'lower-2', type: 'lower', name: 'Princess Skirt', price: 60, owned: false },
-  { id: 'lower-3', type: 'lower', name: 'Purple Pleated Skirt', price: 130, owned: false },
-  { id: 'lower-4', type: 'lower', name: 'Camo Shorts', price: 120, owned: false },
-  { id: 'back-2', type: 'back', name: 'Dual Katanas', price: 150, owned: false },
-  { id: 'back-3', type: 'back', name: 'Adventurer Backpack', price: 120, owned: false },
-  { id: 'back-4', type: 'back', name: 'Angel Wings', price: 200, owned: false },
-  { id: 'back-5', type: 'back', name: 'Jetpack', price: 250, owned: false },
-  { id: 'back-6', type: 'back', name: 'Pink Butterfly', price: 180, owned: false },
-  { id: 'shoes-1', type: 'shoes', name: 'Speed Boots', price: 60, owned: false },
-  { id: 'shoes-2', type: 'shoes', name: 'Boy Sneakers', price: 70, owned: false },
-  { id: 'shoes-3', type: 'shoes', name: 'Girl Flats', price: 70, owned: false },
-];
-
-export interface MagicItem {
-  id: keyof PowerUps;
-  name: string;
-  description: string;
-  price: number;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-}
-
-const MAGIC_ITEMS: MagicItem[] = [
-  { id: 'potion', name: 'Pixie Patch Potion', description: 'Heal 1 body part', price: 150, icon: 'flask', color: '#E91E63' },
-  { id: 'dust', name: 'Moonlit Minute Dust', description: '+30s to timer', price: 100, icon: 'hourglass', color: '#9C27B0' },
-  { id: 'powder', name: 'Aurora Pause Powder', description: 'Pause timer for 30s', price: 200, icon: 'snow', color: '#00BCD4' },
-  { id: 'firefly', name: 'Hinting Firefly', description: 'Show 1 digit of the answer', price: 80, icon: 'bulb', color: '#FFC107' },
-];
+// Shop items are now fetched from the database in the component body
 
 // ─── Category definitions ───
 type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back';
@@ -124,12 +86,75 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
           <Path d="M-12,2 Q-6,-6 0,-12 Q6,-6 12,2" fill="none" stroke="#FFD700" strokeWidth={2} />
           <Circle cx={0} cy={-12} r={3} fill="#F06292" stroke="#D81B60" strokeWidth={0.5} />
           <Path d="M-10,-5 L-8,-7 M-8,-5 L-10,-7" stroke="#FFD700" strokeWidth={1} />
-          <Path d="M10,-5 L8,-7 M8,-5 L10,-7" stroke="#FFD700" strokeWidth={1} />
+          <Line x1={10} y1={-5} x2={8} y2={-7} stroke="#FFD700" strokeWidth={1} />
         </G>
       </Svg>
     );
   }
   
+  // --- New Hair Styles ---
+  if (id.startsWith('hair-')) {
+    const cx = 50;
+    const headCY = 45;
+    const headR = 18;
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        {id === 'hair-b1' && (
+          <G>
+            <Path d={`M${cx - headR * 1.1},${headCY} L${cx - headR * 1.0},${headCY - headR * 0.8} L${cx - headR * 0.6},${headCY - headR * 0.5} L${cx - headR * 0.2},${headCY - headR * 1.2} L${cx + headR * 0.2},${headCY - headR * 0.6} L${cx + headR * 0.8},${headCY - headR * 1.0} L${cx + headR * 1.1},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.1},${headCY} Z`} fill="#2196F3" stroke="#1565C0" strokeLinejoin="round" />
+          </G>
+        )}
+        {id === 'hair-b2' && (
+          <G>
+            <Path d={`M${cx - headR * 1.1},${headCY + headR * 0.2} Q${cx - headR * 1.1},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.1},${headCY - headR * 1.2} ${cx + headR * 1.1},${headCY + headR * 0.2} Q${cx + headR * 0.5},${headCY - headR * 0.3} ${cx},${headCY - headR * 0.1} Q${cx - headR * 0.5},${headCY - headR * 0.3} ${cx - headR * 1.1},${headCY + headR * 0.2} Z`} fill="#795548" stroke="#5D4037" />
+          </G>
+        )}
+        {id === 'hair-b3' && (
+          <G>
+             <Path d={`M${cx - headR * 1.1},${headCY} Q${cx - headR * 1.1},${headCY - headR * 1.3} ${cx + headR * 0.3},${headCY - headR * 1.2} Q${cx + headR * 1.1},${headCY - headR * 0.5} ${cx + headR * 1.1},${headCY + headR * 0.2} Q${cx + headR * 0.5},${headCY - headR * 0.5} ${cx - headR * 1.1},${headCY} Z`} fill="#263238" stroke="#000000" />
+          </G>
+        )}
+        {id === 'hair-b4' && (
+          <G>
+            <Path d={`M${cx - headR * 0.9},${headCY} L${cx - headR * 0.9},${headCY - headR * 0.9} Q${cx},${headCY - headR * 1.3} ${cx + headR * 0.9},${headCY - headR * 0.9} L${cx + headR * 0.9},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.9},${headCY} Z`} fill="#4CAF50" stroke="#388E3C" />
+            <Path d={`M${cx - headR * 0.8},${headCY - headR * 0.3} L${cx + headR * 0.8},${headCY - headR * 0.3}`} stroke="#388E3C" strokeWidth={1} strokeDasharray="2,2" />
+          </G>
+        )}
+        {id === 'hair-g1' && (
+          <G>
+            <Path d={`M${cx - headR * 0.9},${headCY - headR * 0.5} Q${cx - headR * 1.8},${headCY - headR * 1.2} ${cx - headR * 2.2},${headCY} Q${cx - headR * 1.5},${headCY - headR * 0.2} ${cx - headR * 0.9},${headCY - headR * 0.2} Z`} fill="#F48FB1" stroke="#D81B60" />
+            <Path d={`M${cx + headR * 0.9},${headCY - headR * 0.5} Q${cx + headR * 1.8},${headCY - headR * 1.2} ${cx + headR * 2.2},${headCY} Q${cx + headR * 1.5},${headCY - headR * 0.2} ${cx + headR * 0.9},${headCY - headR * 0.2} Z`} fill="#F48FB1" stroke="#D81B60" />
+            <Circle cx={cx - headR * 0.9} cy={headCY - headR * 0.35} r={headR * 0.2} fill="#00BCD4" />
+            <Circle cx={cx + headR * 0.9} cy={headCY - headR * 0.35} r={headR * 0.2} fill="#00BCD4" />
+            <Path d={`M${cx - headR * 1.05},${headCY} Q${cx - headR * 1.05},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.05},${headCY - headR * 1.2} ${cx + headR * 1.05},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.05},${headCY} Z`} fill="#F06292" stroke="#D81B60" />
+          </G>
+        )}
+        {id === 'hair-g2' && (
+          <G>
+            <Path d={`M${cx - headR * 1.0},${headCY} Q${cx - headR * 1.0},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.0},${headCY - headR * 1.2} ${cx + headR * 1.0},${headCY} Q${cx + headR * 1.3},${headCY + headR * 0.5} ${cx + headR * 1.0},${headCY + headR * 2.5} Q${cx + headR * 0.5},${headCY + headR * 1.5} ${cx + headR * 0.5},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.5},${headCY - headR * 0.3} Q${cx - headR * 0.5},${headCY + headR * 1.5} ${cx - headR * 1.0},${headCY + headR * 2.5} Q${cx - headR * 1.3},${headCY + headR * 0.5} ${cx - headR * 1.0},${headCY} Z`} fill="#AB47BC" stroke="#8E24AA" />
+          </G>
+        )}
+        {id === 'hair-g3' && (
+          <G>
+             <Path d={`M${cx - headR * 1.1},${headCY + headR} L${cx - headR * 1.1},${headCY - headR * 0.5} Q${cx - headR * 1.1},${headCY - headR * 1.3} ${cx},${headCY - headR * 1.3} Q${cx + headR * 1.1},${headCY - headR * 1.3} ${cx + headR * 1.1},${headCY - headR * 0.5} L${cx + headR * 1.1},${headCY + headR} Q${cx + headR * 0.5},${headCY} ${cx},${headCY - headR * 0.3} Q${cx - headR * 0.5},${headCY} ${cx - headR * 1.1},${headCY + headR} Z`} fill="#FFD54F" stroke="#FFB300" />
+          </G>
+        )}
+        {id === 'hair-g4' && (
+          <G>
+            <Path d={`M${cx},${headCY - headR * 1.0} Q${cx + headR * 1.5},${headCY - headR * 2.5} ${cx + headR * 2.0},${headCY - headR * 0.5} Q${cx + headR * 1.0},${headCY - headR * 0.5} ${cx},${headCY - headR * 0.8} Z`} fill="#EF5350" stroke="#D32F2F" />
+            <Path d={`M${cx - headR * 1.0},${headCY} Q${cx - headR * 1.0},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.0},${headCY - headR * 1.2} ${cx + headR * 1.0},${headCY} Q${cx},${headCY - headR * 0.5} ${cx - headR * 1.0},${headCY} Z`} fill="#F44336" stroke="#D32F2F" />
+            <Circle cx={cx} cy={headCY - headR * 0.9} r={headR * 0.2} fill="#FFEB3B" />
+          </G>
+        )}
+        {id === 'hair-g5' && (
+          <G>
+            <Path d={`M${cx - headR * 1.05},${headCY} Q${cx - headR * 1.05},${headCY - headR * 1.2} ${cx},${headCY - headR * 1.2} Q${cx + headR * 1.05},${headCY - headR * 1.2} ${cx + headR * 1.05},${headCY} L${cx + headR * 1.05},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY + headR * 2.5} L${cx + headR * 0.5},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.6} ${cx - headR * 0.5},${headCY - headR * 0.3} L${cx - headR * 0.5},${headCY + headR * 2.5} L${cx - headR * 1.05},${headCY + headR * 2.5} Z`} fill="#212121" stroke="#000000" />
+          </G>
+        )}
+      </Svg>
+    );
+  }
+
   if (id === 'glasses-1') {
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -393,6 +418,19 @@ export default function ShopScreen() {
   const [activeTab, setActiveTab] = React.useState<'character' | 'magic'>('character');
   const [activeCategory, setActiveCategory] = React.useState<CategoryKey>('hair');
   const [trialItem, setTrialItem] = React.useState<{ id: string; type: AccessoryType } | null>(null);
+  const [dbItems, setDbItems] = React.useState<ShopItem[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    setIsLoading(true);
+    const items = await db.getShopItems();
+    setDbItems(items);
+    setIsLoading(false);
+  };
 
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
@@ -406,20 +444,21 @@ export default function ShopScreen() {
 
   // Filter items by active category
   const categoryDef = CATEGORIES.find(c => c.key === activeCategory)!;
-  const filteredItems = SHOP_ITEMS.filter(item => categoryDef.types.includes(item.type));
+  const filteredItems = dbItems.filter(item => !item.is_magic && categoryDef.types.includes(item.type as AccessoryType));
+  const magicItemsList = dbItems.filter(item => item.is_magic);
 
-  const handleTryItem = (item: Accessory) => {
+  const handleTryItem = (item: ShopItem) => {
     // Toggle trial: if same item, clear; otherwise set
     if (trialItem?.id === item.id) {
       setTrialItem(null);
     } else {
-      setTrialItem({ id: item.id, type: item.type });
+      setTrialItem({ id: item.id, type: item.type as AccessoryType });
     }
   };
 
   const handleBuyTrialItem = async () => {
     if (!trialItem) return;
-    const item = SHOP_ITEMS.find(i => i.id === trialItem.id);
+    const item = dbItems.find(i => i.id === trialItem.id);
     if (!item) return;
     if (coins < item.price) return;
 
@@ -427,15 +466,15 @@ export default function ShopScreen() {
     purchasePlayer.play();
 
     if (!isGuest && user) {
-      await buyAccessoryForUser(user.id, item);
+      await buyAccessoryForUser(user.id, item as unknown as Accessory);
     } else {
-      buyAccessory(item);
+      buyAccessory(item as unknown as Accessory);
     }
     // After buying, auto-equip and clear trial
     if (!isGuest && user) {
-      await equipAccessoryForUser(user.id, item.type, item.id);
+      await equipAccessoryForUser(user.id, item.type as AccessoryType, item.id);
     } else {
-      equipAccessory(item.type, item.id);
+      equipAccessory(item.type as AccessoryType, item.id);
     }
     setTrialItem(null);
   };
@@ -445,7 +484,7 @@ export default function ShopScreen() {
     setTrialItem(null); // Clear trial when switching categories
   };
 
-  const renderItem = ({ item }: { item: Accessory }) => {
+  const renderItem = ({ item }: { item: ShopItem }) => {
     const isOwned = ownedAccessories.includes(item.id);
     const isEquipped = Object.values(equippedAccessories).includes(item.id);
     const isTrying = trialItem?.id === item.id;
@@ -458,7 +497,7 @@ export default function ShopScreen() {
         <Text style={styles.itemName}>{item.name}</Text>
         {!isOwned && (
           <View style={styles.priceRow}>
-            <Ionicons name="sparkles" size={13} color="#FFD700" />
+            <StickmanCoin size={15} animated={false} />
             <Text style={styles.itemPrice}>{item.price}</Text>
           </View>
         )}
@@ -467,9 +506,9 @@ export default function ShopScreen() {
             style={[styles.actionBtn, isEquipped ? styles.equippedBtn : styles.equipBtn]}
             onPress={async () => {
               if (!isGuest && user) {
-                await equipAccessoryForUser(user.id, item.type, isEquipped ? null : item.id);
+                await equipAccessoryForUser(user.id, item.type as AccessoryType, isEquipped ? null : item.id);
               } else {
-                equipAccessory(item.type, isEquipped ? null : item.id);
+                equipAccessory(item.type as AccessoryType, isEquipped ? null : item.id);
               }
             }}
           >
@@ -492,11 +531,11 @@ export default function ShopScreen() {
                   purchasePlayer.seekTo(0);
                   purchasePlayer.play();
                   if (!isGuest && user) {
-                    await buyAccessoryForUser(user.id, item);
-                    await equipAccessoryForUser(user.id, item.type, item.id);
+                    await buyAccessoryForUser(user.id, item as unknown as Accessory);
+                    await equipAccessoryForUser(user.id, item.type as AccessoryType, item.id);
                   } else {
-                    buyAccessory(item);
-                    equipAccessory(item.type, item.id);
+                    buyAccessory(item as unknown as Accessory);
+                    equipAccessory(item.type as AccessoryType, item.id);
                   }
                   if (trialItem?.id === item.id) setTrialItem(null);
                 }
@@ -511,42 +550,44 @@ export default function ShopScreen() {
     );
   };
 
-  const renderMagicItem = ({ item }: { item: MagicItem }) => {
-    const quantity = powerUps[item.id];
+  const renderMagicItem = ({ item }: { item: ShopItem }) => {
+    const quantity = powerUps[item.id as keyof PowerUps] || 0;
 
     return (
       <View style={styles.itemCard}>
         <View style={[styles.itemIcon, { backgroundColor: `${item.color}1A` }]}>
-          <Ionicons name={item.icon} size={32} color={item.color} />
+          <Ionicons name={item.icon as any} size={32} color={item.color} />
         </View>
         <Text style={styles.itemName}>{item.name}</Text>
         <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
         <View style={styles.priceRow}>
-          <Ionicons name="sparkles" size={14} color="#FFD700" />
-          <Text style={styles.itemPriceMagic}>{item.price}</Text>
+          <StickmanCoin size={16} animated={false} />
+          <Text style={styles.itemPrice}>{item.price}</Text>
         </View>
-        <View style={styles.magicActionRow}>
-          <View style={styles.quantityBadge}>
-            <Text style={styles.quantityText}>x{quantity}</Text>
-          </View>
-          <Pressable
-            style={[styles.actionBtn, styles.magicBuyBtn]}
-            onPress={async () => {
-              if (coins >= item.price) {
-                purchasePlayer.seekTo(0);
-                purchasePlayer.play();
-                
-                if (!isGuest && user) {
-                  await buyPowerUpForUser(user.id, item.id, item.price);
-                } else {
-                  buyPowerUp(item.id, item.price);
-                }
+        <View style={styles.inventoryRow}>
+          <Text style={styles.inventoryText}>Owned: {quantity}</Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionBtn,
+            styles.buyBtn,
+            pressed && { opacity: 0.8 }
+          ]}
+          onPress={async () => {
+            if (coins >= item.price) {
+              purchasePlayer.seekTo(0);
+              purchasePlayer.play();
+              if (!isGuest && user) {
+                await buyPowerUpForUser(user.id, item.id as keyof PowerUps, item.price);
+              } else {
+                buyPowerUp(item.id as keyof PowerUps, item.price);
               }
-            }}
-          >
-            <Text style={styles.actionBtnText}>Buy</Text>
-          </Pressable>
-        </View>
+            }
+          }}
+        >
+          <Ionicons name="cart-outline" size={18} color="#fff" />
+          <Text style={styles.actionBtnText}>Buy One</Text>
+        </Pressable>
       </View>
     );
   };
@@ -560,8 +601,8 @@ export default function ShopScreen() {
         </Pressable>
         <Text style={styles.title}>Shop</Text>
         <View style={styles.coinBadge}>
-          <Ionicons name="sparkles" size={16} color="#FFD700" />
-          <Text style={styles.coinText}>{coins}</Text>
+          <StickmanCoin size={18} />
+          <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
 
@@ -599,7 +640,7 @@ export default function ShopScreen() {
           <View style={styles.categoryBar}>
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.key;
-              const count = SHOP_ITEMS.filter(i => cat.types.includes(i.type)).length;
+              const count = dbItems.filter((i: ShopItem) => !i.is_magic && cat.types.includes(i.type as AccessoryType)).length;
               return (
                 <Pressable
                   key={cat.key}
@@ -628,25 +669,33 @@ export default function ShopScreen() {
       )}
 
       {/* ── Item grid ── */}
-      {activeTab === 'character' ? (
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <FlatList
-          data={MAGIC_ITEMS}
-          renderItem={renderMagicItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        {activeTab === 'character' ? (
+          <FlatList
+            data={filteredItems}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.itemList}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={styles.columnWrapper}
+            ListEmptyComponent={
+              isLoading ? <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} /> : null
+            }
+          />
+        ) : (
+          <FlatList
+            data={magicItemsList}
+            renderItem={renderMagicItem}
+            keyExtractor={item => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.itemList}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={styles.columnWrapper}
+            ListEmptyComponent={
+              isLoading ? <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} /> : null
+            }
+          />
+        )}
     </View>
   );
 }
@@ -703,11 +752,12 @@ const styles = StyleSheet.create({
 
   // ── Preview ──
   previewArea: {
-    height: 180,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.card,
-    marginHorizontal: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     marginBottom: 8,
     borderRadius: 24,
     borderWidth: 2,
@@ -842,26 +892,54 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.blue,
   },
   tryingBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#2980B9',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   dualBtnRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
+    marginTop: 8,
     width: '100%',
   },
   tryBtnHalf: {
     flex: 1,
-    backgroundColor: Colors.blue,
+    backgroundColor: '#3498DB',
   },
   buyBtnHalf: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#27AE60',
   },
   equipBtn: {
     backgroundColor: Colors.secondary,
   },
   equippedBtn: {
     backgroundColor: Colors.tertiary,
+  },
+  itemList: {
+    padding: 16,
+    gap: 16,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  inventoryRow: {
+    marginVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  inventoryText: {
+    fontSize: 12,
+    fontFamily: 'Fredoka_500Medium',
+    color: Colors.textLight,
+    textAlign: 'center',
+  },
+  buyBtn: {
+    backgroundColor: Colors.primary,
+    marginTop: 8,
   },
   magicBuyBtn: {
     backgroundColor: Colors.primary,

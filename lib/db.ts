@@ -13,11 +13,17 @@ export async function createProfile(userId: string, username: string, recoveryPh
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, coins, classic_level')
+    .select('id, username, coins, classic_level, last_username_change_at')
     .eq('id', userId)
     .single();
   if (error) return null;
-  return data as { id: string; username: string; coins: number; classic_level: number };
+  return data as { 
+    id: string; 
+    username: string; 
+    coins: number; 
+    classic_level: number;
+    last_username_change_at: string | null;
+  };
 }
 
 export async function getUserById(userId: string) {
@@ -60,6 +66,35 @@ export async function updateClassicLevel(userId: string, level: number) {
     .update({ classic_level: level })
     .eq('id', userId);
   if (error) throw error;
+}
+
+export async function updateUsername(userId: string, newUsername: string) {
+  // Check cooldown (7 days)
+  const profile = await getProfile(userId);
+  if (!profile) throw new Error('Profile not found');
+
+  if (profile.last_username_change_at) {
+    const lastChange = new Date(profile.last_username_change_at);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 7) {
+      throw new Error(`You can only change your username every 7 days. (${7 - diffDays} days remaining)`);
+    }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      username: newUsername,
+      last_username_change_at: new Date().toISOString()
+    })
+    .eq('id', userId);
+
+  if (error) {
+    if (error.message.includes('unique')) throw new Error('Username already taken');
+    throw error;
+  }
 }
 
 // --- Accessories ---
@@ -230,4 +265,52 @@ export async function getLeaderboard(limit: number = 50, offset: number = 0) {
     ...entry,
     rank: offset + i + 1,
   })) as { id: string; username: string; coins: number; rank: number }[];
+}
+// --- Shop Items ---
+
+export interface ShopItem {
+  id: string;
+  type: string;
+  name: string;
+  price: number;
+  description?: string;
+  icon?: string;
+  color?: string;
+  is_magic: boolean;
+}
+
+export async function getShopItems() {
+  const { data, error } = await supabase
+    .from('shop_items')
+    .select('*')
+    .order('price', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching shop items:', error);
+    return [];
+  }
+  return data as ShopItem[];
+}
+
+export async function purchaseItem(userId: string, itemId: string, price: number, isMagic: boolean, magicKey?: string) {
+  // 1. Check coins
+  const profile = await getProfile(userId);
+  if (!profile) throw new Error('User not found');
+  if (profile.coins < price) throw new Error('Not enough coins');
+
+  // 2. Perform purchase
+  if (isMagic && magicKey) {
+    // Magic items increment counts
+    const powerUps = await getUserPowerUps(userId);
+    if (!powerUps) throw new Error('Failed to fetch power-ups');
+    
+    const updatedValue = (powerUps[magicKey as keyof typeof powerUps] || 0) + 1;
+    await updateUserPowerUps(userId, { ...powerUps, [magicKey]: updatedValue });
+  } else {
+    // Accessories are added to collection
+    await addAccessory(userId, itemId);
+  }
+
+  // 3. Deduct coins
+  await updateCoins(userId, profile.coins - price);
 }

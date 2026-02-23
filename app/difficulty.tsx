@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Platform, Dimensions, Modal } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Platform, useWindowDimensions, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ import type { Difficulty } from '@/lib/math-engine';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 
-const { width } = Dimensions.get('window');
+// width is now obtained via useWindowDimensions() inside each component
 
 const difficulties: { key: Difficulty; label: string; icon: string; color: string; desc: string; gradient: [string, string] }[] = [
   { key: 'easy', label: 'Easy', icon: 'star-outline', color: Colors.primary, desc: '1-digit +−×÷\n15s per question', gradient: ['#2ECC71', '#27AE60'] },
@@ -70,6 +70,7 @@ export default function DifficultyScreen() {
   const [showSurvival, setShowSurvival] = React.useState(false);
   const { highScores } = useGameState();
   const { isGuest } = useAuth();
+  const { width } = useWindowDimensions();
 
   const [showLoginModal, setShowLoginModal] = React.useState(false);
 

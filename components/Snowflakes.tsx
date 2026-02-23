@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,10 +11,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+// width and height are now obtained via useWindowDimensions() inside the component
 const SNOWFLAKE_COUNT = 15;
 
-const Snowflake = ({ index }: { index: number }) => {
+const Snowflake = ({ index, width, height }: { index: number, width: number, height: number }) => {
   const startX = Math.random() * width;
   const startY = -50;
   
@@ -80,10 +80,11 @@ const Snowflake = ({ index }: { index: number }) => {
 };
 
 export default function Snowflakes() {
+  const { width, height } = useWindowDimensions();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {Array.from({ length: SNOWFLAKE_COUNT }).map((_, i) => (
-        <Snowflake key={i} index={i} />
+        <Snowflake key={i} index={i} width={width} height={height} />
       ))}
     </View>
   );

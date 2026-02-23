@@ -8,7 +8,6 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGameState } from '@/hooks/useGameState';
 import * as Clipboard from 'expo-clipboard';
 
-const { width } = Dimensions.get('window');
+
 
 type AuthMode = 'login' | 'register';
 
@@ -32,6 +31,9 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null);
@@ -39,8 +41,13 @@ export default function AuthScreen() {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!username.trim() || !password.trim()) {
+    if (!username.trim() || !password.trim() || (mode === 'register' && !confirmPassword.trim())) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (mode === 'register' && password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -186,9 +193,37 @@ export default function AuthScreen() {
                 placeholderTextColor={Colors.textLight}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
               />
+              <Pressable onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={Colors.textLight} 
+                />
+              </Pressable>
             </View>
+
+            {mode === 'register' && (
+              <View style={styles.inputWrapper}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textLight} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password"
+                  placeholderTextColor={Colors.textLight}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color={Colors.textLight} 
+                  />
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {error && (

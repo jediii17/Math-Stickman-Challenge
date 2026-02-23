@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import * as db from '@/lib/db';
+import StickmanCoin, { abbreviateCoins } from '@/components/StickmanCoin';
 
 interface LeaderboardEntry {
   id: string;
@@ -72,9 +73,9 @@ function LeaderboardRow({ entry, rank, isCurrentUser }: { entry: LeaderboardEntr
 
         {/* Coins */}
         <View style={styles.coinsContainer}>
-          <Ionicons name="sparkles" size={14} color="#FFD700" />
+          <StickmanCoin size={16} animated={false} />
           <Text style={[styles.coinsText, isTop3 && styles.topCoinsText]}>
-            {entry.coins.toLocaleString()}
+            {abbreviateCoins(entry.coins)}
           </Text>
         </View>
 

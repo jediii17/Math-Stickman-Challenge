@@ -19,6 +19,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   continueAsGuest: () => void;
   refreshUser: () => Promise<void>;
+  updateUsername: (newUsername: string) => Promise<string | null>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
   verifyRecoveryPhrase: (username: string, recoveryPhrase: string) => Promise<string | null>;
   resetPassword: (username: string, recoveryPhrase: string, newPassword: string) => Promise<string | null>;
 }
@@ -32,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   continueAsGuest: () => {},
   refreshUser: async () => {},
+  updateUsername: async () => null,
+  updatePassword: async () => null,
   verifyRecoveryPhrase: async () => null,
   resetPassword: async () => null,
 });
@@ -148,6 +152,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUser(profile);
       }
+    }
+  }, [user]);
+
+  const updateUsername = useCallback(async (newUsername: string): Promise<string | null> => {
+    if (!user) return 'Not authenticated';
+    try {
+      // 1. Update the profile in the DB (includes cooldown check)
+      await db.updateUsername(user.id, newUsername);
+
+      // 2. Sync with Supabase Auth credentials
+      const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+      if (serviceRoleKey) {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+        const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        const newEmail = `${newUsername.toLowerCase()}@mathgame.local`;
+        const { error: authError } = await adminClient.auth.admin.updateUserById(user.id, {
+          email: newEmail,
+          user_metadata: { username: newUsername }
+        });
+
+        if (authError) {
+          console.warn('Failed to sync username to Auth:', authError.message);
+          // We don't necessarily want to fail the whole operation if DB part succeeded, 
+          // but logging it is important.
+        }
+      }
+
+      await refreshUser();
+      return null;
+    } catch (e: any) {
+      return e.message || 'Failed to update username';
+    }
+  }, [user, refreshUser]);
+
+  const updatePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<string | null> => {
+    if (!user) return 'Not authenticated';
+    try {
+      // 1. Verify current password by attempting to sign in
+      const email = `${user.username.toLowerCase()}@mathgame.local`;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+      if (signInError) return 'Current password is incorrect';
+
+      // 2. Update to new password
+      const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+      if (serviceRoleKey) {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+        const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        const { error: authError } = await adminClient.auth.admin.updateUserById(user.id, {
+          password: newPassword
+        });
+
+        if (authError) return authError.message;
+      } else {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) return error.message;
+      }
+      
+      return null;
+    } catch (e: any) {
+      return e.message || 'Failed to update password';
     }
   }, [user]);
 
@@ -286,7 +361,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isGuest, isLoading, login, register, logout, continueAsGuest, refreshUser, verifyRecoveryPhrase, resetPassword }}
+      value={{ 
+        user, isGuest, isLoading, 
+        login, register, logout, continueAsGuest, refreshUser, 
+        updateUsername, updatePassword,
+        verifyRecoveryPhrase, resetPassword 
+      }}
     >
       {children}
     </AuthContext.Provider>

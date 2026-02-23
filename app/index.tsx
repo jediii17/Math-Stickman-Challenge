@@ -5,7 +5,7 @@ import {
   Text,
   Pressable,
   Platform,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,10 +28,11 @@ import Animated, {
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameState } from '@/hooks/useGameState';
+import StickmanCoin, { abbreviateCoins } from '@/components/StickmanCoin';
 import AnimatedStickman from '@/components/AnimatedStickman';
 import AdBanner from '@/components/AdBanner';
 
-const { width } = Dimensions.get('window');
+// width is now obtained via useWindowDimensions() inside each component
 
 /* ── Soft floating bubble ── */
 function Bubble({ delay, x, y, size, color }: { delay: number; x: number; y: number; size: number; color: string }) {
@@ -107,6 +108,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest, logout } = useAuth();
   const { coins, loadFromDb, resetForGuest } = useGameState();
+  const { width } = useWindowDimensions();
+  const btnWidth = Math.min(width - 56, 600);
 
   useEffect(() => {
     if (user && !isGuest) {
@@ -143,35 +146,39 @@ export default function HomeScreen() {
         {/* ── User Bar ── */}
         <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.userBar}>
           {!isGuest && user ? (
-            <View style={styles.userInfo}>
-              <View style={styles.userAvatar}>
-                <Ionicons name="person" size={16} color={Colors.primary} />
-              </View>
-              <Text style={styles.userName}>{user.username}</Text>
+            <>
+              <Pressable 
+                style={styles.userInfo} 
+                onPress={() => router.push('/profile')}
+              >
+                <View style={styles.userAvatar}>
+                  <Ionicons name="person" size={16} color={Colors.primary} />
+                </View>
+                <Text style={styles.userName} numberOfLines={1}>{user.username}</Text>
+              </Pressable>
               <View style={styles.coinBadge}>
-                <Ionicons name="sparkles" size={13} color="#FFD700" />
-                <Text style={styles.coinText}>{coins}</Text>
+                <StickmanCoin size={20} />
+                <Text style={styles.coinText}>{abbreviateCoins(coins)}</Text>
               </View>
-            </View>
+            </>
           ) : (
-            <Pressable style={styles.loginBtn} onPress={() => router.push('/auth')}>
-              <Ionicons name="log-in-outline" size={18} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.loginBtnText}>Login</Text>
-            </Pressable>
+            <View /> // Empty space if guest, login moved below
           )}
           {!isGuest && (
-            <Pressable onPress={() => { resetForGuest(); logout(); }} style={styles.logoutBtn}>
-              <Ionicons name="log-out-outline" size={18} color="rgba(255,255,255,0.6)" />
+            <Pressable onPress={() => router.push('/profile')} style={styles.profileBtn}>
+              <Ionicons name="settings-outline" size={18} color="rgba(255,255,255,0.8)" />
             </Pressable>
           )}
         </Animated.View>
 
         {/* ── Title Section ── */}
         <View style={styles.titleSection}>
-          <TitleWord text="MATH" color="#FFD700" delay={100} fontSize={56} />
-          <TitleWord text="Stickman" color="#FFFFFF" delay={250} fontSize={42} />
-          <TitleWord text="Challenge" color={Colors.tertiary} delay={400} fontSize={38} />
-          <Animated.View entering={FadeInDown.delay(550).springify()}>
+          <TitleWord text="MATH" color="#FFD700" delay={100} fontSize={100} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TitleWord text="Stickman" color="#FFFFFF" delay={300} fontSize={38} />
+            <TitleWord text="Challenge" color={Colors.tertiary} delay={450} fontSize={38} />
+          </View>
+          <Animated.View entering={FadeInDown.delay(600).springify()}>
             <Animated.Text style={styles.tagline}>
               Train your brain, one equation at a time!
             </Animated.Text>
@@ -184,7 +191,21 @@ export default function HomeScreen() {
           <View style={styles.glowRing}>
             <View style={styles.glowRingInner} />
           </View>
-          <AnimatedStickman size={200} />
+          <AnimatedStickman size={270} />
+          
+          {isGuest && (
+            <Animated.View entering={FadeInUp.delay(800).springify()} style={styles.creativeLoginContainer}>
+              <Pressable 
+                style={styles.creativeLoginBtn}
+                onPress={() => router.push('/auth')}
+              >
+                <View style={styles.loginSticky}>
+                  <Text style={styles.loginStickyText}>Login to save progress! ✨</Text>
+                  <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+                </View>
+              </Pressable>
+            </Animated.View>
+          )}
         </Animated.View>
 
         {/* ── Bottom Actions ── */}
@@ -195,6 +216,7 @@ export default function HomeScreen() {
               onPress={handlePlay}
               style={({ pressed }) => [
                 styles.playButton,
+                { width: btnWidth },
                 pressed && { transform: [{ scale: 0.96 }] },
               ]}
             >
@@ -211,7 +233,7 @@ export default function HomeScreen() {
           </Animated.View>
 
           {/* Shop & Leaderboard row */}
-          <Animated.View entering={FadeInUp.delay(750).springify()} style={styles.secondaryRow}>
+          <Animated.View entering={FadeInUp.delay(750).springify()} style={[styles.secondaryRow, { width: btnWidth }]}>
             {/* Shop Button */}
             <Pressable
               onPress={() => router.push('/shop')}
@@ -279,6 +301,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    minWidth: 0,
   },
   userAvatar: {
     width: 32,
@@ -289,7 +313,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userName: {
-    fontSize: 14,
+    fontSize: 20,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.textWhite,
   },
@@ -305,25 +329,58 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,215,0,0.3)',
   },
   coinText: {
-    fontSize: 13,
+    fontSize: 17,
     fontFamily: 'Fredoka_700Bold',
     color: '#FFD700',
   },
   loginBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   loginBtnText: {
+    color: '#fff',
     fontSize: 14,
     fontFamily: 'Fredoka_600SemiBold',
-    color: 'rgba(255,255,255,0.9)',
+  },
+  profileBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  creativeLoginContainer: {
+    position: 'absolute',
+    bottom: -15,
+    alignSelf: 'center',
+    zIndex: 10,
+  },
+  creativeLoginBtn: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginSticky: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEB3B',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    transform: [{ rotate: '-2deg' }],
+    gap: 8,
+  },
+  loginStickyText: {
+    color: '#000',
+    fontSize: 14,
+    fontFamily: 'Fredoka_700Bold',
   },
   logoutBtn: {
     padding: 8,
@@ -335,7 +392,7 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: 'Fredoka_500Medium',
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
@@ -351,17 +408,17 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
     backgroundColor: 'rgba(255,215,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   glowRingInner: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
 
@@ -372,7 +429,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playButton: {
-    width: width - 56,
     borderRadius: 26,
     overflow: 'hidden',
     shadowColor: '#F39C12',
@@ -405,7 +461,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 22,
-    width: width - 56,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
@@ -419,7 +474,6 @@ const styles = StyleSheet.create({
   },
   secondaryRow: {
     flexDirection: 'row',
-    width: width - 56,
     justifyContent: 'space-between',
     gap: 16,
   },
