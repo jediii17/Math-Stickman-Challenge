@@ -98,7 +98,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const groundCol = '#81C784';
   const groundDark = '#66BB6A';
   const ropeCol = '#A1887F';
-  const dismCol = Colors.error;
+  const dismCol = bodyCol;
   const skyTop = '#E8F5E9';
   const skyBot = '#F0FFF4';
 
@@ -1657,17 +1657,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
                 strokeWidth={sw}
                 strokeLinecap="round"
               />
-              {/* Blood marks */}
               <Circle cx={cx - legLen * 0.15} cy={bodyBot + legLen * 0.12} r={jointR * 0.5} fill={dismCol} />
-              <Line
-                x1={cx - legLen * 0.15 - 2}
-                y1={bodyBot + legLen * 0.15}
-                x2={cx - legLen * 0.15 + 3}
-                y2={bodyBot + legLen * 0.2}
-                stroke={dismCol}
-                strokeWidth={sw * 0.4}
-                strokeLinecap="round"
-              />
             </G>
           )}
 
@@ -1704,15 +1694,6 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
                 strokeLinecap="round"
               />
               <Circle cx={cx + legLen * 0.15} cy={bodyBot + legLen * 0.12} r={jointR * 0.5} fill={dismCol} />
-              <Line
-                x1={cx + legLen * 0.15 - 3}
-                y1={bodyBot + legLen * 0.15}
-                x2={cx + legLen * 0.15 + 2}
-                y2={bodyBot + legLen * 0.2}
-                stroke={dismCol}
-                strokeWidth={sw * 0.4}
-                strokeLinecap="round"
-              />
             </G>
           )}
 
@@ -1886,55 +1867,30 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
               cx={headR}
               cy={headR}
               r={headR * 0.9}
-              stroke={dismCol}
+              stroke={bodyCol}
               strokeWidth={sw}
               fill={skyBot}
             />
-            {/* X eyes */}
-            <Line
-              x1={headR - headR * 0.35}
-              y1={headR - headR * 0.2}
-              x2={headR - headR * 0.05}
-              y2={headR + headR * 0.1}
-              stroke={dismCol}
-              strokeWidth={sw * 0.6}
-              strokeLinecap="round"
+            {/* Dizzy eyes (spirals replaced by circles) */}
+            <Circle
+              cx={headR - headR * 0.2}
+              cy={headR - headR * 0.05}
+              r={headR * 0.09}
+              fill={bodyCol}
             />
-            <Line
-              x1={headR - headR * 0.05}
-              y1={headR - headR * 0.2}
-              x2={headR - headR * 0.35}
-              y2={headR + headR * 0.1}
-              stroke={dismCol}
-              strokeWidth={sw * 0.6}
-              strokeLinecap="round"
+            <Circle
+              cx={headR + headR * 0.2}
+              cy={headR - headR * 0.05}
+              r={headR * 0.09}
+              fill={bodyCol}
             />
-            <Line
-              x1={headR + headR * 0.05}
-              y1={headR - headR * 0.2}
-              x2={headR + headR * 0.35}
-              y2={headR + headR * 0.1}
-              stroke={dismCol}
-              strokeWidth={sw * 0.6}
-              strokeLinecap="round"
-            />
-            <Line
-              x1={headR + headR * 0.35}
-              y1={headR - headR * 0.2}
-              x2={headR + headR * 0.05}
-              y2={headR + headR * 0.1}
-              stroke={dismCol}
-              strokeWidth={sw * 0.6}
-              strokeLinecap="round"
-            />
-            {/* Dead mouth */}
-            <Line
-              x1={headR - headR * 0.3}
-              y1={headR + headR * 0.45}
-              x2={headR + headR * 0.3}
-              y2={headR + headR * 0.45}
-              stroke={dismCol}
-              strokeWidth={sw * 0.6}
+            {/* Sad mouth */}
+            <Path
+              d={`M${headR - headR * 0.25},${headR + headR * 0.5}
+                  Q${headR},${headR + headR * 0.3} ${headR + headR * 0.25},${headR + headR * 0.5}`}
+              stroke={bodyCol}
+              strokeWidth={sw * 0.5}
+              fill="none"
               strokeLinecap="round"
             />
             {/* Hat on rolling head */}

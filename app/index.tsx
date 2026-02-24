@@ -108,8 +108,15 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest, logout } = useAuth();
   const { coins, loadFromDb, resetForGuest } = useGameState();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const btnWidth = Math.min(width - 56, 600);
+  const isSmall = width < 380;
+  const titleSize = Math.min(width * 0.26, 100);
+  const subtitleSize = Math.min(width * 0.1, 38);
+  const stickmanSize = Math.min(Math.round(Math.min(width, height) * 0.38), 270);
+  const glowSize = stickmanSize * 1.2;
+  const secondaryFontSize = isSmall ? 14 : 18;
+  const secondaryPadding = isSmall ? 12 : 16;
 
   useEffect(() => {
     if (user && !isGuest) {
@@ -173,10 +180,10 @@ export default function HomeScreen() {
 
         {/* ── Title Section ── */}
         <View style={styles.titleSection}>
-          <TitleWord text="MATH" color="#FFD700" delay={100} fontSize={100} />
+          <TitleWord text="MATH" color="#FFD700" delay={100} fontSize={titleSize} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TitleWord text="Stickman" color="#FFFFFF" delay={300} fontSize={38} />
-            <TitleWord text="Challenge" color={Colors.tertiary} delay={450} fontSize={38} />
+            <TitleWord text="Stickman" color="#FFFFFF" delay={300} fontSize={subtitleSize} />
+            <TitleWord text="Challenge" color={Colors.tertiary} delay={450} fontSize={subtitleSize} />
           </View>
           <Animated.View entering={FadeInDown.delay(600).springify()}>
             <Animated.Text style={styles.tagline}>
@@ -188,10 +195,10 @@ export default function HomeScreen() {
         {/* ── Hero Area ── */}
         <Animated.View entering={ZoomIn.delay(400).duration(800)} style={styles.heroArea}>
           {/* Glow ring behind stickman */}
-          <View style={styles.glowRing}>
-            <View style={styles.glowRingInner} />
+          <View style={[styles.glowRing, { width: glowSize, height: glowSize, borderRadius: glowSize / 2 }]}>
+            <View style={[styles.glowRingInner, { width: glowSize * 0.78, height: glowSize * 0.78, borderRadius: glowSize * 0.39 }]} />
           </View>
-          <AnimatedStickman size={270} />
+          <AnimatedStickman size={stickmanSize} />
           
           {isGuest && (
             <Animated.View entering={FadeInUp.delay(800).springify()} style={styles.creativeLoginContainer}>
@@ -249,7 +256,7 @@ export default function HomeScreen() {
                 end={{ x: 1, y: 1 }}
               >
                 <Ionicons name="bag-handle" size={24} color="#fff" />
-                <Text style={styles.secondaryBtnText}>Shop</Text>
+                <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize }]}>Shop</Text>
               </LinearGradient>
             </Pressable>
 
@@ -268,7 +275,7 @@ export default function HomeScreen() {
                 end={{ x: 1, y: 1 }}
               >
                 <Ionicons name="trophy" size={24} color="#fff" />
-                <Text style={styles.secondaryBtnText}>Leaderboard</Text>
+                <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize }]} numberOfLines={1} adjustsFontSizeToFit>Leaderboard</Text>
               </LinearGradient>
             </Pressable>
           </Animated.View>
@@ -408,17 +415,11 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
     backgroundColor: 'rgba(255,215,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   glowRingInner: {
-    width: 250,
-    height: 250,
-    borderRadius: 125,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
 
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
   secondaryBtnText: {
     fontSize: 18,

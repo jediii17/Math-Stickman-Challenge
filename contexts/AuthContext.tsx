@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Platform } from 'react-native';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import * as db from '@/lib/db';
@@ -44,8 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isGuest, setIsGuest] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+
     // Listen for auth state changes (handles session restore)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -64,6 +66,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // --- Session resilience: refresh on app foreground & periodic keep-alive ---
+  useEffect(() => {
+    // When app returns from background, refresh the session
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session) {
+            // Force refresh the token
+            const { error } = await supabase.auth.refreshSession();
+            if (error && error.message.includes('Invalid Refresh Token')) {
+               console.warn('Foreground refresh: Invalid refresh token detected. Clearing local session...');
+               await supabase.auth.signOut({ scope: 'local' });
+               setUser(null);
+               setIsGuest(true);
+               return; // Skip profile reload
+            }
+            // Reload the user profile to ensure fresh data
+            const profile = await db.getProfile(data.session.user.id);
+            if (profile) {
+              setUser(profile);
+              setIsGuest(false);
+            }
+          }
+        } catch (e) {
+          console.warn('Session refresh on foreground failed:', e);
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Periodic keep-alive: refresh session every 5 minutes during active play
+    const keepAlive = setInterval(async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          const { error } = await supabase.auth.refreshSession();
+          if (error && error.message.includes('Invalid Refresh Token')) {
+             console.warn('Invalid refresh token detected. Clearing local session...');
+             await supabase.auth.signOut({ scope: 'local' });
+             setUser(null);
+             setIsGuest(true);
+          }
+        }
+      } catch (e: any) {
+        console.warn('Keep-alive session refresh failed:', e);
+        if (e.message?.includes('Invalid Refresh Token')) {
+             await supabase.auth.signOut({ scope: 'local' });
+             setUser(null);
+             setIsGuest(true);
+        }
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      subscription.remove();
+      clearInterval(keepAlive);
+    };
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<string | null> => {
@@ -135,7 +202,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Use scope: 'local' to clear the session immediately without
+    // needing a valid (non-expired) token for server-side revocation.
+    await supabase.auth.signOut({ scope: 'local' });
     setUser(null);
     setIsGuest(true);
   }, []);

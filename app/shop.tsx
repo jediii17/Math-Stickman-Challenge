@@ -21,17 +21,18 @@ type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back';
 interface Category {
   key: CategoryKey;
   label: string;
-  emoji: string;
+  icon: string;
+  color: string;
   types: AccessoryType[];
 }
 
 const CATEGORIES: Category[] = [
-  { key: 'hair', label: 'Head', emoji: '👒', types: ['hair'] },
-  { key: 'face', label: 'Face', emoji: '👓', types: ['face'] },
-  { key: 'upper', label: 'Upper', emoji: '👕', types: ['upper'] },
-  { key: 'lower', label: 'Lower', emoji: '👖', types: ['lower'] },
-  { key: 'shoes', label: 'Shoes', emoji: '👟', types: ['shoes'] },
-  { key: 'back', label: 'Back', emoji: '🎒', types: ['back'] },
+  { key: 'hair', label: 'Head', icon: 'ribbon-outline', color: '#9B59B6', types: ['hair'] },
+  { key: 'face', label: 'Face', icon: 'glasses-outline', color: '#3498DB', types: ['face'] },
+  { key: 'upper', label: 'Upper', icon: 'shirt-outline', color: '#E67E22', types: ['upper'] },
+  { key: 'lower', label: 'Lower', icon: 'cut-outline', color: '#2ECC71', types: ['lower'] },
+  { key: 'shoes', label: 'Shoes', icon: 'footsteps-outline', color: '#E74C3C', types: ['shoes'] },
+  { key: 'back', label: 'Back', icon: 'briefcase-outline', color: '#1ABC9C', types: ['back'] },
 ];
 
 const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: string }) => {
@@ -997,7 +998,10 @@ export default function ShopScreen() {
 
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isSmallScreen = screenHeight < 700;
+  const previewMaxHeight = Math.min(screenHeight * 0.25, 200);
+  const shopStickmanSize = Math.min(Math.round(screenWidth * 0.32), isSmallScreen ? 120 : 150);
   const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
@@ -1190,8 +1194,8 @@ export default function ShopScreen() {
       {activeTab === 'character' && (
         <>
           {/* Preview area with trial badge */}
-          <View style={[styles.previewArea, trialItem && styles.previewAreaTrial]}>
-            <Stickman wrongCount={0} size={Math.min(Math.round(screenWidth * 0.38), 150)} previewOverrides={previewOverrides} />
+          <View style={[styles.previewArea, { maxHeight: previewMaxHeight }, trialItem && styles.previewAreaTrial]}>
+            <Stickman wrongCount={0} size={shopStickmanSize} previewOverrides={previewOverrides} />
             {trialItem && (
               <View style={styles.trialBadge}>
                 <Ionicons name="eye" size={12} color={Colors.primary} />
@@ -1211,10 +1215,9 @@ export default function ShopScreen() {
                   style={[styles.categoryPill, isActive && styles.categoryPillActive]}
                   onPress={() => handleCategoryChange(cat.key)}
                 >
-                  <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                  <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
-                    {cat.label}
-                  </Text>
+                  <View style={[styles.categoryIconWrap, isActive && { backgroundColor: cat.color + '20' }]}> 
+                    <Ionicons name={cat.icon as any} size={20} color={isActive ? cat.color : Colors.textLight} />
+                  </View>
                   <View style={[styles.categoryCountBadge, isActive && styles.categoryCountBadgeActive]}>
                     <Text style={[styles.categoryCountText, isActive && styles.categoryCountTextActive]}>{count}</Text>
                   </View>
@@ -1321,9 +1324,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.card,
     paddingHorizontal: 8,
-    paddingVertical: 12,
-    marginBottom: 8,
-    borderRadius: 24,
+    paddingVertical: 8,
+    marginBottom: 6,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: 'transparent',
     overflow: 'hidden',
@@ -1354,38 +1357,35 @@ const styles = StyleSheet.create({
   categoryBar: {
     flexDirection: 'row',
     marginHorizontal: 12,
-    marginBottom: 10,
+    marginBottom: 8,
     backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 4,
   },
   categoryPill: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-    gap: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    borderRadius: 10,
+    gap: 4,
   },
   categoryPillActive: {
     backgroundColor: '#fff',
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  categoryEmoji: {
-    fontSize: 18,
-  },
-  categoryPillText: {
-    fontFamily: 'Fredoka_600SemiBold',
-    fontSize: 11,
-    color: Colors.textLight,
-  },
-  categoryPillTextActive: {
-    color: Colors.primary,
+  categoryIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   categoryCountBadge: {
     backgroundColor: 'rgba(0,0,0,0.06)',
@@ -1412,13 +1412,13 @@ const styles = StyleSheet.create({
   itemCard: {
     width: '46%',
     backgroundColor: Colors.card,
-    margin: 8,
-    padding: 14,
-    borderRadius: 20,
+    margin: 6,
+    padding: 12,
+    borderRadius: 18,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -1428,18 +1428,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(46, 204, 113, 0.04)',
   },
   itemIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  itemName: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: Colors.text, textAlign: 'center', minHeight: 36 },
-  itemDesc: { fontSize: 12, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, textAlign: 'center', marginBottom: 8, minHeight: 32 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
-  itemPrice: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: '#B8860B' },
-  itemPriceMagic: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', color: '#B8860B' },
+  itemName: { fontSize: 13, fontFamily: 'Fredoka_600SemiBold', color: Colors.text, textAlign: 'center', minHeight: 34 },
+  itemDesc: { fontSize: 11, fontFamily: 'Fredoka_500Medium', color: Colors.textLight, textAlign: 'center', marginBottom: 6, minHeight: 28 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, backgroundColor: 'rgba(255,215,0,0.1)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  itemPrice: { fontSize: 13, fontFamily: 'Fredoka_700Bold', color: '#B8860B' },
+  itemPriceMagic: { fontSize: 13, fontFamily: 'Fredoka_700Bold', color: '#B8860B' },
 
   // ── Action buttons ──
   actionBtn: {

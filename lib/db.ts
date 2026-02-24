@@ -1,5 +1,49 @@
 import { supabase } from './supabase';
 
+// --- Retry helper for resilient DB calls ---
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function ensureSession() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      // Always refresh — the access token may be expired even though
+      // a session object still exists in local storage.
+      const { error } = await supabase.auth.refreshSession();
+      if (error && error.message.includes('Invalid Refresh Token')) {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+    }
+  } catch (e) {
+    console.warn('Session refresh failed:', e);
+  }
+}
+
+/**
+ * Wraps a Supabase call with retry logic + automatic session refresh.
+ * Retries up to maxRetries times with exponential backoff (500ms, 1s, 2s).
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 500,
+): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        await ensureSession();
+        await delay(baseDelay * Math.pow(2, attempt));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // --- Profile helpers ---
 
 export async function createProfile(userId: string, username: string, recoveryPhraseHash: string) {
@@ -11,19 +55,21 @@ export async function createProfile(userId: string, username: string, recoveryPh
 }
 
 export async function getProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, coins, classic_level, last_username_change_at')
-    .eq('id', userId)
-    .single();
-  if (error) return null;
-  return data as { 
-    id: string; 
-    username: string; 
-    coins: number; 
-    classic_level: number;
-    last_username_change_at: string | null;
-  };
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, coins, classic_level, last_username_change_at')
+      .eq('id', userId)
+      .single();
+    if (error) throw error;
+    return data as { 
+      id: string; 
+      username: string; 
+      coins: number; 
+      classic_level: number;
+      last_username_change_at: string | null;
+    };
+  }).catch(() => null);
 }
 
 export async function getUserById(userId: string) {
@@ -107,12 +153,14 @@ export async function addAccessory(userId: string, accessoryId: string) {
 }
 
 export async function getUserAccessories(userId: string) {
-  const { data, error } = await supabase
-    .from('user_accessories')
-    .select('accessory_id, equipped')
-    .eq('user_id', userId);
-  if (error) return [];
-  return (data || []) as { accessory_id: string; equipped: boolean }[];
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('user_accessories')
+      .select('accessory_id, equipped')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return (data || []) as { accessory_id: string; equipped: boolean }[];
+  }).catch(() => []);
 }
 
 export async function setEquipped(userId: string, accessoryId: string, equipped: boolean) {
@@ -168,22 +216,24 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
 // --- Power Ups ---
 
 export async function getUserPowerUps(userId: string) {
-  const { data, error } = await supabase
-    .from('user_powerups')
-    .select('potion, dust, powder, firefly')
-    .eq('user_id', userId)
-    .single();
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('user_powerups')
+      .select('potion, dust, powder, firefly')
+      .eq('user_id', userId)
+      .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // Row doesn't exist yet, insert default 0s
-      const defaultPowerUps = { user_id: userId, potion: 0, dust: 0, powder: 0, firefly: 0 };
-      await supabase.from('user_powerups').insert(defaultPowerUps);
-      return { potion: 0, dust: 0, powder: 0, firefly: 0 };
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Row doesn't exist yet, insert default 0s
+        const defaultPowerUps = { user_id: userId, potion: 0, dust: 0, powder: 0, firefly: 0 };
+        await supabase.from('user_powerups').insert(defaultPowerUps);
+        return { potion: 0, dust: 0, powder: 0, firefly: 0 };
+      }
+      throw error;
     }
-    return null;
-  }
-  return data as { potion: number; dust: number; powder: number; firefly: number };
+    return data as { potion: number; dust: number; powder: number; firefly: number };
+  }).catch(() => null);
 }
 
 export async function updateUserPowerUps(
@@ -262,139 +312,145 @@ export async function getUserHighScores(userId: string) {
 // --- Leaderboard ---
 
 export async function getLeaderboard(limit: number = 50, offset: number = 0) {
-  // Try RPC first (server-side RANK)
-  const { data: rpcData, error: rpcError } = await supabase
-    .rpc('get_leaderboard', { result_limit: limit, result_offset: offset });
+  return withRetry(async () => {
+    // Try RPC first (server-side RANK)
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_leaderboard', { result_limit: limit, result_offset: offset });
 
-  if (!rpcError && rpcData) {
-    return rpcData as { id: string; username: string; coins: number; rank: number }[];
-  }
+    if (!rpcError && rpcData) {
+      return rpcData as { id: string; username: string; coins: number; rank: number }[];
+    }
 
-  // Fallback: direct query with client-side ranking
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, coins')
-    .order('coins', { ascending: false })
-    .range(offset, offset + limit - 1);
+    // Fallback: direct query with client-side ranking
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, coins')
+      .order('coins', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-  if (error) {
-    console.error('Leaderboard query error:', JSON.stringify(error));
+    if (error) throw error;
+
+    // Add client-side rank
+    return (data || []).map((entry, i) => ({
+      ...entry,
+      rank: offset + i + 1,
+    })) as { id: string; username: string; coins: number; rank: number }[];
+  }).catch((e) => {
+    console.error('Leaderboard query error:', e);
     return [];
-  }
-
-  // Add client-side rank
-  return (data || []).map((entry, i) => ({
-    ...entry,
-    rank: offset + i + 1,
-  })) as { id: string; username: string; coins: number; rank: number }[];
+  });
 }
 
 // --- Classic Level Leaderboard ---
 
 export async function getClassicLeaderboard(limit: number = 50, offset: number = 0) {
-  // Try RPC first (server-side RANK)
-  const { data: rpcData, error: rpcError } = await supabase
-    .rpc('get_classic_leaderboard', { result_limit: limit, result_offset: offset });
+  return withRetry(async () => {
+    // Try RPC first (server-side RANK)
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_classic_leaderboard', { result_limit: limit, result_offset: offset });
 
-  if (!rpcError && rpcData) {
-    return (rpcData as any[]).map(e => ({
-      id: e.id,
-      username: e.username,
-      value: e.classic_level,
-      rank: e.rank,
+    if (!rpcError && rpcData) {
+      return (rpcData as any[]).map(e => ({
+        id: e.id,
+        username: e.username,
+        value: e.classic_level,
+        rank: e.rank,
+      }));
+    }
+
+    // Fallback: direct query with client-side ranking
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, classic_level')
+      .order('classic_level', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    return (data || []).map((entry, i) => ({
+      id: entry.id,
+      username: entry.username,
+      value: entry.classic_level,
+      rank: offset + i + 1,
     }));
-  }
-
-  // Fallback: direct query with client-side ranking
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, classic_level')
-    .order('classic_level', { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) {
-    console.error('Classic leaderboard error:', JSON.stringify(error));
+  }).catch((e) => {
+    console.error('Classic leaderboard error:', e);
     return [];
-  }
-
-  return (data || []).map((entry, i) => ({
-    id: entry.id,
-    username: entry.username,
-    value: entry.classic_level,
-    rank: offset + i + 1,
-  }));
+  });
 }
 
 // --- Survival Leaderboard (best score per difficulty, shows all users) ---
 
 export async function getSurvivalLeaderboard(difficulty: string, limit: number = 50, offset: number = 0) {
-  // Try RPC first (server-side RANK with LEFT JOIN)
-  const { data: rpcData, error: rpcError } = await supabase
-    .rpc('get_survival_leaderboard', { p_difficulty: difficulty, result_limit: limit, result_offset: offset });
+  return withRetry(async () => {
+    // Try RPC first (server-side RANK with LEFT JOIN)
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_survival_leaderboard', { p_difficulty: difficulty, result_limit: limit, result_offset: offset });
 
-  if (!rpcError && rpcData) {
-    return (rpcData as any[]).map(e => ({
-      id: e.id,
-      username: e.username,
-      value: e.best_score,
-      rank: e.rank,
-    }));
-  }
+    if (!rpcError && rpcData) {
+      return (rpcData as any[]).map(e => ({
+        id: e.id,
+        username: e.username,
+        value: e.best_score,
+        rank: e.rank,
+      }));
+    }
 
-  console.warn('Survival RPC fallback, error:', rpcError?.message);
+    console.warn('Survival RPC fallback, error:', rpcError?.message);
 
-  // Fallback: fetch profiles + sessions client-side
-  const { data: profiles, error: profileError } = await supabase
-    .from('profiles')
-    .select('id, username')
-    .range(offset, offset + limit - 1);
+    // Fallback: fetch profiles + sessions client-side
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .range(offset, offset + limit - 1);
 
-  if (profileError || !profiles) {
-    console.error('Survival leaderboard profile error:', JSON.stringify(profileError));
-    return [];
-  }
+    if (profileError || !profiles) throw profileError || new Error('No profiles returned');
 
-  // Try fetching with game_mode filter first
-  let sessions: any[] | null = null;
-  const { data: sessionsData, error: sessionsError } = await supabase
-    .from('game_sessions')
-    .select('user_id, score')
-    .eq('difficulty', difficulty)
-    .eq('game_mode', 'survival');
-
-  if (!sessionsError) {
-    sessions = sessionsData;
-  } else {
-    // game_mode column might not exist yet - try without it
-    const { data: fallbackData } = await supabase
+    // Try fetching with game_mode filter first
+    let sessions: any[] | null = null;
+    const { data: sessionsData, error: sessionsError } = await supabase
       .from('game_sessions')
       .select('user_id, score')
-      .eq('difficulty', difficulty);
-    sessions = fallbackData;
-  }
+      .eq('difficulty', difficulty)
+      .eq('game_mode', 'survival');
 
-  const bestScores = new Map<string, number>();
-  if (sessions) {
-    for (const row of sessions) {
-      const existing = bestScores.get(row.user_id) || 0;
-      if (row.score > existing) {
-        bestScores.set(row.user_id, row.score);
+    if (!sessionsError) {
+      sessions = sessionsData;
+    } else {
+      // game_mode column might not exist yet - try without it
+      const { data: fallbackData } = await supabase
+        .from('game_sessions')
+        .select('user_id, score')
+        .eq('difficulty', difficulty);
+      sessions = fallbackData;
+    }
+
+    const bestScores = new Map<string, number>();
+    if (sessions) {
+      for (const row of sessions) {
+        const existing = bestScores.get(row.user_id) || 0;
+        if (row.score > existing) {
+          bestScores.set(row.user_id, row.score);
+        }
       }
     }
-  }
 
-  const merged = profiles.map(p => ({
-    id: p.id,
-    username: p.username,
-    value: bestScores.get(p.id) || 0,
-  }));
+    const merged = profiles.map(p => ({
+      id: p.id,
+      username: p.username,
+      value: bestScores.get(p.id) || 0,
+    }));
 
-  merged.sort((a, b) => b.value - a.value);
+    merged.sort((a, b) => b.value - a.value);
 
-  return merged.slice(0, limit).map((entry, i) => ({
-    ...entry,
-    rank: offset + i + 1,
-  }));
+    return merged.slice(0, limit).map((entry, i) => ({
+      ...entry,
+      rank: offset + i + 1,
+    }));
+  }).catch((e) => {
+    console.error('Survival leaderboard error:', e);
+    return [];
+  });
 }
 // --- Shop Items ---
 
@@ -408,18 +464,34 @@ export interface ShopItem {
   color?: string;
   is_magic: boolean;
 }
+// --- In-memory shop items cache (stale-while-revalidate) ---
+let _shopItemsCache: ShopItem[] | null = null;
+let _shopItemsCacheTime = 0;
+const SHOP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export async function getShopItems() {
-  const { data, error } = await supabase
-    .from('shop_items')
-    .select('*')
-    .order('price', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching shop items:', error);
-    return [];
+export async function getShopItems(): Promise<ShopItem[]> {
+  // Return cached data instantly if still fresh
+  if (_shopItemsCache && (Date.now() - _shopItemsCacheTime) < SHOP_CACHE_TTL) {
+    return _shopItemsCache;
   }
-  return data as ShopItem[];
+
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select('*')
+      .order('price', { ascending: true });
+
+    if (error) throw error;
+    // Update cache
+    _shopItemsCache = data as ShopItem[];
+    _shopItemsCacheTime = Date.now();
+    return _shopItemsCache;
+  }).catch((e) => {
+    console.error('Error fetching shop items after retries:', e);
+    // If fetch fails but we have stale cache, return it
+    if (_shopItemsCache) return _shopItemsCache;
+    return [];
+  });
 }
 
 export async function purchaseItem(userId: string, itemId: string, price: number, isMagic: boolean, magicKey?: string) {
