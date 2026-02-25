@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Circle, Line, G, Path, Rect, Defs, LinearGradient, Stop, Ellipse } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -7,7 +7,11 @@ import Animated, {
   withSequence,
   withTiming,
   withSpring,
+  withRepeat,
+  withDelay,
   Easing,
+  ZoomIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useGameState, AccessoryType } from '@/hooks/useGameState';
@@ -17,16 +21,24 @@ interface StickmanProps {
   size?: number;
   previewOverrides?: Partial<Record<AccessoryType, string | null>>;
   hideArms?: boolean;
+  emojiReaction?: { emojis: string[]; type: 'correct' | 'wrong' | 'gameover' } | null;
 }
 
-export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false }: StickmanProps) {
+export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false, emojiReaction = null }: StickmanProps) {
   const storeEquipped = useGameState((state) => state.equippedAccessories);
   const equipped = previewOverrides ? { ...storeEquipped, ...previewOverrides } : storeEquipped;
   const shake = useSharedValue(0);
   const scale = useSharedValue(1);
-  const headRoll = useSharedValue(0);
-  const headFallY = useSharedValue(0);
-  const headFallX = useSharedValue(0);
+  const bubble1Y = useSharedValue(0);
+  const bubble2Y = useSharedValue(0);
+  const bubble3Y = useSharedValue(0);
+  const bubble4Y = useSharedValue(0);
+  const cloudX = useSharedValue(0);
+  const planeX = useSharedValue(0);
+  const balloonY = useSharedValue(0);
+  const birdX = useSharedValue(0);
+  const flag1Rot = useSharedValue(0);
+  const flag2Rot = useSharedValue(0);
 
   useEffect(() => {
     if (wrongCount > 0 && wrongCount < 5) {
@@ -42,22 +54,56 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         withSpring(1),
       );
     }
-    if (wrongCount >= 5) {
-      headFallY.value = withTiming(size * 1.6 * 0.5, { // Fall distance
-        duration: 900,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-      headFallX.value = withTiming(size * 1.15 * 0.2, {
-        duration: 900,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-      headRoll.value = withTiming(540, {
-        duration: 1200,
-        easing: Easing.out(Easing.ease),
-      });
-    }
   }, [wrongCount]);
 
+  // Bubble floating animation
+  useEffect(() => {
+    bubble1Y.value = withRepeat(withSequence(
+      withTiming(-8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true);
+    bubble2Y.value = withDelay(500, withRepeat(withSequence(
+      withTiming(-10, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(10, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true));
+    bubble3Y.value = withDelay(1000, withRepeat(withSequence(
+      withTiming(-6, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+      withTiming(6, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true));
+    bubble4Y.value = withDelay(300, withRepeat(withSequence(
+      withTiming(-9, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+      withTiming(9, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true));
+    // Scene animations
+    cloudX.value = withRepeat(withSequence(
+      withTiming(-size * 5.2 * 0.4, { duration: 0 }),
+      withTiming(size * 5.2 * 0.7, { duration: 60000, easing: Easing.linear }),
+    ), -1, false);
+    planeX.value = withRepeat(withSequence(
+      withTiming(-size * 5.2 * 0.3, { duration: 0 }),
+      withTiming(size * 5.2 * 1.1, { duration: 20000, easing: Easing.linear }),
+    ), -1, false);
+    balloonY.value = withRepeat(withSequence(
+      withTiming(-size * 5.2 * 0.2, { duration: 0 }),
+      withTiming(size * 5.2 * 1.1, { duration: 30000, easing: Easing.linear }),
+    ), -1, false);
+    birdX.value = withRepeat(withSequence(
+      withTiming(-size * 5.2 * 0.15, { duration: 0 }),
+      withTiming(size * 5.2 * 1.1, { duration: 10000, easing: Easing.linear }),
+    ), -1, false);
+    flag1Rot.value = withRepeat(withSequence(
+      withTiming(3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+      withTiming(-2, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+      withTiming(2, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(-1, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true);
+    flag2Rot.value = withDelay(300, withRepeat(withSequence(
+      withTiming(3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+      withTiming(-2, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+      withTiming(2, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(-1, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true));
+  }, []);
   const bodyAnimStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: shake.value },
@@ -65,40 +111,39 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     ],
   }));
 
-  const headAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: headFallY.value },
-      { translateX: headFallX.value },
-      { rotate: `${headRoll.value}deg` },
-    ],
-  }));
-
-  // ── Layout constants ──
+  const bubble1Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble1Y.value }] }));
+  const bubble2Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble2Y.value }] }));
+  const bubble3Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble3Y.value }] }));
+  const bubble4Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble4Y.value }] }));
+  const bubbleAnimStyles = [bubble1Style, bubble2Style, bubble3Style, bubble4Style];
+  const cloudAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: cloudX.value }] }));
+  const planeAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: planeX.value }] }));
+  const balloonAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: balloonY.value }] }));
+  const birdAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: birdX.value }] }));
+  const flag1AnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flag1Rot.value }] }));
+  const flag2AnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flag2Rot.value }] }));
+  // -- Layout constants --
   const w = size * 5.2;  // Card width – stretch edge to edge
-  const h = size * 1.6;  // Card height (tall rectangle)
-  const k = size * 1.15; // Stickman scale
-
+  const h = size * 2.2;  // Increased canvas height to fill bottom
+  const k = size * 1.5;  // Stickman scale (user can tweak this)
+  const bk = size * 1.35; // Stable background scale (locked)
   const cx = w / 2;
-  const groundY = h * 0.78;
-  const headCY = h * 0.25;
-  const headR = k * 0.1;
+  const headCY = size * 1.0; // Adjusted to keep top position
+  const groundY = size * 2.0; // Adjusted to match feet with larger h
+  const headR = k * 0.12;
   const bodyTop = headCY + headR;
-  const bodyLen = k * 0.35;
+  const bodyLen = k * 0.32;
   const bodyBot = bodyTop + bodyLen;
   const legLen = k * 0.22;
   const armY = bodyTop + bodyLen * 0.2;
-  const armLen = k * 0.18;
-  const sw = k * 0.035; // stroke width
+  const armLen = k * 0.28;
+  const sw = k * 0.055; // Stickman line thickness
   const jointR = sw * 0.9;
 
   // Colors
-  const woodDark = '#5D4037';
-  const woodLight = '#8D6E63';
   const bodyCol = '#37474F';
   const groundCol = '#81C784';
   const groundDark = '#66BB6A';
-  const ropeCol = '#A1887F';
-  const dismCol = bodyCol;
   const skyTop = '#E8F5E9';
   const skyBot = '#F0FFF4';
 
@@ -107,7 +152,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const showRL = wrongCount < 2;
   const showLA = wrongCount < 3;
   const showRA = wrongCount < 4;
-  const showHead = wrongCount < 5;
+  const showHead = true;
 
   // Leg endpoints
   const llEndX = cx - legLen * 0.7;
@@ -127,7 +172,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const hasLower = !!equipped.lower;
   const hasBack = !!equipped.back;
   const hasBoots = equipped.shoes && equipped.shoes.startsWith('shoes-');
-  
+
   const getClothesColor = () => {
     if (equipped.upper === 'shirt-2') return "#4CAF50";
     if (equipped.upper === 'shirt-3') return "#9C27B0";
@@ -138,10 +183,10 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     return bodyCol;
   };
 
-  // ── Accessory renderers ──
+    // -- Accessory renderers --
   const renderHat = () => {
     if (!hasHat) return null;
-    
+
     if (equipped.hair === 'hat-1') {
       return (
         <G>
@@ -151,25 +196,25 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     if (equipped.hair === 'hat-robot') {
       return (
         <G>
           {/* Main Helmet Base */}
-          <Path d={`M${cx - headR * 1.5},${headCY - headR * 0.5} 
-                   Q${cx - headR * 1.5},${headCY - headR * 2.0} ${cx},${headCY - headR * 2.0} 
-                   Q${cx + headR * 1.5},${headCY - headR * 2.0} ${cx + headR * 1.5},${headCY - headR * 0.5} 
-                   L${cx + headR * 1.5},${headCY + headR * 1.2} 
-                   Q${cx},${headCY + headR * 1.8} ${cx - headR * 1.5},${headCY + headR * 1.2} Z`} 
+          <Path d={`M${cx - headR * 1.5},${headCY - headR * 0.5}
+                   Q${cx - headR * 1.5},${headCY - headR * 2.0} ${cx},${headCY - headR * 2.0}
+                   Q${cx + headR * 1.5},${headCY - headR * 2.0} ${cx + headR * 1.5},${headCY - headR * 0.5}
+                   L${cx + headR * 1.5},${headCY + headR * 1.2}
+                   Q${cx},${headCY + headR * 1.8} ${cx - headR * 1.5},${headCY + headR * 1.2} Z`}
                 fill="#37474F" stroke="#263238" strokeWidth={2} />
           {/* Visor Cutout Base */}
-          <Path d={`M${cx - headR * 1.2},${headCY - headR * 0.2} 
-                   Q${cx},${headCY - headR * 0.5} ${cx + headR * 1.2},${headCY - headR * 0.2} 
-                   L${cx + headR * 1.0},${headCY + headR * 0.8} 
-                   Q${cx},${headCY + headR * 1.0} ${cx - headR * 1.0},${headCY + headR * 0.8} Z`} 
+          <Path d={`M${cx - headR * 1.2},${headCY - headR * 0.2}
+                   Q${cx},${headCY - headR * 0.5} ${cx + headR * 1.2},${headCY - headR * 0.2}
+                   L${cx + headR * 1.0},${headCY + headR * 0.8}
+                   Q${cx},${headCY + headR * 1.0} ${cx - headR * 1.0},${headCY + headR * 0.8} Z`}
                 fill="#111" />
           {/* Glowing Eyes/Visor Line */}
-          <Path d={`M${cx - headR * 0.8},${headCY + headR * 0.2} L${cx + headR * 0.8},${headCY + headR * 0.2}`} 
+          <Path d={`M${cx - headR * 0.8},${headCY + headR * 0.2} L${cx + headR * 0.8},${headCY + headR * 0.2}`}
                 stroke="#00E5FF" strokeWidth={3} strokeLinecap="round" />
           <Circle cx={cx - headR * 0.4} cy={headCY + headR * 0.2} r={3} fill="#FFF" />
           <Circle cx={cx + headR * 0.4} cy={headCY + headR * 0.2} r={3} fill="#FFF" />
@@ -182,7 +227,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     if (equipped.hair === 'hat-2') {
       return (
         <G>
@@ -201,7 +246,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     if (equipped.hair === 'hat-4') {
       return (
         <G>
@@ -227,7 +272,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     // --- New Hair Styles ---
     if (equipped.hair === 'hair-b1') {
       return (
@@ -310,7 +355,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     return null;
   };
 
@@ -320,7 +365,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     if (!hasGlasses) return null;
     const lensR = headR * 0.25;
     const eyeOffsetX = headR * 0.4;
-    
+
     if (equipped.face === 'glasses-1') {
       return (
         <G>
@@ -355,7 +400,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     // --- New Creative Face Accessories ---
     if (equipped.face === 'face-blush') {
       return (
@@ -427,13 +472,13 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         </G>
       );
     }
-    
+
     return null;
   };
 
   const renderBehindClothes = () => {
     if (!hasBack) return null;
-    
+
     // Back accessory: shirt-1 (Hero Cape) renders BEHIND the stickman
     if (equipped.back === 'shirt-1') {
       return (
@@ -445,7 +490,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         />
       );
     }
-    
+
     if (equipped.back === 'back-2') {
       return (
         <G>
@@ -1112,7 +1157,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           <Line x1={cx - 6} y1={bodyBot} x2={cx - 4} y2={bodyBot + legLen} stroke="#E0E0E0" strokeWidth={1} />
           <Line x1={cx + 6} y1={bodyBot} x2={cx + 4} y2={bodyBot + legLen} stroke="#E0E0E0" strokeWidth={1} />
           <Line x1={cx + 12} y1={bodyBot} x2={cx + pWidth - 2} y2={bodyBot + legLen} stroke="#E0E0E0" strokeWidth={1} />
-          
+
           <Line x1={cx - pWidth} y1={bodyBot + 8} x2={cx + pWidth} y2={bodyBot + 8} stroke="#E0E0E0" strokeWidth={1} />
           <Line x1={cx - pWidth} y1={bodyBot + 16} x2={cx + pWidth} y2={bodyBot + 16} stroke="#E0E0E0" strokeWidth={1} />
           <Line x1={cx - pWidth} y1={bodyBot + 24} x2={cx + pWidth} y2={bodyBot + 24} stroke="#E0E0E0" strokeWidth={1} />
@@ -1351,590 +1396,381 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     return null;
   };
 
-  // ── Fallen parts on the ground ──
-  const renderFallenParts = () => {
-    const parts: React.ReactNode[] = [];
-    const fallY = groundY - k * 0.04;
-
-    // Fallen left leg
-    if (!showLL) {
-      const fx = cx - legLen * 1.1;
-      parts.push(
-        <G key="fallen-ll" opacity={0.55}>
-          <Line
-            x1={fx}
-            y1={fallY}
-            x2={fx + legLen * 0.7}
-            y2={fallY - k * 0.015}
-            stroke={dismCol}
-            strokeWidth={sw * 0.8}
-            strokeLinecap="round"
-          />
-          <Circle cx={fx} cy={fallY} r={jointR * 0.7} fill={dismCol} />
-          {hasBoots && equipped.shoes && (
-            <G transform={`translate(${fx + legLen * 0.5}, ${fallY - k * 0.025})`}>
-              {renderLeftBoot(equipped.shoes, 0, 0, k * 0.06, k * 0.04)}
-            </G>
-          )}
-        </G>
-      );
-    }
-
-    // Fallen right leg
-    if (!showRL) {
-      const fx = cx + legLen * 0.5;
-      parts.push(
-        <G key="fallen-rl" opacity={0.55}>
-          <Line
-            x1={fx}
-            y1={fallY}
-            x2={fx + legLen * 0.65}
-            y2={fallY + k * 0.01}
-            stroke={dismCol}
-            strokeWidth={sw * 0.8}
-            strokeLinecap="round"
-          />
-          <Circle cx={fx + legLen * 0.65} cy={fallY + k * 0.01} r={jointR * 0.7} fill={dismCol} />
-          {hasBoots && equipped.shoes && (
-            <G transform={`translate(${fx + legLen * 0.65 - k * 0.01}, ${fallY - k * 0.01})`}>
-               {renderRightBoot(equipped.shoes, 0, 0, k * 0.06, k * 0.04)}
-            </G>
-          )}
-        </G>
-      );
-    }
-
-    // Fallen left arm
-    if (!showLA) {
-      const fx = k * 0.08;
-      parts.push(
-        <G key="fallen-la" opacity={0.55}>
-          <Line
-            x1={fx}
-            y1={fallY}
-            x2={fx + armLen * 0.6}
-            y2={fallY - k * 0.02}
-            stroke={dismCol}
-            strokeWidth={sw * 0.8}
-            strokeLinecap="round"
-          />
-          <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
-          {(hasUpper || hasLower) && (
-            <G transform={`translate(${fx}, ${fallY})`}>
-               <Rect y={-k * 0.01} width={k * 0.08} height={k * 0.025} fill={getClothesColor()} />
-            </G>
-          )}
-          <Circle cx={fx + armLen * 0.6} cy={fallY - k * 0.02} r={jointR * 0.6} fill={dismCol} />
-        </G>
-      );
-    }
-
-    // Fallen right arm
-    if (!showRA) {
-      const fx = cx + legLen * 1.2;
-      parts.push(
-        <G key="fallen-ra" opacity={0.55}>
-          <Line
-            x1={fx}
-            y1={fallY}
-            x2={fx + armLen * 0.55}
-            y2={fallY + k * 0.01}
-            stroke={dismCol}
-            strokeWidth={sw * 0.8}
-            strokeLinecap="round"
-          />
-          <Circle cx={fx} cy={fallY} r={jointR * 0.6} fill={dismCol} />
-          {(hasUpper || hasLower) && (
-            <G transform={`translate(${fx}, ${fallY})`}>
-               <Rect y={-k * 0.01} width={k * 0.08} height={k * 0.025} fill={getClothesColor()} />
-            </G>
-          )}
-          <Circle cx={fx + armLen * 0.55} cy={fallY + k * 0.01} r={jointR * 0.6} fill={dismCol} />
-        </G>
-      );
-    }
-
-    return parts;
-  };
+  // Bubble constants
+  const bubbleR = bk * 0.12;
+  const bubbleColors = [
+    { fill: '#F48FB1', shine: '#FCE4EC' },
+    { fill: '#64B5F6', shine: '#E3F2FD' },
+    { fill: '#81C784', shine: '#E8F5E9' },
+    { fill: '#CE93D8', shine: '#F3E5F5' },
+  ];
+  const bubblePositions = [
+    { x: cx - bk * 0.45, y: h * 0.32 }, // Refined and stable Y
+    { x: cx + bk * 0.48, y: h * 0.32 },
+    { x: cx - bk * 0.52, y: h * 0.62 },
+    { x: cx + bk * 0.54, y: h * 0.68 },
+  ];
+  const capturedLimbs = [!showLL, !showRL, !showLA, !showRA];
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={[bodyAnimStyle, { borderRadius: 16, overflow: 'hidden' }]}>
+    <View style={[styles.container, { width: w, height: h, borderRadius: 16, overflow: 'hidden' }]}>
+      {/* -- Layer 1: Deep Sky & Sun -- */}
+      <Svg style={{ position: 'absolute' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        <Defs>
+          <LinearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={skyTop} />
+            <Stop offset="1" stopColor={skyBot} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width={w} height={h} rx={16} fill="url(#skyGrad)" />
+        <G transform={`translate(${w * 0.82}, ${h * 0.22})`}>
+          <Circle cx={0} cy={0} r={h * 0.12} fill="#FFF59D" opacity={0.5} />
+          <Circle cx={0} cy={0} r={h * 0.08} fill="#FFEE58" />
+        </G>
+      </Svg>
+
+      {/* ── Layer 1.5: Animated Clouds ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, cloudAnimStyle]}>
         <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-          <Defs>
-            <LinearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={skyTop} />
-              <Stop offset="1" stopColor={skyBot} />
-            </LinearGradient>
-            <LinearGradient id="woodGrad" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0" stopColor={woodDark} />
-              <Stop offset="0.5" stopColor={woodLight} />
-              <Stop offset="1" stopColor={woodDark} />
-            </LinearGradient>
-          </Defs>
-
-          {/* Sky background */}
-          <Rect x={0} y={0} width={w} height={h} rx={16} fill="url(#skyGrad)" />
-
-          {/* ── Clouds ── */}
           <G opacity={0.6}>
-            {/* Cloud 1 - top left */}
             <Ellipse cx={w * 0.18} cy={h * 0.08} rx={w * 0.1} ry={h * 0.025} fill="#fff" />
             <Ellipse cx={w * 0.14} cy={h * 0.07} rx={w * 0.06} ry={h * 0.02} fill="#fff" />
             <Ellipse cx={w * 0.22} cy={h * 0.065} rx={w * 0.07} ry={h * 0.022} fill="#fff" />
-            {/* Cloud 2 - top right */}
             <Ellipse cx={w * 0.78} cy={h * 0.06} rx={w * 0.09} ry={h * 0.022} fill="#fff" />
             <Ellipse cx={w * 0.74} cy={h * 0.05} rx={w * 0.055} ry={h * 0.018} fill="#fff" />
             <Ellipse cx={w * 0.83} cy={h * 0.048} rx={w * 0.06} ry={h * 0.02} fill="#fff" />
-            {/* Cloud 3 - mid right */}
             <Ellipse cx={w * 0.88} cy={h * 0.15} rx={w * 0.07} ry={h * 0.018} fill="#fff" />
             <Ellipse cx={w * 0.85} cy={h * 0.14} rx={w * 0.045} ry={h * 0.015} fill="#fff" />
           </G>
+        </Svg>
+      </Animated.View>
 
+      {/* ── Layer 2: Animated Plane ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, planeAnimStyle]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <G transform={`translate(${w * 0.15}, ${h * 0.2})`}>
+            <Path d={`M0,0 L${bk*0.1},${bk*0.03} L0,${bk*0.06} L${bk*0.03},${bk*0.03} Z`} fill="#FFFFFF" />
+            <Path d={`M${bk*0.03},${bk*0.03} L${bk*0.06},${bk*0.04} L${bk*0.04},${bk*0.08} Z`} fill="#E0E0E0" />
+          </G>
+        </Svg>
+      </Animated.View>
+
+      {/* ── Layer 3: Animated Hot Air Balloon ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, balloonAnimStyle]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <G transform={`translate(${w * 0.05}, ${h * 0.3})`}>
+            <Circle cx={0} cy={-bk * 0.2} r={bk * 0.12} fill="#FF7043" />
+            <Circle cx={0} cy={-bk * 0.2} r={bk * 0.08} fill="#FFEE58" />
+            <Line x1={-bk * 0.06} y1={-bk * 0.1} x2={-bk * 0.03} y2={0} stroke="#757575" strokeWidth={1} />
+            <Line x1={bk * 0.06} y1={-bk * 0.1} x2={bk * 0.03} y2={0} stroke="#757575" strokeWidth={1} />
+            <Rect x={-bk * 0.04} y={0} width={bk * 0.08} height={bk * 0.05} fill="#8D6E63" rx={2} />
+          </G>
+        </Svg>
+      </Animated.View>
+
+      {/* ── Layer 4: Animated Birds ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, birdAnimStyle]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <Path d={`M${w * 0.05},${h * 0.15} Q${w * 0.07},${h * 0.12} ${w * 0.09},${h * 0.15} Q${w * 0.11},${h * 0.12} ${w * 0.13},${h * 0.15}`} fill="none" stroke="#90A4AE" strokeWidth={1.5} />
+          <Path d={`M${w * 0.16},${h * 0.1} Q${w * 0.18},${h * 0.07} ${w * 0.2},${h * 0.1} Q${w * 0.22},${h * 0.07} ${w * 0.24},${h * 0.1}`} fill="none" stroke="#90A4AE" strokeWidth={1.5} />
+        </Svg>
+      </Animated.View>
+
+      {/* ── Layer 5: Ground + Trees + Stickman (shakes on wrong) ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, bodyAnimStyle]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           {/* Grass ground */}
-          <Rect
-            x={0}
-            y={groundY - k * 0.02}
-            width={w}
-            height={h - (groundY - k * 0.02) + 10}
-            rx={0}
-            fill={groundCol}
-          />
-          {/* Darker grass strip */}
-          <Rect
-            x={0}
-            y={groundY - k * 0.005}
-            width={w}
-            height={k * 0.025}
-            fill={groundDark}
-            opacity={0.4}
-          />
+          <Rect x={0} y={groundY - bk * 0.02} width={w} height={h - (groundY - bk * 0.02) + 10} fill={groundCol} />
+          <Rect x={0} y={groundY - bk * 0.005} width={w} height={bk * 0.025} fill={groundDark} opacity={0.4} />
 
-          {/* ── Background Rocks and Trees ── */}
+          {/* -- Background Rocks & Castle -- */}
           <G>
-            {/* Rock 1 - far left */}
-            <Path d={`M${w * 0.05},${groundY} Q${w * 0.04},${groundY - k * 0.05} ${w * 0.07},${groundY - k * 0.06} Q${w * 0.1},${groundY - k * 0.05} ${w * 0.12},${groundY} Z`} fill="#9E9E9E" stroke="#757575" strokeWidth={1} />
-            
-            {/* Pine Tree 1 - left */}
-            <G transform={`translate(${w * 0.2}, ${groundY})`}>
-              <Rect x={-k * 0.02} y={-k * 0.12} width={k * 0.04} height={k * 0.12} fill="#5D4037" />
-              <Path d={`M${-k * 0.16},${-k * 0.12} L0,${-k * 0.45} L${k * 0.16},${-k * 0.12} Z`} fill="#2E7D32" />
-              <Path d={`M${-k * 0.12},${-k * 0.25} L0,${-k * 0.55} L${k * 0.12},${-k * 0.25} Z`} fill="#388E3C" />
-            </G>
+            {/* Small rock - left */}
+            <Path d={`M${w * 0.05},${groundY} Q${w * 0.04},${groundY - bk * 0.05} ${w * 0.07},${groundY - bk * 0.06} Q${w * 0.1},${groundY - bk * 0.05} ${w * 0.12},${groundY} Z`} fill="#9E9E9E" stroke="#757575" strokeWidth={1} />
+            {/* Small rock - mid */}
+            <Path d={`M${w * 0.35},${groundY} Q${w * 0.37},${groundY - bk * 0.08} ${w * 0.4},${groundY} Z`} fill="#BDBDBD" stroke="#9E9E9E" strokeWidth={1} />
 
-            {/* Rock 2 - mid-left */}
-            <Path d={`M${w * 0.35},${groundY} Q${w * 0.37},${groundY - k * 0.08} ${w * 0.4},${groundY} Z`} fill="#BDBDBD" stroke="#9E9E9E" strokeWidth={1} />
+            {/* -- Castle at w*0.78 (refined position) -- */}
+            <G transform={`translate(${w * 0.78}, ${groundY})`}>
+              {/* Left Tower */}
+              <Rect x={-bk * 0.4} y={-bk * 0.95} width={bk * 0.22} height={bk * 0.95} fill="#B0BEC5" stroke="#78909C" strokeWidth={1} />
+              {/* Left tower crenellations */}
+              <Rect x={-bk * 0.43} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              <Rect x={-bk * 0.32} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              <Rect x={-bk * 0.21} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              {/* Left tower window */}
+              <Rect x={-bk * 0.33} y={-bk * 0.7} width={bk * 0.09} height={bk * 0.1} rx={bk * 0.045} fill="#546E7A" />
 
-            {/* Round Tree 1 - mid-right */}
-            <G transform={`translate(${w * 0.6}, ${groundY})`}>
-              <Rect x={-k * 0.03} y={-k * 0.15} width={k * 0.06} height={k * 0.15} fill="#4E342E" />
-              <Circle cx={0} cy={-k * 0.25} r={k * 0.16} fill="#1B5E20" />
-              <Circle cx={-k * 0.06} cy={-k * 0.3} r={k * 0.1} fill="#2E7D32" />
-              <Circle cx={k * 0.08} cy={-k * 0.24} r={k * 0.08} fill="#388E3C" />
-            </G>
+              {/* Right Tower */}
+              <Rect x={bk * 0.18} y={-bk * 0.95} width={bk * 0.22} height={bk * 0.95} fill="#B0BEC5" stroke="#78909C" strokeWidth={1} />
+              {/* Right tower crenellations */}
+              <Rect x={bk * 0.15} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              <Rect x={bk * 0.26} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              <Rect x={bk * 0.37} y={-bk * 1.01} width={bk * 0.07} height={bk * 0.07} fill="#B0BEC5" stroke="#78909C" strokeWidth={0.8} />
+              {/* Right tower window */}
+              <Rect x={bk * 0.25} y={-bk * 0.7} width={bk * 0.09} height={bk * 0.1} rx={bk * 0.045} fill="#546E7A" />
 
-            {/* Rock 3 - right */}
-            <Path d={`M${w * 0.75},${groundY} Q${w * 0.78},${groundY - k * 0.1} ${w * 0.81},${groundY - k * 0.07} L${w * 0.84},${groundY} Z`} fill="#757575" stroke="#616161" strokeWidth={1} />
+              {/* Central Wall */}
+              <Rect x={-bk * 0.18} y={-bk * 0.7} width={bk * 0.36} height={bk * 0.7} fill="#CFD8DC" stroke="#90A4AE" strokeWidth={1} />
+              {/* Central wall crenellations */}
+              <Rect x={-bk * 0.18} y={-bk * 0.77} width={bk * 0.07} height={bk * 0.07} fill="#CFD8DC" stroke="#90A4AE" strokeWidth={0.8} />
+              <Rect x={-0.035} y={-bk * 0.77} width={bk * 0.07} height={bk * 0.07} fill="#CFD8DC" stroke="#90A4AE" strokeWidth={0.8} />
+              <Rect x={bk * 0.11} y={-bk * 0.77} width={bk * 0.07} height={bk * 0.07} fill="#CFD8DC" stroke="#90A4AE" strokeWidth={0.8} />
 
-            {/* Pine Tree 2 - far right */}
-            <G transform={`translate(${w * 0.9}, ${groundY})`}>
-              <Rect x={-k * 0.018} y={-k * 0.1} width={k * 0.036} height={k * 0.1} fill="#5D4037" />
-              <Path d={`M${-k * 0.14},${-k * 0.1} L0,${-k * 0.35} L${k * 0.14},${-k * 0.1} Z`} fill="#1B5E20" />
-              <Path d={`M${-k * 0.1},${-k * 0.22} L0,${-k * 0.45} L${k * 0.05},${-k * 0.22} Z`} fill="#2E7D32" />
+              {/* Arched Gate */}
+              <Path d={`M${-bk * 0.09},${0} L${-bk * 0.09},${-bk * 0.26} Q${0},${-bk * 0.4} ${bk * 0.09},${-bk * 0.26} L${bk * 0.09},${0} Z`} fill="#5D4037" />
+              {/* Gate highlight */}
+              <Path d={`M${-bk * 0.045},${0} L${-bk * 0.045},${-bk * 0.22} Q${0},${-bk * 0.33} ${bk * 0.045},${-bk * 0.22} L${bk * 0.045},${0} Z`} fill="#4E342E" />
+
+              {/* Small windows on wall */}
+              <Rect x={-bk * 0.14} y={-bk * 0.55} width={bk * 0.05} height={bk * 0.07} rx={bk * 0.015} fill="#546E7A" />
+              <Rect x={bk * 0.09} y={-bk * 0.55} width={bk * 0.05} height={bk * 0.07} rx={bk * 0.015} fill="#546E7A" />
+
+              {/* Flag poles on towers */}
+              <Line x1={-bk * 0.29} y1={-bk * 1.01} x2={-bk * 0.29} y2={-bk * 1.15} stroke="#757575" strokeWidth={1.8} />
+              <Line x1={bk * 0.29} y1={-bk * 1.01} x2={bk * 0.29} y2={-bk * 1.15} stroke="#757575" strokeWidth={1.8} />
             </G>
           </G>
 
-          {/* ── Grass tufts across full width ── */}
+          {/* ── Layer 5: Animated Flags (Absolute positioned over towers) ── */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                left: w * 0.78 - bk * 0.29,
+                top: groundY - bk * 1.15,
+                zIndex: 10,
+              },
+              flag1AnimStyle
+            ]}
+          >
+            <Svg width={bk * 0.25} height={bk * 0.15}>
+              <Path d={`M0,0 L${bk * 0.2},${bk * 0.075} L0,${bk * 0.15} Z`} fill="#FFEB3B" stroke="#FBC02D" strokeWidth={1} />
+            </Svg>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                left: w * 0.78 + bk * 0.29,
+                top: groundY - bk * 1.15,
+                zIndex: 10,
+              },
+              flag2AnimStyle
+            ]}
+          >
+            <Svg width={bk * 0.25} height={bk * 0.15}>
+              <Path d={`M0,0 L${bk * 0.2},${bk * 0.075} L0,${bk * 0.15} Z`} fill="#FFEB3B" stroke="#FBC02D" strokeWidth={1} />
+            </Svg>
+          </Animated.View>
+
+          {/* ── Grass tufts ── */}
+          <Path d={`M${w * 0.02},${groundY} Q${w * 0.04},${groundY - bk * 0.03} ${w * 0.06},${groundY} M${w * 0.09},${groundY} Q${w * 0.11},${groundY - bk * 0.02} ${w * 0.13},${groundY} M${w * 0.16},${groundY} Q${w * 0.18},${groundY - bk * 0.025} ${w * 0.20},${groundY} M${w * 0.25},${groundY} Q${w * 0.27},${groundY - bk * 0.018} ${w * 0.29},${groundY} M${w * 0.34},${groundY} Q${w * 0.36},${groundY - bk * 0.022} ${w * 0.38},${groundY} M${w * 0.43},${groundY} Q${w * 0.45},${groundY - bk * 0.015} ${w * 0.47},${groundY} M${w * 0.52},${groundY} Q${w * 0.54},${groundY - bk * 0.028} ${w * 0.56},${groundY} M${w * 0.61},${groundY} Q${w * 0.63},${groundY - bk * 0.02} ${w * 0.65},${groundY} M${w * 0.70},${groundY} Q${w * 0.72},${groundY - bk * 0.025} ${w * 0.74},${groundY} M${w * 0.78},${groundY} Q${w * 0.80},${groundY - bk * 0.018} ${w * 0.82},${groundY} M${w * 0.86},${groundY} Q${w * 0.88},${groundY - bk * 0.022} ${w * 0.90},${groundY} M${w * 0.93},${groundY} Q${w * 0.95},${groundY - bk * 0.02} ${w * 0.97},${groundY}`} stroke={groundDark} strokeWidth={1.5} fill="none" />
+
+          {/* ── Small flowers ── */}
           <G>
-            <Path
-              d={`M${w * 0.02},${groundY} Q${w * 0.04},${groundY - k * 0.03} ${w * 0.06},${groundY}
-                 M${w * 0.09},${groundY} Q${w * 0.11},${groundY - k * 0.02} ${w * 0.13},${groundY}
-                 M${w * 0.16},${groundY} Q${w * 0.18},${groundY - k * 0.025} ${w * 0.20},${groundY}
-                 M${w * 0.25},${groundY} Q${w * 0.27},${groundY - k * 0.018} ${w * 0.29},${groundY}
-                 M${w * 0.34},${groundY} Q${w * 0.36},${groundY - k * 0.022} ${w * 0.38},${groundY}
-                 M${w * 0.43},${groundY} Q${w * 0.45},${groundY - k * 0.015} ${w * 0.47},${groundY}
-                 M${w * 0.52},${groundY} Q${w * 0.54},${groundY - k * 0.028} ${w * 0.56},${groundY}
-                 M${w * 0.61},${groundY} Q${w * 0.63},${groundY - k * 0.02} ${w * 0.65},${groundY}
-                 M${w * 0.70},${groundY} Q${w * 0.72},${groundY - k * 0.025} ${w * 0.74},${groundY}
-                 M${w * 0.78},${groundY} Q${w * 0.80},${groundY - k * 0.018} ${w * 0.82},${groundY}
-                 M${w * 0.86},${groundY} Q${w * 0.88},${groundY - k * 0.022} ${w * 0.90},${groundY}
-                 M${w * 0.93},${groundY} Q${w * 0.95},${groundY - k * 0.02} ${w * 0.97},${groundY}`}
-              stroke={groundDark}
-              strokeWidth={1.5}
-              fill="none"
-            />
+            <Line x1={w * 0.07} y1={groundY} x2={w * 0.07} y2={groundY - bk * 0.04} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.07} cy={groundY - bk * 0.045} r={bk * 0.012} fill="#F06292" />
+            <Circle cx={w * 0.07} cy={groundY - bk * 0.045} r={bk * 0.006} fill="#FFEB3B" />
+            <Line x1={w * 0.55} y1={groundY} x2={w * 0.55} y2={groundY - bk * 0.038} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.55} cy={groundY - bk * 0.043} r={bk * 0.011} fill="#AB47BC" />
+            <Circle cx={w * 0.55} cy={groundY - bk * 0.043} r={bk * 0.005} fill="#FFEB3B" />
+            <Line x1={w * 0.88} y1={groundY} x2={w * 0.88} y2={groundY - bk * 0.032} stroke="#66BB6A" strokeWidth={1} />
+            <Circle cx={w * 0.88} cy={groundY - bk * 0.037} r={bk * 0.01} fill="#EF5350" />
+            <Circle cx={w * 0.88} cy={groundY - bk * 0.037} r={bk * 0.005} fill="#FFF176" />
           </G>
 
-          {/* ── Small flowers with stems ── */}
-          <G>
-            {/* Flower 1 - pink */}
-            <Line x1={w * 0.07} y1={groundY} x2={w * 0.07} y2={groundY - k * 0.04} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.07} cy={groundY - k * 0.045} r={k * 0.012} fill="#F06292" />
-            <Circle cx={w * 0.07} cy={groundY - k * 0.045} r={k * 0.006} fill="#FFEB3B" />
-            {/* Flower 2 - orange */}
-            <Line x1={w * 0.18} y1={groundY} x2={w * 0.18} y2={groundY - k * 0.035} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.18} cy={groundY - k * 0.04} r={k * 0.01} fill="#FF7043" />
-            <Circle cx={w * 0.18} cy={groundY - k * 0.04} r={k * 0.005} fill="#FFF176" />
-            {/* Flower 3 - purple */}
-            <Line x1={w * 0.55} y1={groundY} x2={w * 0.55} y2={groundY - k * 0.038} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.55} cy={groundY - k * 0.043} r={k * 0.011} fill="#AB47BC" />
-            <Circle cx={w * 0.55} cy={groundY - k * 0.043} r={k * 0.005} fill="#FFEB3B" />
-            {/* Flower 4 - yellow */}
-            <Line x1={w * 0.72} y1={groundY} x2={w * 0.72} y2={groundY - k * 0.03} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.72} cy={groundY - k * 0.035} r={k * 0.009} fill="#FFEB3B" />
-            <Circle cx={w * 0.72} cy={groundY - k * 0.035} r={k * 0.004} fill="#FF7043" />
-            {/* Flower 5 - red */}
-            <Line x1={w * 0.88} y1={groundY} x2={w * 0.88} y2={groundY - k * 0.032} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.88} cy={groundY - k * 0.037} r={k * 0.01} fill="#EF5350" />
-            <Circle cx={w * 0.88} cy={groundY - k * 0.037} r={k * 0.005} fill="#FFF176" />
-            {/* Flower 6 - blue */}
-            <Line x1={w * 0.35} y1={groundY} x2={w * 0.35} y2={groundY - k * 0.028} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.35} cy={groundY - k * 0.033} r={k * 0.008} fill="#42A5F5" />
-            <Circle cx={w * 0.35} cy={groundY - k * 0.033} r={k * 0.004} fill="#FFF176" />
-            {/* Flower 7 - white */}
-            <Line x1={w * 0.95} y1={groundY} x2={w * 0.95} y2={groundY - k * 0.025} stroke="#66BB6A" strokeWidth={1} />
-            <Circle cx={w * 0.95} cy={groundY - k * 0.03} r={k * 0.008} fill="#fff" />
-            <Circle cx={w * 0.95} cy={groundY - k * 0.03} r={k * 0.004} fill="#FFEB3B" />
-          </G>
-
-          {/* ── Gallows ── */}
-          {(() => {
-            const gVertX = cx - k * 0.28;
-            const gTopY = h * 0.05;
+          {/* ── Floating Bubbles (SVG, behind stickman) ── */}
+          {bubblePositions.map((pos, i) => {
+            const limbLen2 = bk * 0.06;
+            const limbSW2 = bk * 0.015; // Stable limb thickness in bubble
+            const color = bubbleColors[i];
+            const hasCaptured = capturedLimbs[i];
             return (
-              <G>
-                {/* Base beam */}
-                <Line x1={gVertX - k * 0.15} y1={groundY} x2={cx + k * 0.15} y2={groundY} stroke="url(#woodGrad)" strokeWidth={sw * 1.8} strokeLinecap="round" />
-                {/* Vertical beam */}
-                <Line x1={gVertX} y1={groundY} x2={gVertX} y2={gTopY} stroke="url(#woodGrad)" strokeWidth={sw * 1.6} strokeLinecap="round" />
-                {/* Top beam */}
-                <Line x1={gVertX} y1={gTopY} x2={cx + sw} y2={gTopY} stroke="url(#woodGrad)" strokeWidth={sw * 1.6} strokeLinecap="round" />
-                {/* Diagonal support brace */}
-                <Line x1={gVertX} y1={gTopY + k * 0.14} x2={gVertX + k * 0.14} y2={gTopY} stroke={woodDark} strokeWidth={sw * 0.9} strokeLinecap="round" />
-                {/* Rope */}
-                <Line x1={cx} y1={gTopY} x2={cx} y2={headCY - headR - k * 0.015} stroke={ropeCol} strokeWidth={sw * 0.7} strokeLinecap="round" />
-                {/* Noose loop */}
-                <Circle cx={cx} cy={headCY - headR - k * 0.008} r={sw * 0.9} fill="none" stroke={ropeCol} strokeWidth={sw * 0.6} />
+              <G key={`bubble-${i}`}>
+                <Circle cx={pos.x} cy={pos.y} r={bubbleR * 1.3} fill={color.fill} opacity={0.2} />
+                <Circle cx={pos.x} cy={pos.y} r={bubbleR} fill={color.fill} opacity={hasCaptured ? 0.65 : 0.45} stroke={color.fill} strokeWidth={2.5} />
+                <Ellipse cx={pos.x - bubbleR * 0.2} cy={pos.y - bubbleR * 0.25} rx={bubbleR * 0.4} ry={bubbleR * 0.22} fill="white" opacity={0.5} />
+                <Circle cx={pos.x + bubbleR * 0.35} cy={pos.y - bubbleR * 0.35} r={bubbleR * 0.1} fill="white" opacity={0.7} />
+                {hasCaptured && i === 0 && (
+                  <Line x1={pos.x} y1={pos.y - limbLen2 * 0.3} x2={pos.x - limbLen2 * 0.5} y2={pos.y + limbLen2 * 0.7} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
+                )}
+                {hasCaptured && i === 1 && (
+                  <Line x1={pos.x} y1={pos.y - limbLen2 * 0.3} x2={pos.x + limbLen2 * 0.5} y2={pos.y + limbLen2 * 0.7} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
+                )}
+                {hasCaptured && i === 2 && (
+                  <Line x1={pos.x} y1={pos.y} x2={pos.x - limbLen2} y2={pos.y + limbLen2 * 0.3} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
+                )}
+                {hasCaptured && i === 3 && (
+                  <Line x1={pos.x} y1={pos.y} x2={pos.x + limbLen2} y2={pos.y + limbLen2 * 0.3} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
+                )}
               </G>
             );
-          })()}
+          })}
 
-          {/* ── Behind Clothing (Cape) ── */}
+          {/* -- Behind Clothing (Cape) -- */}
           {renderBehindClothes()}
 
-          {/* ── Left Leg ── */}
-          {showLL ? (
+          {/* -- Left Leg -- */}
+          {showLL && (
             <G>
-              <Line
-                x1={cx}
-                y1={bodyBot}
-                x2={llEndX}
-                y2={llEndY}
-                stroke={bodyCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              {/* Knee */}
-              <Circle
-                cx={(cx + llEndX) / 2}
-                cy={(bodyBot + llEndY) / 2}
-                r={jointR * 0.7}
-                fill={bodyCol}
-              />
-              {/* Foot circle */}
+              <Line x1={cx} y1={bodyBot} x2={llEndX} y2={llEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+              <Circle cx={(cx + llEndX) / 2} cy={(bodyBot + llEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
               <Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />
               {equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}
             </G>
-          ) : (
-            <G>
-              {/* Stump */}
-              <Line
-                x1={cx}
-                y1={bodyBot}
-                x2={cx - legLen * 0.15}
-                y2={bodyBot + legLen * 0.12}
-                stroke={dismCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle cx={cx - legLen * 0.15} cy={bodyBot + legLen * 0.12} r={jointR * 0.5} fill={dismCol} />
-            </G>
           )}
 
-          {/* ── Right Leg ── */}
-          {showRL ? (
+          {/* -- Right Leg -- */}
+          {showRL && (
             <G>
-              <Line
-                x1={cx}
-                y1={bodyBot}
-                x2={rlEndX}
-                y2={rlEndY}
-                stroke={bodyCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle
-                cx={(cx + rlEndX) / 2}
-                cy={(bodyBot + rlEndY) / 2}
-                r={jointR * 0.7}
-                fill={bodyCol}
-              />
+              <Line x1={cx} y1={bodyBot} x2={rlEndX} y2={rlEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+              <Circle cx={(cx + rlEndX) / 2} cy={(bodyBot + rlEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
               <Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />
               {equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}
             </G>
-          ) : (
-            <G>
-              <Line
-                x1={cx}
-                y1={bodyBot}
-                x2={cx + legLen * 0.15}
-                y2={bodyBot + legLen * 0.12}
-                stroke={dismCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle cx={cx + legLen * 0.15} cy={bodyBot + legLen * 0.12} r={jointR * 0.5} fill={dismCol} />
-            </G>
           )}
 
-          {/* ── Left Arm ── */}
-          {!hideArms && showLA ? (
+          {/* -- Left Arm -- */}
+          {!hideArms && showLA && (
             <G>
-              <Line
-                x1={cx}
-                y1={armY}
-                x2={laEndX}
-                y2={laEndY}
-                stroke={bodyCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              {/* Elbow */}
-              <Circle
-                cx={(cx + laEndX) / 2}
-                cy={(armY + laEndY) / 2}
-                r={jointR * 0.6}
-                fill={bodyCol}
-              />
-              {/* Hand */}
+              <Line x1={cx} y1={armY} x2={laEndX} y2={laEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+              <Circle cx={(cx + laEndX) / 2} cy={(armY + laEndY) / 2} r={jointR * 0.6} fill={bodyCol} />
               <Circle cx={laEndX} cy={laEndY} r={jointR * 0.8} fill={bodyCol} />
             </G>
-          ) : (
-            <G>
-              <Line
-                x1={cx}
-                y1={armY}
-                x2={cx - armLen * 0.18}
-                y2={armY + armLen * 0.09}
-                stroke={dismCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle cx={cx - armLen * 0.18} cy={armY + armLen * 0.09} r={jointR * 0.5} fill={dismCol} />
-            </G>
           )}
 
-          {/* ── Right Arm ── */}
-          {!hideArms && showRA ? (
+          {/* -- Right Arm -- */}
+          {!hideArms && showRA && (
             <G>
-              <Line
-                x1={cx}
-                y1={armY}
-                x2={raEndX}
-                y2={raEndY}
-                stroke={bodyCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle
-                cx={(cx + raEndX) / 2}
-                cy={(armY + raEndY) / 2}
-                r={jointR * 0.6}
-                fill={bodyCol}
-              />
-              {/* Hand */}
+              <Line x1={cx} y1={armY} x2={raEndX} y2={raEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+              <Circle cx={(cx + raEndX) / 2} cy={(armY + raEndY) / 2} r={jointR * 0.6} fill={bodyCol} />
               <Circle cx={raEndX} cy={raEndY} r={jointR * 0.8} fill={bodyCol} />
             </G>
-          ) : (
-            <G>
-              <Line
-                x1={cx}
-                y1={armY}
-                x2={cx + armLen * 0.18}
-                y2={armY + armLen * 0.09}
-                stroke={dismCol}
-                strokeWidth={sw}
-                strokeLinecap="round"
-              />
-              <Circle cx={cx + armLen * 0.18} cy={armY + armLen * 0.09} r={jointR * 0.5} fill={dismCol} />
-            </G>
           )}
 
-          {/* ── Body trunk ── */}
-          <Line
-            x1={cx}
-            y1={bodyTop}
-            x2={cx}
-            y2={bodyBot}
-            stroke={bodyCol}
-            strokeWidth={sw}
-            strokeLinecap="round"
-          />
-          {/* Shoulder joint */}
+          {/* -- Body trunk -- */}
+          <Line x1={cx} y1={bodyTop} x2={cx} y2={bodyBot} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
           <Circle cx={cx} cy={armY} r={jointR} fill={bodyCol} />
-          {/* Hip joint */}
           <Circle cx={cx} cy={bodyBot} r={jointR} fill={bodyCol} />
 
-          {/* ── Front Clothing (Shirt/Dress) ── */}
-         {/* Front Accessories Layer */}
-        {renderLower()}
-        {renderUpper()}
-        {renderFrontBackAccessories()}
+          {/* -- Front Clothing -- */}
+          {renderLower()}
+          {renderUpper()}
+          {renderFrontBackAccessories()}
 
-          {/* ── Head ── (accessories coupled — hat & glasses only show with head) */}
+          {/* -- Head -- */}
           {showHead && (
             <G>
-              {/* Head circle */}
-              <Circle
-                cx={cx}
-                cy={headCY}
-                r={headR}
-                stroke={bodyCol}
-                strokeWidth={sw}
-                fill={skyBot}
-              />
-              
+              {wrongCount >= 5 && (
+                <Ellipse cx={cx} cy={headCY - headR * 1.4} rx={headR * 0.8} ry={headR * 0.2} fill="none" stroke="#FFD700" strokeWidth={2.5} opacity={0.9} />
+              )}
+              <Circle cx={cx} cy={headCY} r={headR} stroke={bodyCol} strokeWidth={sw} fill={skyBot} />
               {equipped.hair !== 'hat-robot' && (
                 <G>
-                  {/* Eyes */}
-                  <Circle cx={cx - headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
-                  <Circle cx={cx + headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
-                  {/* Eye shine */}
-                  <Circle cx={cx - headR * 0.25} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
-                  <Circle cx={cx + headR * 0.35} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
-                  {/* Mouth — changes with wrongCount */}
-                  {wrongCount === 0 ? (
-                    // Happy smile
-                    <Path
-                      d={`M${cx - headR * 0.25},${headCY + headR * 0.3}
-                          Q${cx},${headCY + headR * 0.55} ${cx + headR * 0.25},${headCY + headR * 0.3}`}
-                      stroke={bodyCol}
-                      strokeWidth={sw * 0.5}
-                      fill="none"
-                      strokeLinecap="round"
-                    />
-                  ) : wrongCount <= 2 ? (
-                    // Neutral mouth
-                    <Line
-                      x1={cx - headR * 0.2}
-                      y1={headCY + headR * 0.35}
-                      x2={cx + headR * 0.2}
-                      y2={headCY + headR * 0.35}
-                      stroke={bodyCol}
-                      strokeWidth={sw * 0.5}
-                      strokeLinecap="round"
-                    />
+                  {wrongCount >= 5 ? (
+                    <G>
+                      <Path d={`M${cx - headR * 0.4},${headCY - headR * 0.05} Q${cx - headR * 0.3},${headCY + headR * 0.1} ${cx - headR * 0.2},${headCY - headR * 0.05}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                      <Path d={`M${cx + headR * 0.2},${headCY - headR * 0.05} Q${cx + headR * 0.3},${headCY + headR * 0.1} ${cx + headR * 0.4},${headCY - headR * 0.05}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                      <Path d={`M${cx - headR * 0.2},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.45} ${cx + headR * 0.2},${headCY + headR * 0.3}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                    </G>
                   ) : (
-                    // Worried frown
-                    <Path
-                      d={`M${cx - headR * 0.25},${headCY + headR * 0.45}
-                          Q${cx},${headCY + headR * 0.25} ${cx + headR * 0.25},${headCY + headR * 0.45}`}
-                      stroke={bodyCol}
-                      strokeWidth={sw * 0.5}
-                      fill="none"
-                      strokeLinecap="round"
-                    />
+                    <G>
+                      <Circle cx={cx - headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
+                      <Circle cx={cx + headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
+                      <Circle cx={cx - headR * 0.25} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
+                      <Circle cx={cx + headR * 0.35} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
+                      {wrongCount === 0 ? (
+                        <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.55} ${cx + headR * 0.25},${headCY + headR * 0.3}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                      ) : wrongCount <= 2 ? (
+                        <Line x1={cx - headR * 0.2} y1={headCY + headR * 0.35} x2={cx + headR * 0.2} y2={headCY + headR * 0.35} stroke={bodyCol} strokeWidth={sw * 0.5} strokeLinecap="round" />
+                      ) : (
+                        <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.45} Q${cx},${headCY + headR * 0.25} ${cx + headR * 0.25},${headCY + headR * 0.45}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                      )}
+                    </G>
                   )}
                 </G>
               )}
-              {/* Accessories — coupled to head */}
               {renderHat()}
               {renderGlasses()}
             </G>
           )}
 
-          {/* ── Fallen parts on ground ── */}
-          {renderFallenParts()}
+          {/* ── Angel Wings (wrongCount >= 5) ── */}
+          {wrongCount >= 5 && (
+            <G>
+              <Path d={`M${cx},${armY} Q${cx - 45},${armY - 55} ${cx - 65},${armY - 10} Q${cx - 55},${armY + 25} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.85)" stroke="#E0E0E0" strokeWidth={1.5} />
+              <Path d={`M${cx},${armY} Q${cx + 45},${armY - 55} ${cx + 65},${armY - 10} Q${cx + 55},${armY + 25} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.85)" stroke="#E0E0E0" strokeWidth={1.5} />
+              <Path d={`M${cx - 20},${armY - 15} Q${cx - 35},${armY - 35} ${cx - 50},${armY - 10}`} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
+              <Path d={`M${cx + 20},${armY - 15} Q${cx + 35},${armY - 35} ${cx + 50},${armY - 10}`} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
+            </G>
+          )}
         </Svg>
       </Animated.View>
 
-      {/* ── Rolling head (wrongCount >= 5) ── includes hat & glasses */}
-      {wrongCount >= 5 && (
-        <Animated.View style={[styles.rollingHead, headAnimStyle, { left: cx - headR, top: headCY - headR }]}>
-          <Svg width={headR * 2} height={headR * 2} viewBox={`0 0 ${headR * 2} ${headR * 2}`}>
-            {/* Head */}
-            <Circle
-              cx={headR}
-              cy={headR}
-              r={headR * 0.9}
-              stroke={bodyCol}
-              strokeWidth={sw}
-              fill={skyBot}
-            />
-            {/* Dizzy eyes (spirals replaced by circles) */}
-            <Circle
-              cx={headR - headR * 0.2}
-              cy={headR - headR * 0.05}
-              r={headR * 0.09}
-              fill={bodyCol}
-            />
-            <Circle
-              cx={headR + headR * 0.2}
-              cy={headR - headR * 0.05}
-              r={headR * 0.09}
-              fill={bodyCol}
-            />
-            {/* Sad mouth */}
-            <Path
-              d={`M${headR - headR * 0.25},${headR + headR * 0.5}
-                  Q${headR},${headR + headR * 0.3} ${headR + headR * 0.25},${headR + headR * 0.5}`}
-              stroke={bodyCol}
-              strokeWidth={sw * 0.5}
-              fill="none"
-              strokeLinecap="round"
-            />
-            {/* Hat on rolling head */}
-            {hasHat && (
-              <Path
-                d={`M${headR - headR * 0.9},${headR * 0.25}
-                    Q${headR},${-headR * 0.5} ${headR + headR * 0.9},${headR * 0.25}`}
-                fill={Colors.primary}
-                stroke={Colors.primaryDark}
-                strokeWidth={1}
-              />
-            )}
-            {/* Glasses on rolling head */}
-            {hasGlasses && (
-              <G>
-                <Circle
-                  cx={headR - headR * 0.3}
-                  cy={headR - headR * 0.05}
-                  r={headR * 0.2}
-                  fill="rgba(54, 69, 79, 0.15)"
-                  stroke={bodyCol}
-                  strokeWidth={1}
-                />
-                <Circle
-                  cx={headR + headR * 0.3}
-                  cy={headR - headR * 0.05}
-                  r={headR * 0.2}
-                  fill="rgba(54, 69, 79, 0.15)"
-                  stroke={bodyCol}
-                  strokeWidth={1}
-                />
-                <Line
-                  x1={headR - headR * 0.1}
-                  y1={headR - headR * 0.05}
-                  x2={headR + headR * 0.1}
-                  y2={headR - headR * 0.05}
-                  stroke={bodyCol}
-                  strokeWidth={1}
-                />
-              </G>
-            )}
-          </Svg>
-        </Animated.View>
-      )}
+      {/* -- Floating Bubble Overlays (animated) -- */}
+      {bubblePositions.map((pos, i) => {
+        const bDiam = bubbleR * 3;
+        const bCenter = bDiam / 2;
+        const color = bubbleColors[i];
+        const hasCaptured = capturedLimbs[i];
+        return (
+          <Animated.View
+            key={`float-bubble-${i}`}
+            pointerEvents="none"
+            style={[{
+              position: 'absolute',
+              left: pos.x - bDiam / 2,
+              top: pos.y - bDiam / 2,
+              width: bDiam,
+              height: bDiam,
+            }, bubbleAnimStyles[i]]}
+          >
+            <Svg width={bDiam} height={bDiam} viewBox={`0 0 ${bDiam} ${bDiam}`}>
+              <Circle cx={bCenter} cy={bCenter} r={bubbleR * 1.1} fill={color.fill} opacity={0.15} />
+              <Circle cx={bCenter} cy={bCenter} r={bubbleR} fill={color.fill} opacity={hasCaptured ? 0.55 : 0.35} stroke={color.fill} strokeWidth={2} />
+              <Ellipse cx={bCenter - bubbleR * 0.15} cy={bCenter - bubbleR * 0.2} rx={bubbleR * 0.35} ry={bubbleR * 0.2} fill="white" opacity={0.5} />
+              <Circle cx={bCenter + bubbleR * 0.3} cy={bCenter - bubbleR * 0.3} r={bubbleR * 0.08} fill="white" opacity={0.65} />
+            </Svg>
+          </Animated.View>
+        );
+      })}
+
+      {/* -- Emoji Reaction Bubbles -- */}
+      {emojiReaction && emojiReaction.emojis.map((emoji, i) => {
+        const emojiX = i === 0 ? cx + bk * 0.4 : cx - bk * 0.4;
+        const emojiY = headCY - bk * 0.35;
+        const bgColor = emojiReaction.type === 'correct' ? 'rgba(76, 175, 80, 0.9)'
+          : emojiReaction.type === 'gameover' ? 'rgba(255, 215, 0, 0.9)'
+          : 'rgba(244, 67, 54, 0.85)';
+        return (
+          <Animated.View
+            key={`emoji-${i}-${emoji}`}
+            entering={ZoomIn.delay(i * 150).duration(300).springify()}
+            exiting={FadeOut.delay(i * 100).duration(400)}
+            style={{
+              position: 'absolute',
+              left: emojiX - 16,
+              top: emojiY - 16,
+              backgroundColor: bgColor,
+              borderRadius: 20,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              minWidth: 36,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>{emoji}</Text>
+          </Animated.View>
+        );
+      })}
     </View>
   );
 }
@@ -1944,7 +1780,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rollingHead: {
-    position: 'absolute',
-  },
 });
+

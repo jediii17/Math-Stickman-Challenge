@@ -46,48 +46,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const appState = useRef(AppState.currentState);
 
+  // --- Session resilience: refresh on app foreground ---
   useEffect(() => {
-
-    // Listen for auth state changes (handles session restore)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const profile = await db.getProfile(session.user.id);
-          if (profile) {
-            setUser(profile);
-            setIsGuest(false);
-          }
-        } else {
-          setUser(null);
-          setIsGuest(true);
-        }
-        setIsLoading(false);
-      },
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // --- Session resilience: refresh on app foreground & periodic keep-alive ---
-  useEffect(() => {
-    // When app returns from background, refresh the session
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
         try {
-          const { data } = await supabase.auth.getSession();
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.warn('Foreground session check failed. Clearing local session...');
+            await supabase.auth.signOut({ scope: 'local' });
+            setUser(null);
+            setIsGuest(true);
+            return;
+          }
+
           if (data.session) {
-            // Force refresh the token
-            const { error } = await supabase.auth.refreshSession();
-            if (error && error.message.includes('Invalid Refresh Token')) {
-               console.warn('Foreground refresh: Invalid refresh token detected. Clearing local session...');
-               await supabase.auth.signOut({ scope: 'local' });
-               setUser(null);
-               setIsGuest(true);
-               return; // Skip profile reload
-            }
             // Reload the user profile to ensure fresh data
             const profile = await db.getProfile(data.session.user.id);
             if (profile) {
@@ -104,33 +81,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Periodic keep-alive: refresh session every 5 minutes during active play
-    const keepAlive = setInterval(async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          const { error } = await supabase.auth.refreshSession();
-          if (error && error.message.includes('Invalid Refresh Token')) {
-             console.warn('Invalid refresh token detected. Clearing local session...');
-             await supabase.auth.signOut({ scope: 'local' });
-             setUser(null);
-             setIsGuest(true);
-          }
-        }
-      } catch (e: any) {
-        console.warn('Keep-alive session refresh failed:', e);
-        if (e.message?.includes('Invalid Refresh Token')) {
-             await supabase.auth.signOut({ scope: 'local' });
-             setUser(null);
-             setIsGuest(true);
-        }
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-
     return () => {
       subscription.remove();
-      clearInterval(keepAlive);
     };
+  }, []);
+
+  useEffect(() => {
+    // 1. Explicitly check for an existing session on app load to guarantee we don't miss it
+    const loadInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          const profile = await db.getProfile(data.session.user.id);
+          if (profile) {
+            setUser(profile);
+            setIsGuest(false);
+          }
+        }
+      } catch (e) {
+        console.warn('Initial session load failed:', e);
+      } finally {
+        setIsLoading(false); // Stop the loading screen once we know the state
+      }
+    };
+
+    loadInitialSession();
+
+    // 2. Listen for future auth state changes (like manual logins/logouts)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const profile = await db.getProfile(session.user.id);
+          if (profile) {
+            setUser(profile);
+            setIsGuest(false);
+          }
+        } else {
+          setUser(null);
+          setIsGuest(true);
+        }
+      },
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<string | null> => {
@@ -201,12 +194,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    // Use scope: 'local' to clear the session immediately without
-    // needing a valid (non-expired) token for server-side revocation.
-    await supabase.auth.signOut({ scope: 'local' });
-    setUser(null);
-    setIsGuest(true);
+ const logout = useCallback(async () => {
+    try {
+      // Use scope: 'local' to clear the session immediately without
+      // needing a valid (non-expired) token for server-side revocation.
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('Signout network/token error ignored:', e);
+    } finally {
+      // ALWAYS clear the local React state, even if the token was already dead
+      setUser(null);
+      setIsGuest(true);
+    }
   }, []);
 
   const continueAsGuest = useCallback(() => {
@@ -427,6 +426,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return e.message || 'An unexpected error occurred. Please try again.';
     }
   }, []);
+
+  useEffect(() => {
+    // React Native often drops long-running background timers (like Supabase's 1-hour refresh).
+    // Polling getSession() every 5 minutes forces the SDK to evaluate the token's health
+    // and naturally trigger its own auto-refresh if it's close to expiring.
+    const heartbeat = setInterval(async () => {
+      if (!isGuest && user) {
+        try {
+          await supabase.auth.getSession();
+        } catch (e) {
+          console.warn('Heartbeat session check failed:', e);
+        }
+      }
+    }, 5 * 60 * 1000); // Run every 5 minutes
+
+    return () => clearInterval(heartbeat);
+  }, [isGuest, user]);
 
   return (
     <AuthContext.Provider

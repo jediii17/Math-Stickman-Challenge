@@ -19,8 +19,12 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@expo-google-fonts/fredoka": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
+    "@mui/icons-material": "^7.3.8",
+    "@mui/material": "^7.3.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@supabase/supabase-js": "^2.97.0",
@@ -78,7 +82,7 @@
     "@types/express": "^5.0.0",
     "@types/react": "~19.1.17",
     "babel-plugin-react-compiler": "^19.0.0-beta-ebf51a3-20250411",
-    "drizzle-kit": "^0.31.8",
+    "drizzle-kit": "^0.31.9",
     "eslint": "^9.39.2",
     "eslint-config-expo": "~10.0.0",
     "patch-package": "^8.0.0",

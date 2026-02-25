@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
 import Svg, { Path, Ellipse, Line, G, Circle, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useGameState, Accessory, PowerUps, AccessoryType } from '@/hooks/useGameState';
@@ -22,6 +22,7 @@ interface Category {
   key: CategoryKey;
   label: string;
   icon: string;
+  iconFamily?: 'Ionicons' | 'MaterialCommunityIcons';
   color: string;
   types: AccessoryType[];
 }
@@ -30,7 +31,7 @@ const CATEGORIES: Category[] = [
   { key: 'hair', label: 'Head', icon: 'ribbon-outline', color: '#9B59B6', types: ['hair'] },
   { key: 'face', label: 'Face', icon: 'glasses-outline', color: '#3498DB', types: ['face'] },
   { key: 'upper', label: 'Upper', icon: 'shirt-outline', color: '#E67E22', types: ['upper'] },
-  { key: 'lower', label: 'Lower', icon: 'cut-outline', color: '#2ECC71', types: ['lower'] },
+  { key: 'lower', label: 'Lower', icon: 'walk-outline', color: '#2ECC71', types: ['lower'] },
   { key: 'shoes', label: 'Shoes', icon: 'footsteps-outline', color: '#E74C3C', types: ['shoes'] },
   { key: 'back', label: 'Back', icon: 'briefcase-outline', color: '#1ABC9C', types: ['back'] },
 ];
@@ -989,11 +990,18 @@ export default function ShopScreen() {
     fetchItems();
   }, []);
 
-  const fetchItems = async () => {
-    setIsLoading(true);
-    const items = await db.getShopItems();
-    setDbItems(items);
-    setIsLoading(false);
+ const fetchItems = async () => {
+    try {
+      setIsLoading(true);
+      const items = await db.getShopItems();
+      setDbItems(items || []); // Ensure we set an array even if it fails
+    } catch (error) {
+      console.error('Failed to fetch shop items:', error);
+      // Set some error state here to show to the user
+
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const purchasePlayer = useAudioPlayer(require('@/assets/sounds/purchase.mp3'));
@@ -1001,7 +1009,7 @@ export default function ShopScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isSmallScreen = screenHeight < 700;
   const previewMaxHeight = Math.min(screenHeight * 0.25, 200);
-  const shopStickmanSize = Math.min(Math.round(screenWidth * 0.32), isSmallScreen ? 120 : 150);
+  const shopStickmanSize = Math.min(Math.round(screenWidth * 0.20), isSmallScreen ? 120 : 150);
   const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
@@ -1216,7 +1224,11 @@ export default function ShopScreen() {
                   onPress={() => handleCategoryChange(cat.key)}
                 >
                   <View style={[styles.categoryIconWrap, isActive && { backgroundColor: cat.color + '20' }]}> 
-                    <Ionicons name={cat.icon as any} size={20} color={isActive ? cat.color : Colors.textLight} />
+                    {cat.iconFamily === 'MaterialCommunityIcons' ? (
+                      <MaterialCommunityIcons name={cat.icon as any} size={20} color={isActive ? cat.color : Colors.textLight} />
+                    ) : (
+                      <Ionicons name={cat.icon as any} size={20} color={isActive ? cat.color : Colors.textLight} />
+                    )}
                   </View>
                   <View style={[styles.categoryCountBadge, isActive && styles.categoryCountBadgeActive]}>
                     <Text style={[styles.categoryCountText, isActive && styles.categoryCountTextActive]}>{count}</Text>

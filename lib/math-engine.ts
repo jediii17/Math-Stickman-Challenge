@@ -356,7 +356,7 @@ export function generateClassicProblem(level: number): MathProblem {
       return pickRandom(fracOps)();
     }
   }
-
+  
   // Basic generation based on difficulty
   const baseProblem = generateProblem(diff);
   

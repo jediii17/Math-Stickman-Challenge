@@ -21,6 +21,8 @@ import Animated, {
   FadeOut,
   ZoomIn,
   FadeInDown,
+  FadeInRight,
+  FadeOutRight,
   Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -92,11 +94,25 @@ export default function GameScreen() {
   const [showPotionHeal, setShowPotionHeal] = useState(false);
   const [lastCoinReward, setLastCoinReward] = useState<{ coins: number; multiplier: number } | null>(null);
   const [showQuitModal, setShowQuitModal] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [emojiReaction, setEmojiReaction] = useState<{ emojis: string[]; type: 'correct' | 'wrong' | 'gameover' } | null>(null);
+  const [showPowerUps, setShowPowerUps] = useState(false);
+  const [fireflyHintDigit, setFireflyHintDigit] = useState<string | null>(null);
 
   const isTimerPausedRef = useRef(false);
 
   const { powerUps, usePowerUp, usePowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
+
+  // Emoji pools
+  const positiveEmojis = ['🎉', '🌟', '✨', '💪', '🔥', '👏', '🎯', '💫', '🏆', '😊', '🥳', '👍', '⭐', '💖', '🦄'];
+  const sadEmojis = ['😢', '😔', '💔', '😥', '🥺', '😿', '🫤', '😞'];
+  const haloEmojis = ['😇', '👼', '🕊️', '✝️', '💫'];
+
+  const pickRandom = (arr: string[], count = 1): string[] => {
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
 
   const pingPlayer = useAudioPlayer(require('@/assets/sounds/ping.wav'));
   const goPlayer = useAudioPlayer(require('@/assets/sounds/go.wav'));
@@ -196,6 +212,15 @@ export default function GameScreen() {
     const newWrong = wrongCount + 1;
     setWrongCount(newWrong);
     setFeedback('timeout');
+    setStreak(0);
+
+    // Emoji: sad on timeout, halo on game over
+    if (newWrong >= 5) {
+      setEmojiReaction({ emojis: pickRandom(haloEmojis, 1), type: 'gameover' });
+    } else {
+      setEmojiReaction({ emojis: pickRandom(sadEmojis, 1), type: 'wrong' });
+      setTimeout(() => setEmojiReaction(null), 1800);
+    }
 
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -262,10 +287,11 @@ export default function GameScreen() {
         }
       }
     } else {
-      isCorrect = parseInt(userInput, 10) === currentProblem.answer;
+      const cleanInput = userInput.replace(/ /g, '');
+      isCorrect = parseInt(cleanInput, 10) === currentProblem.answer;
     }
-
-    const answerValue = currentProblem.stringAnswer ? 0 : parseInt(userInput, 10); // 0 is placeholder for results log if it's a fraction
+    const cleanInputLog = userInput.replace(/ /g, '');
+    const answerValue = currentProblem.stringAnswer ? 0 : parseInt(cleanInputLog, 10); // 0 is placeholder for results log if it's a fraction
 
     let newScore = score;
     let newWrong = wrongCount;
@@ -276,6 +302,13 @@ export default function GameScreen() {
       newScore = score + 1;
       setScore(newScore);
       setFeedback('correct');
+      const newStreak = streak + 1;
+      setStreak(newStreak);
+
+      // Emoji reaction: 1 emoji normally, 2 if streak >= 3
+      const emojiCount = newStreak >= 3 ? 2 : 1;
+      setEmojiReaction({ emojis: pickRandom(positiveEmojis, emojiCount), type: 'correct' });
+      setTimeout(() => setEmojiReaction(null), 1800);
 
       // Calculate per-question coins
       const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft, mode, questionNum);
@@ -292,7 +325,17 @@ export default function GameScreen() {
       newWrong = wrongCount + 1;
       setWrongCount(newWrong);
       setFeedback('wrong');
+      setStreak(0);
       setLastCoinReward(null);
+
+      // Emoji: sad on wrong, halo on game over
+      if (newWrong >= 5) {
+        setEmojiReaction({ emojis: pickRandom(haloEmojis, 1), type: 'gameover' });
+      } else {
+        setEmojiReaction({ emojis: pickRandom(sadEmojis, 1), type: 'wrong' });
+        setTimeout(() => setEmojiReaction(null), 1800);
+      }
+
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
@@ -306,7 +349,7 @@ export default function GameScreen() {
 
     const result: GameResult = {
       problem: currentProblem,
-      userAnswer: currentProblem.stringAnswer ? userInput : parseInt(userInput, 10) as any,
+      userAnswer: currentProblem.stringAnswer ? userInput.replace(/ /g, '') : parseInt(userInput.replace(/ /g, ''), 10) as any,
       correct: isCorrect,
       timeUp: false,
       coinsEarned: earnedCoins,
@@ -348,6 +391,7 @@ export default function GameScreen() {
     setFeedback(null);
     setIsTransitioning(false);
     setLastCoinReward(null);
+    setEmojiReaction(null);
     clearPowderEffect();
     setUsedPowerUps([]);
 
@@ -389,17 +433,46 @@ export default function GameScreen() {
   const handleNumberPress = (value: string) => {
     if (isTransitioning || gameOver || preGameCountdown !== null) return;
     
-    // Prevent multiple slashes
+    // Limits
     if (value === '/' && userInput.includes('/')) return;
-
-    if (userInput.length < 7) {
-      setUserInput((prev) => prev + value);
+    
+    const ansStr = currentProblem.stringAnswer || currentProblem.answer.toString();
+    const cleanInput = userInput.replace(/ /g, '');
+    if (cleanInput.length < ansStr.length + 2) { // Allow some slack for fractions
+      setUserInput(prev => {
+        const chars = prev.padEnd(ansStr.length, ' ').split('');
+        const firstEmpty = chars.findIndex(c => c === ' ' || c === '_');
+        if (firstEmpty !== -1) {
+          chars[firstEmpty] = value;
+          return chars.join('');
+        }
+        return prev + value;
+      });
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     }
   };
 
   const handleDelete = () => {
     if (isTransitioning || gameOver || preGameCountdown !== null) return;
-    setUserInput((prev) => prev.slice(0, -1));
+    setUserInput(prev => {
+      if (prev.includes(' ')) {
+        const chars = prev.split('');
+        for (let i = chars.length - 1; i >= 0; i--) {
+          if (chars[i] !== ' ' && chars[i] !== '_') {
+            chars[i] = ' ';
+            break;
+          }
+        }
+        const result = chars.join('');
+        return result.trim() === '' ? '' : result.replace(/ +$/, '');
+      }
+      return prev.slice(0, -1);
+    });
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
 
   const handleUsePotion = async () => {
@@ -474,17 +547,36 @@ export default function GameScreen() {
 
     if (used) {
       setUsedPowerUps(prev => [...prev, 'firefly']);
-      setShowFireflyHint(true);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      setTimeout(() => {
-        const ansStr = currentProblem.stringAnswer || currentProblem.answer.toString();
-        const currentLen = userInput.length;
-        if (currentLen < ansStr.length) {
-          setUserInput(prev => prev + ansStr[currentLen]);
+      const ansStr = currentProblem.stringAnswer || currentProblem.answer.toString();
+      const currentInputArr = userInput.padEnd(ansStr.length, ' ').split('');
+      
+      const emptyIndices = [];
+      for (let i = 0; i < ansStr.length; i++) {
+        if (currentInputArr[i] === ' ' || currentInputArr[i] === '_') {
+          emptyIndices.push(i);
         }
+      }
+
+      if (emptyIndices.length > 0) {
+        const randIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        const hintDigit = ansStr[randIdx];
+        setFireflyHintDigit(hintDigit);
+        setShowFireflyHint(true);
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        setTimeout(() => {
+          setUserInput(prev => {
+            const chars = prev.padEnd(ansStr.length, ' ').split('');
+            chars[randIdx] = hintDigit;
+            return chars.join('');
+          });
+          setShowFireflyHint(false);
+          setFireflyHintDigit(null);
+        }, 1200);
+      } else {
         setShowFireflyHint(false);
-      }, 1200);
+      }
     }
   };
 
@@ -598,7 +690,7 @@ export default function GameScreen() {
         <View style={styles.arenaContainer}>
           {/* Stickman display */}
           <View style={styles.stickmanArena}>
-            <Stickman wrongCount={wrongCount} size={Math.min(Math.round(screenWidth * 0.35), 140)} />
+            <Stickman wrongCount={wrongCount} size={Math.min(Math.round(screenWidth * 0.25), 200)} emojiReaction={emojiReaction} />
           </View>
 
           {/* Overlaid Hearts — top left */}
@@ -651,13 +743,22 @@ export default function GameScreen() {
       {/* ── Problem + Feedback Area ── */}
       <View style={styles.gameArea}>
         <Animated.View style={[styles.problemCard, problemAnimStyle]}>
-          <Text style={styles.topicLabel}>{currentProblem.topic}</Text>
-          <Text style={styles.problemText}>{currentProblem.display} = ?</Text>
-          <View style={styles.answerBox}>
-            <Text style={styles.answerText}>
-              {userInput || '_'}
-            </Text>
-          </View>
+          {preGameCountdown !== null ? (
+            <View style={[StyleSheet.absoluteFill, styles.countdownProblemOverlay]}>
+              <Ionicons name="lock-closed" size={32} color={Colors.textLight} />
+              <Text style={styles.countdownProblemText}>Get Ready!</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.topicLabel}>{currentProblem.topic}</Text>
+              <Text style={styles.problemText}>{currentProblem.display} = ?</Text>
+              <View style={styles.answerBox}>
+                <Text style={styles.answerText}>
+                  {userInput.trim() === '' ? '_' : userInput.replace(/ /g, '_')}
+                </Text>
+              </View>
+            </>
+          )}
         </Animated.View>
 
         {feedback && (
@@ -694,6 +795,72 @@ export default function GameScreen() {
       ) : (
         <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(200)}>
           <View style={styles.toggleRow}>
+            {(powerUps.potion > 0 || powerUps.dust > 0 || powerUps.powder > 0 || powerUps.firefly > 0) && showPowerUps && (
+              <Animated.View 
+                entering={FadeInRight.duration(300).springify()}
+                exiting={FadeOutRight.duration(250)}
+                style={styles.powerUpRowAbsolute}
+              >
+                {powerUps.potion > 0 && (
+                  <Pressable
+                    style={[styles.powerUpBtn, {backgroundColor: '#E91E63'}, usedPowerUps.includes('potion') && {opacity: 0.5}]}
+                    onPress={handleUsePotion}
+                    disabled={wrongCount === 0 || usedPowerUps.includes('potion') || isTransitioning || gameOver || preGameCountdown !== null}
+                  >
+                    <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.potion}</Text></View>
+                    <Ionicons name="flask" size={20} color="#fff" />
+                  </Pressable>
+                )}
+                {powerUps.dust > 0 && (
+                  <Pressable
+                    style={[styles.powerUpBtn, {backgroundColor: '#9C27B0'}, usedPowerUps.includes('dust') && {opacity: 0.5}]}
+                    onPress={handleUseDust}
+                    disabled={usedPowerUps.includes('dust') || isTransitioning || gameOver || preGameCountdown !== null}
+                  >
+                    <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.dust}</Text></View>
+                    <Ionicons name="hourglass" size={20} color="#fff" />
+                  </Pressable>
+                )}
+                {powerUps.powder > 0 && (
+                  <Pressable
+                    style={[styles.powerUpBtn, {backgroundColor: '#00BCD4'}, usedPowerUps.includes('powder') && {opacity: 0.5}]}
+                    onPress={handleUsePowder}
+                    disabled={usedPowerUps.includes('powder') || isTimerPaused || isTransitioning || gameOver || preGameCountdown !== null}
+                  >
+                    <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.powder}</Text></View>
+                    <Ionicons name="snow" size={20} color="#fff" />
+                  </Pressable>
+                )}
+                {powerUps.firefly > 0 && (
+                  <Pressable
+                    style={[styles.powerUpBtn, {backgroundColor: '#FFC107'}, usedPowerUps.includes('firefly') && {opacity: 0.5}]}
+                    onPress={handleUseFirefly}
+                    disabled={usedPowerUps.includes('firefly') || userInput.length >= currentProblem.answer.toString().length || isTransitioning || gameOver || preGameCountdown !== null}
+                  >
+                    <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.firefly}</Text></View>
+                    <Ionicons name="bulb" size={20} color="#fff" />
+                  </Pressable>
+                )}
+              </Animated.View>
+            )}
+
+            {(powerUps.potion > 0 || powerUps.dust > 0 || powerUps.powder > 0 || powerUps.firefly > 0) && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.powerToggle,
+                  showPowerUps && styles.powerToggleActive,
+                  pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setShowPowerUps(!showPowerUps);
+                }}
+              >
+                <Ionicons name="flash" size={18} color={Colors.textWhite} />
+              </Pressable>
+            )}
             <Pressable
               style={({ pressed }) => [styles.scribbleToggle, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
               onPress={() => {
@@ -707,50 +874,7 @@ export default function GameScreen() {
             </Pressable>
           </View>
 
-          {(powerUps.potion > 0 || powerUps.dust > 0 || powerUps.powder > 0 || powerUps.firefly > 0) && (
-            <View style={styles.powerUpRow}>
-              {powerUps.potion > 0 && (
-                <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#E91E63'}, usedPowerUps.includes('potion') && {opacity: 0.5}]}
-                  onPress={handleUsePotion}
-                  disabled={wrongCount === 0 || usedPowerUps.includes('potion') || isTransitioning || gameOver || preGameCountdown !== null}
-                >
-                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.potion}</Text></View>
-                  <Ionicons name="flask" size={24} color="#fff" />
-                </Pressable>
-              )}
-              {powerUps.dust > 0 && (
-                <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#9C27B0'}, usedPowerUps.includes('dust') && {opacity: 0.5}]}
-                  onPress={handleUseDust}
-                  disabled={usedPowerUps.includes('dust') || isTransitioning || gameOver || preGameCountdown !== null}
-                >
-                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.dust}</Text></View>
-                  <Ionicons name="hourglass" size={24} color="#fff" />
-                </Pressable>
-              )}
-              {powerUps.powder > 0 && (
-                <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#00BCD4'}, usedPowerUps.includes('powder') && {opacity: 0.5}]}
-                  onPress={handleUsePowder}
-                  disabled={usedPowerUps.includes('powder') || isTimerPaused || isTransitioning || gameOver || preGameCountdown !== null}
-                >
-                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.powder}</Text></View>
-                  <Ionicons name="snow" size={24} color="#fff" />
-                </Pressable>
-              )}
-              {powerUps.firefly > 0 && (
-                <Pressable
-                  style={[styles.powerUpBtn, {backgroundColor: '#FFC107'}, usedPowerUps.includes('firefly') && {opacity: 0.5}]}
-                  onPress={handleUseFirefly}
-                  disabled={usedPowerUps.includes('firefly') || userInput.length >= currentProblem.answer.toString().length || isTransitioning || gameOver || preGameCountdown !== null}
-                >
-                  <View style={styles.powerUpQtyBadge}><Text style={styles.powerUpQtyText}>{powerUps.firefly}</Text></View>
-                  <Ionicons name="bulb" size={24} color="#fff" />
-                </Pressable>
-              )}
-            </View>
-          )}
+
 
           <NumberPad
             onPress={handleNumberPress}
@@ -763,11 +887,16 @@ export default function GameScreen() {
 
       {showFireflyHint && (
         <Animated.View
-          entering={ZoomIn.duration(400).withInitialValues({ transform: [{ translateY: 200 }, { translateX: 100 }, { scale: 0.5 }] })}
+          entering={ZoomIn.duration(400).withInitialValues({ transform: [{ scale: 0.5 }, { translateY: 200 }, { translateX: 100 }] })}
           exiting={FadeOut.duration(300)}
           style={styles.fireflyAnim}
         >
           <Ionicons name="bulb" size={48} color="#FFC107" />
+          {fireflyHintDigit && (
+            <View style={styles.fireflyHintLabel}>
+              <Text style={styles.fireflyHintText}>{fireflyHintDigit}</Text>
+            </View>
+          )}
           <View style={styles.fireflyGlow} />
         </Animated.View>
       )}
@@ -889,14 +1018,14 @@ const styles = StyleSheet.create({
   },
   // ── Arena + HUD Overlays ──
   arenaContainer: {
-    marginHorizontal: 16,
-    marginTop: 4,
+    marginHorizontal: 4,
+    marginTop: 2,
     position: 'relative',
   },
   stickmanArena: {
     width: '100%',
-    height: 160,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    height: 240,
+    backgroundColor: '#fff',
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -971,12 +1100,28 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180, // Ensure fixed height even when obfuscated
     gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
+    overflow: 'hidden',
+  },
+  countdownProblemOverlay: {
+    backgroundColor: 'rgba(238, 242, 246, 0.95)', // Matches card background to hide contents cleanly
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    zIndex: 10,
+    gap: 8,
+  },
+  countdownProblemText: {
+    fontSize: 18,
+    fontFamily: 'Fredoka_600SemiBold',
+    color: Colors.textLight,
   },
   topicLabel: {
     fontSize: 12,
@@ -1057,8 +1202,46 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: 24,
     marginBottom: 6,
+    gap: 12,
+    position: 'relative',
+    zIndex: 100,
+  },
+  powerUpRowAbsolute: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    right: 105, // Position to the left of the toggles
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  powerToggle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FF9800', // Orange for power
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF9800',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  powerToggleActive: {
+    backgroundColor: '#F57C00',
+    transform: [{ scale: 0.95 }],
+    shadowOpacity: 0.5,
   },
   scribbleToggle: {
     width: 38,
@@ -1073,17 +1256,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  powerUpRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
+
   powerUpBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1094,12 +1271,12 @@ const styles = StyleSheet.create({
   },
   powerUpQtyBadge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -4,
+    right: -4,
     backgroundColor: Colors.text,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -1108,7 +1285,7 @@ const styles = StyleSheet.create({
   },
   powerUpQtyText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'Fredoka_700Bold',
   },
   freezeBanner: {
@@ -1176,6 +1353,26 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: 'rgba(255, 193, 7, 0.3)',
     zIndex: -1,
+  },
+  fireflyHintLabel: {
+    position: 'absolute',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    bottom: -10,
+    borderWidth: 2,
+    borderColor: '#FFC107',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  fireflyHintText: {
+    fontSize: 16,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#FFC107',
   },
   potionHealAnim: {
     position: 'absolute',
