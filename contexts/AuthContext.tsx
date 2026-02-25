@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (username: string, password: string): Promise<string | null> => {
     try {
-      const email = `${username.toLowerCase()}@mathgame.local`;
+      const email = `${username.toLowerCase().trim()}@mathgame.local`;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -136,11 +136,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return error.message;
 
       const profile = await db.getProfile(data.user.id);
+      
       if (profile) {
         setUser(profile);
         setIsGuest(false);
+        return null; // Success!
+      } else {
+        // Profile fetch failed (timeout/RLS) but auth succeeded.
+        // Proceed with minimal profile instead of locking the user out.
+        console.warn("[Auth] Profile fetch failed post-login, using minimal profile.");
+        setUser({ id: data.user.id, username: username.trim(), coins: 0 });
+        setIsGuest(false);
+        return null;
       }
-      return null;
     } catch (e: any) {
       return e.message || 'Login failed';
     }
@@ -148,8 +156,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (username: string, password: string): Promise<{ error: string | null; recoveryPhrase?: string }> => {
     try {
+      console.log("[Auth] Attempting registration for:", username);
       if (username.length < 3) return { error: 'Username must be at least 3 characters' };
+      if (username.length > 20) return { error: 'Username must be 20 characters or less' };
       if (password.length < 6) return { error: 'Password must be at least 6 characters' };
+
+      // Only allow letters, numbers, underscores, and hyphens — NO spaces or special chars.
+      // This prevents Supabase email validation errors since we build username@mathgame.local.
+      const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+      if (!usernameRegex.test(username)) {
+        return { error: 'Username can only contain letters, numbers, underscores, and hyphens (no spaces)' };
+      }
 
       const email = `${username.toLowerCase()}@mathgame.local`;
       const { data, error } = await supabase.auth.signUp({
@@ -157,8 +174,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
       if (error) {
+        console.error("Supabase registry error:", error.message);
         if (error.message.includes('already registered')) {
           return { error: 'Username already taken' };
+        }
+        // Catch any email validation errors and show a friendly message
+        if (error.message.toLowerCase().includes('email')) {
+          return { error: 'Invalid username format. Use only letters, numbers, underscores, or hyphens.' };
         }
         return { error: error.message };
       }
@@ -177,16 +199,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           recoveryPhrase.toLowerCase()
         );
 
+        console.log("Generating recovery phrase and hitting db.createProfile()...");
         await db.createProfile(data.user.id, username, recoveryPhraseHash);
+        
+        console.log("Profile created! Hitting db.getProfile()...");
         const profile = await db.getProfile(data.user.id);
         if (profile) {
+          console.log("Profile retrieved successfully post-register.");
           setUser(profile);
+          setIsGuest(false);
+        } else {
+          // Profile fetch failed but registration succeeded — proceed with minimal profile
+          console.warn("Profile fetch post-register returned null, using minimal profile.");
+          setUser({ id: data.user.id, username: username.trim(), coins: 0 });
           setIsGuest(false);
         }
         return { error: null, recoveryPhrase };
       }
+      console.warn("Register succeeded but data.user was null.");
       return { error: null };
     } catch (e: any) {
+      console.error("Register try/catch caught exception:", e);
       if (e.message?.includes('duplicate') || e.message?.includes('unique')) {
         return { error: 'Username already taken' };
       }
@@ -308,6 +341,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         auth: { autoRefreshToken: false, persistSession: false },
       });
 
+      console.log("Attempting login for:", username);
       const email = `${username.toLowerCase()}@mathgame.local`;
       const { data: userList, error: listError } = await adminClient.auth.admin.listUsers();
 
@@ -370,6 +404,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
+      console.log("Attempting login for:", username);
       const email = `${username.toLowerCase()}@mathgame.local`;
 
       // 1. Find the user by email

@@ -160,13 +160,13 @@ export default function AuthScreen() {
               <View style={styles.tabRow}>
             <Pressable
               style={[styles.tab, mode === 'login' && styles.activeTab]}
-              onPress={() => { setMode('login'); setError(null); }}
+              onPress={() => { setMode('login'); setUsername(''); setPassword(''); setError(null); }}
             >
               <Text style={[styles.tabText, mode === 'login' && styles.activeTabText]}>Login</Text>
             </Pressable>
             <Pressable
               style={[styles.tab, mode === 'register' && styles.activeTab]}
-              onPress={() => { setMode('register'); setError(null); }}
+              onPress={() => { setMode('register'); setUsername(''); setPassword(''); setError(null); }}
             >
               <Text style={[styles.tabText, mode === 'register' && styles.activeTabText]}>Register</Text>
             </Pressable>
@@ -180,11 +180,20 @@ export default function AuthScreen() {
                 placeholder="Username"
                 placeholderTextColor={Colors.textLight}
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(text) => {
+                  // Strip spaces automatically — they break the email bypass
+                  setUsername(text.replace(/\s/g, ''));
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={20}
               />
             </View>
+            {mode === 'register' && username.length > 0 && !/^[a-zA-Z0-9_-]*$/.test(username) && (
+              <Text style={{ color: '#E74C3C', fontSize: 12, marginTop: 2, marginLeft: 4 }}>
+                Only letters, numbers, underscores, and hyphens allowed
+              </Text>
+            )}
             <View style={styles.inputWrapper}>
               <Ionicons name="lock-closed-outline" size={20} color={Colors.textLight} />
               <TextInput

@@ -1098,6 +1098,99 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     );
   }
 
+  if (id === 'balloons-kuromi') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          {/* LEFT arrow/diamond ear — wide flat panel */}
+          <Path d="M-8,-16 L-21,-15 L-18,-36 L-10,-20 Z" fill="#333" stroke="#000" strokeWidth={1.5} />
+          {/* Ball tip on left ear */}
+          <Circle cx={-18} cy={-37} r={3.5} fill="#333" stroke="#000" strokeWidth={1.2} />
+          {/* RIGHT arrow/diamond ear */}
+          <Path d="M8,-16 L21,-15 L18,-36 L10,-20 Z" fill="#333" stroke="#000" strokeWidth={1.5} />
+          {/* Ball tip on right ear */}
+          <Circle cx={18} cy={-37} r={3.5} fill="#333" stroke="#000" strokeWidth={1.2} />
+          {/* Round black hood */}
+          <Ellipse cx={0} cy={-2} rx={21} ry={21} fill="#333" stroke="#000" strokeWidth={1.5} />
+          {/* White face — V-shaped opening */}
+          <Path d="M-13,-2 Q-13,5 -10,10 Q-5,19 0,20 Q5,19 10,10 Q13,5 13,-2 Q10,-8 0,-9 Q-10,-8 -13,-2 Z" fill="#FFF" stroke="#000" strokeWidth={1} />
+          {/* Pink skull */}
+          <Circle cx={0} cy={-12} r={6} fill="#f76d9bff" />
+          {/* Skull eyes */}
+          <Ellipse cx={-2.5} cy={-13.5} rx={1.5} ry={2} fill="#333" />
+          <Ellipse cx={2.5} cy={-13.5} rx={1.5} ry={2} fill="#333" />
+          {/* Skull teeth */}
+          <Path d="M-2,-9 L0,-7.5 L2,-9" fill="none" stroke="#333" strokeWidth={0.8} />
+          {/* Purple eyes */}
+          <Ellipse cx={-6} cy={4} rx={4.5} ry={3.5} fill="#000000ff" />
+          <Ellipse cx={6} cy={4} rx={4.5} ry={3.5} fill="#000000ff" />
+          <Circle cx={-4.5} cy={2.5} r={1.5} fill="#FFF" opacity={0.9} />
+          <Circle cx={7.5} cy={2.5} r={1.5} fill="#FFF" opacity={0.9} />
+          {/* Pink nose */}
+          <Ellipse cx={0} cy={11} rx={1.5} ry={1} fill="#E91E63" />
+          {/* Smirk */}
+          <Path d="M-3,13 Q0,16 4,12" fill="none" stroke="#000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-melody') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          {/* Left tall oval ear — long, going up-left */}
+          <Ellipse cx={-10} cy={-32} rx={8} ry={21} fill="#F48FB1" stroke="#000" strokeWidth={1.5} transform="rotate(-15 -10 -32)" />
+          {/* Right shorter round ear */}
+          <Ellipse cx={15} cy={-15} rx={8} ry={12} fill="#F48FB1" stroke="#000" strokeWidth={1.5} transform="rotate(10 15 -15)" />
+          {/* Pink round hood */}
+          <Ellipse cx={0} cy={-1} rx={21} ry={21} fill="#F48FB1" stroke="#000" strokeWidth={1.5} />
+          {/* White face — oval opening */}
+          <Ellipse cx={0} cy={5} rx={14} ry={14} fill="#FFF" stroke="#000" strokeWidth={1} />
+          {/* Yellow bow — left side */}
+          <Path d="M-13,-15 Q-23,-23 -15,-10 Z" fill="#FFD600" stroke="#000" strokeWidth={0.8} />
+          <Path d="M-13,-15 Q-5,-26 -11,-10 Z" fill="#FFD600" stroke="#000" strokeWidth={0.8} />
+          <Circle cx={-13} cy={-15} r={2} fill="#F9A825" stroke="#000" strokeWidth={0.5} />
+          {/* Large black oval eyes */}
+          <Ellipse cx={-5} cy={3} rx={3.5} ry={4.5} fill="#000" />
+          <Ellipse cx={5} cy={3} rx={3.5} ry={4.5} fill="#000" />
+          {/* Small yellow nose */}
+          <Ellipse cx={0} cy={11} rx={1.8} ry={1.3} fill="#FFD600" />
+          {/* Smile */}
+          <Path d="M-3,14 Q0,16 3,14" fill="none" stroke="#000" strokeWidth={0.8} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-pompompurin') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 52)">
+          <Path d="M0,28 Q10,43 0,48" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          {/* Floppy ears — drooping down */}
+          <Ellipse cx={-22} cy={3} rx={9} ry={14} fill="#FFF9C4" stroke="#000" strokeWidth={1.2} transform="rotate(15 -22 3)" />
+          <Ellipse cx={22} cy={3} rx={9} ry={14} fill="#FFF9C4" stroke="#000" strokeWidth={1.2} transform="rotate(-15 22 3)" />
+          {/* Round pudgy cream face */}
+          <Ellipse cx={0} cy={0} rx={22} ry={22} fill="#FFF9C4" stroke="#000" strokeWidth={1.5} />
+          {/* Brown beret */}
+          <Ellipse cx={0} cy={-18} rx={13} ry={6} fill="#6D4C41" stroke="#000" strokeWidth={1} />
+          {/* Beret stem */}
+          <Ellipse cx={0} cy={-23} rx={2.5} ry={4} fill="#6D4C41" stroke="#000" strokeWidth={1} />
+          {/* Small black dot eyes */}
+          <Circle cx={-7} cy={-2} r={2} fill="#000000" />
+          <Circle cx={7} cy={-2} r={2} fill="#000000" />
+          {/* Small black nose */}
+          <Path d="M-1.5,5 L1.5,5 L0,7 Z" fill="#000000" />
+          {/* W-shape mouth */}
+          <Path d="M-4,9 Q-2,12 0,9 Q2,12 4,9" fill="none" stroke="#000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
   return <Ionicons name="shirt-outline" size={32} color={color} />;
 };
 
@@ -1359,6 +1452,45 @@ export default function ShopScreen() {
               );
             })}
           </View>
+
+          {/* ── Remove Equipped Item Strip ── */}
+          {(() => {
+            const catTypes = categoryDef.types;
+            const equippedId = catTypes.map(t => equippedAccessories[t]).find(Boolean);
+            if (!equippedId) return null;
+            const equippedItem = dbItems.find(i => i.id === equippedId);
+            const equippedName = equippedItem?.name || equippedId;
+            return (
+              <View style={styles.removeEquippedStrip}>
+                <View style={styles.removeEquippedInfo}>
+                  <Ionicons name="checkmark-circle" size={16} color={Colors.tertiary} />
+                  <Text style={styles.removeEquippedText} numberOfLines={1}>
+                    {equippedName}
+                  </Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.removeEquippedBtn,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                  onPress={async () => {
+                    for (const t of catTypes) {
+                      if (equippedAccessories[t]) {
+                        if (!isGuest && user) {
+                          await equipAccessoryForUser(user.id, t, null);
+                        }
+                        equipAccessory(t, null);
+                      }
+                    }
+                    setTrialItem(null);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={14} color="#FFF" />
+                  <Text style={styles.removeEquippedBtnText}>Remove</Text>
+                </Pressable>
+              </View>
+            );
+          })()}
         </>
       )}
 
@@ -1622,6 +1754,45 @@ const styles = StyleSheet.create({
   columnWrapper: {
     justifyContent: 'space-between',
     gap: 16,
+  },
+  removeEquippedStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: Colors.tertiary + '15',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.tertiary + '30',
+  },
+  removeEquippedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  removeEquippedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
+    flex: 1,
+  },
+  removeEquippedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E74C3C',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  removeEquippedBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
   },
   inventoryRow: {
     marginVertical: 4,

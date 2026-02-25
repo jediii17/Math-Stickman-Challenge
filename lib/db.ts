@@ -6,17 +6,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function ensureSession() {
   try {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) {
-      // Always refresh — the access token may be expired even though
-      // a session object still exists in local storage.
-      const { error } = await supabase.auth.refreshSession();
-      if (error && error.message.includes('Invalid Refresh Token')) {
-        await supabase.auth.signOut({ scope: 'local' });
-      }
+    // getSession() naturally checks and refreshes the token in the background safely.
+    // DO NOT call refreshSession() manually here.
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error && error.message.includes('Refresh Token')) {
+      await supabase.auth.signOut({ scope: 'local' });
     }
   } catch (e) {
-    console.warn('Session refresh failed:', e);
+    console.warn('Session check failed:', e);
   }
 }
 
@@ -26,21 +24,32 @@ async function ensureSession() {
  */
 async function withRetry<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
+  maxRetries: number = 2,
   baseDelay: number = 500,
 ): Promise<T> {
   let lastError: any;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await fn();
+      console.log(`[db.ts] Executing query... Attempt ${attempt + 1}/${maxRetries + 1}`);
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Supabase request timed out after 10000ms')), 10000);
+      });
+
+      const result = await Promise.race([fn(), timeoutPromise]);
+      console.log(`[db.ts] Query success on attempt ${attempt + 1}`);
+      return result as T;
     } catch (error: any) {
+      console.warn(`[db.ts] Query failed on attempt ${attempt + 1}:`, error.message || error);
       lastError = error;
       if (attempt < maxRetries) {
+        console.log(`[db.ts] Refreshing session and waiting ${baseDelay * Math.pow(2, attempt)}ms before next attempt...`);
         await ensureSession();
         await delay(baseDelay * Math.pow(2, attempt));
       }
     }
   }
+  console.error(`[db.ts] Query failed permanently after ${maxRetries + 1} attempts`);
   throw lastError;
 }
 
@@ -60,8 +69,13 @@ export async function getProfile(userId: string) {
       .from('profiles')
       .select('id, username, coins, classic_level, last_username_change_at')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
+
     if (error) throw error;
+    if (!data) {
+      console.warn('[db.ts] getProfile: no profile row found for userId:', userId);
+      return null;
+    }
     return data as { 
       id: string; 
       username: string; 
@@ -69,7 +83,10 @@ export async function getProfile(userId: string) {
       classic_level: number;
       last_username_change_at: string | null;
     };
-  }).catch(() => null);
+  }).catch((e) => {
+    console.error("[db.ts] getProfile failed after all retries:", e.message || e);
+    return null;
+  });
 }
 
 export async function getUserById(userId: string) {
@@ -81,8 +98,8 @@ export async function getRecoveryPhraseHash(userId: string) {
     .from('profiles')
     .select('recovery_phrase_hash')
     .eq('id', userId)
-    .single();
-  if (error) return null;
+    .maybeSingle();
+  if (error || !data) return null;
   return data.recovery_phrase_hash as string;
 }
 
@@ -221,19 +238,22 @@ export async function getUserPowerUps(userId: string) {
       .from('user_powerups')
       .select('potion, dust, powder, firefly')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // Row doesn't exist yet, insert default 0s
-        const defaultPowerUps = { user_id: userId, potion: 0, dust: 0, powder: 0, firefly: 0 };
-        await supabase.from('user_powerups').insert(defaultPowerUps);
-        return { potion: 0, dust: 0, powder: 0, firefly: 0 };
-      }
-      throw error;
+    if (error) throw error;
+
+    if (!data) {
+      // Row doesn't exist yet — insert defaults and return them
+      const defaultPowerUps = { user_id: userId, potion: 0, dust: 0, powder: 0, firefly: 0 };
+      const { error: insertError } = await supabase.from('user_powerups').insert(defaultPowerUps);
+      if (insertError) console.warn('[db.ts] getUserPowerUps insert failed:', insertError.message);
+      return { potion: 0, dust: 0, powder: 0, firefly: 0 };
     }
     return data as { potion: number; dust: number; powder: number; firefly: number };
-  }).catch(() => null);
+  }).catch((e) => {
+    console.warn('[db.ts] getUserPowerUps failed:', e?.message);
+    return null;
+  });
 }
 
 export async function updateUserPowerUps(

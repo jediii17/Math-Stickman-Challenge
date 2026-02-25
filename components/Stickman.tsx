@@ -1606,6 +1606,107 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
       );
     }
 
+
+    if (id === 'balloons-kuromi') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            {/* LEFT arrow/diamond ear — wide flat panel angling up-left */}
+            <Path d="M-6,-13 L-16,-12 L-14,-28 L-8,-16 Z" fill="#333" stroke="#000" strokeWidth={1} />
+            {/* Ball tip on left ear */}
+            <Circle cx={-14} cy={-29} r={2.5} fill="#333" stroke="#000" strokeWidth={1} />
+            {/* RIGHT arrow/diamond ear — wide flat panel angling up-right */}
+            <Path d="M6,-13 L16,-12 L14,-28 L8,-16 Z" fill="#333" stroke="#000" strokeWidth={1} />
+            {/* Ball tip on right ear */}
+            <Circle cx={14} cy={-29} r={2.5} fill="#333" stroke="#000" strokeWidth={1} />
+            {/* Round black hood */}
+            <Ellipse cx={0} cy={-2} rx={16} ry={16} fill="#333" stroke="#000" strokeWidth={1.2} />
+            {/* White face — V-shaped opening at bottom */}
+            <Path d="M-10,-2 Q-10,4 -8,8 Q-4,15 0,16 Q4,15 8,8 Q10,4 10,-2 Q8,-6 0,-7 Q-8,-6 -10,-2 Z" fill="#FFF" stroke="#000" strokeWidth={0.8} />
+            {/* Pink skull on forehead */}
+            <Circle cx={0} cy={-9} r={4.5} fill="#f76d9bff" />
+            {/* Skull eyes */}
+            <Ellipse cx={-1.8} cy={-10} rx={1.2} ry={1.5} fill="#333" />
+            <Ellipse cx={1.8} cy={-10} rx={1.2} ry={1.5} fill="#333" />
+            {/* Skull teeth/jaw */}
+            <Path d="M-1.5,-7.2 L0,-6 L1.5,-7.2" fill="none" stroke="#333" strokeWidth={0.6} />
+            {/* Purple eyes */}
+            <Ellipse cx={-4.5} cy={3} rx={3.2} ry={2.8} fill="#000000ff" />
+            <Ellipse cx={4.5} cy={3} rx={3.2} ry={2.8} fill="#000000ff" />
+            {/* Eye shine */}
+            <Circle cx={-3.5} cy={2} r={1} fill="#FFF" opacity={0.9} />
+            <Circle cx={5.5} cy={2} r={1} fill="#FFF" opacity={0.9} />
+            {/* Pink nose */}
+            <Ellipse cx={0} cy={8} rx={1} ry={0.7} fill="#E91E63" />
+            {/* Smirk */}
+            <Path d="M-2,10 Q0,12 3,9" fill="none" stroke="#000" strokeWidth={0.7} />
+            {/* Knot */}
+            <Path d="M-2,16 L0,19 L2,16" fill="#333" stroke="#000" strokeWidth={0.5} />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-melody') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            {/* Left tall oval ear — long, going up-left */}
+            <Ellipse cx={-8} cy={-25} rx={6} ry={16} fill="#F48FB1" stroke="#000" strokeWidth={1} transform="rotate(-15 -8 -25)" />
+            {/* Right shorter round ear */}
+            <Ellipse cx={12} cy={-12} rx={6} ry={9} fill="#F48FB1" stroke="#000" strokeWidth={1} transform="rotate(10 12 -12)" />
+            {/* Pink round hood */}
+            <Ellipse cx={0} cy={-1} rx={16} ry={16} fill="#F48FB1" stroke="#000" strokeWidth={1.2} />
+            {/* White face — oval opening */}
+            <Ellipse cx={0} cy={4} rx={11} ry={11} fill="#FFF" stroke="#000" strokeWidth={0.8} />
+            {/* Yellow bow — left side between ears and hood */}
+            {/* Left bow lobe */}
+            <Path d="M-10,-12 Q-18,-18 -12,-8 Z" fill="#FFD600" stroke="#000" strokeWidth={0.6} />
+            {/* Right bow lobe */}
+            <Path d="M-10,-12 Q-4,-20 -8,-8 Z" fill="#FFD600" stroke="#000" strokeWidth={0.6} />
+            {/* Bow center knot */}
+            <Circle cx={-10} cy={-12} r={1.5} fill="#F9A825" stroke="#000" strokeWidth={0.4} />
+            {/* Large black oval eyes */}
+            <Ellipse cx={-4} cy={2} rx={2.8} ry={3.2} fill="#000" />
+            <Ellipse cx={4} cy={2} rx={2.8} ry={3.2} fill="#000" />
+            {/* Small yellow nose */}
+            <Ellipse cx={0} cy={8} rx={1.2} ry={0.9} fill="#FFD600" />
+            {/* Smile */}
+            <Path d="M-2,10 Q0,12 2,10" fill="none" stroke="#000" strokeWidth={0.6} />
+            {/* Knot */}
+            <Path d="M-2,16 L0,19 L2,16" fill="#F48FB1" stroke="#000" strokeWidth={0.5} />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-pompompurin') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            {/* Floppy ears — drooping down on sides */}
+            <Ellipse cx={-16} cy={2} rx={7} ry={10} fill="#FFF9C4" stroke="#000" strokeWidth={1} transform="rotate(15 -16 2)" />
+            <Ellipse cx={16} cy={2} rx={7} ry={10} fill="#FFF9C4" stroke="#000" strokeWidth={1} transform="rotate(-15 16 2)" />
+            {/* Round pudgy cream face */}
+            <Ellipse cx={0} cy={0} rx={17} ry={17} fill="#FFF9C4" stroke="#000" strokeWidth={1.2} />
+            {/* Brown beret */}
+            <Ellipse cx={0} cy={-14} rx={10} ry={4.5} fill="#6D4C41" stroke="#000" strokeWidth={0.8} />
+            {/* Beret stem nub */}
+            <Ellipse cx={0} cy={-18} rx={2} ry={3} fill="#6D4C41" stroke="#000" strokeWidth={0.8} />
+            {/* Small black dot eyes */}
+            <Circle cx={-5} cy={-1} r={1.5} fill="#000000" />
+            <Circle cx={5} cy={-1} r={1.5} fill="#000000" />
+            {/* Small black nose — triangle */}
+            <Path d="M-1,4 L1,4 L0,5.5 Z" fill="#000000" />
+            {/* W-shape mouth */}
+            <Path d="M-3,7 Q-1.5,9 0,7 Q1.5,9 3,7" fill="none" stroke="#000" strokeWidth={0.8} />
+            {/* Knot */}
+            <Path d="M-2,17 L0,20 L2,17" fill="#FFF9C4" stroke="#000" strokeWidth={0.5} />
+          </G>
+        </Svg>
+      );
+    }
+
     // Fallback if somehow it matches nothing
     return null;
   };
