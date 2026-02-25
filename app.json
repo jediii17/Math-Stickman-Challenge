@@ -14,12 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.jedidialemuel.mathstickman"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kairo_mathstickman.challenge"
     },
     "android": {
-      "package": "com.jedidialemuel.mathstickman",
+      "package": "com.kairo_mathstickman.challenge",
       "versionCode": 2,
+      "minSdkVersion": 21,
+      "targetSdkVersion": 35,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

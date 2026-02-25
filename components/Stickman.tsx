@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Circle, Line, G, Path, Rect, Defs, LinearGradient, Stop, Ellipse } from 'react-native-svg';
 import Animated, {
@@ -12,6 +12,8 @@ import Animated, {
   Easing,
   ZoomIn,
   FadeOut,
+  FadeIn,
+  ZoomOut,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useGameState, AccessoryType } from '@/hooks/useGameState';
@@ -22,23 +24,29 @@ interface StickmanProps {
   previewOverrides?: Partial<Record<AccessoryType, string | null>>;
   hideArms?: boolean;
   emojiReaction?: { emojis: string[]; type: 'correct' | 'wrong' | 'gameover' } | null;
+  isShop?: boolean;
+  forceShowBalloons?: boolean;
 }
 
-export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false, emojiReaction = null }: StickmanProps) {
+export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false, emojiReaction = null, isShop = false, forceShowBalloons = false }: StickmanProps) {
   const storeEquipped = useGameState((state) => state.equippedAccessories);
   const equipped = previewOverrides ? { ...storeEquipped, ...previewOverrides } : storeEquipped;
   const shake = useSharedValue(0);
   const scale = useSharedValue(1);
-  const bubble1Y = useSharedValue(0);
-  const bubble2Y = useSharedValue(0);
-  const bubble3Y = useSharedValue(0);
-  const bubble4Y = useSharedValue(0);
+  // 5 balloon sway animations (horizontal float)
+  const b1Sway = useSharedValue(0);
+  const b2Sway = useSharedValue(0);
+  const b3Sway = useSharedValue(0);
+  const b4Sway = useSharedValue(0);
+  const b5Sway = useSharedValue(0);
   const cloudX = useSharedValue(0);
   const planeX = useSharedValue(0);
   const balloonY = useSharedValue(0);
   const birdX = useSharedValue(0);
   const flag1Rot = useSharedValue(0);
   const flag2Rot = useSharedValue(0);
+  // Idle animations for the stickman
+  const idleSway = useSharedValue(0);
 
   useEffect(() => {
     if (wrongCount > 0 && wrongCount < 5) {
@@ -56,23 +64,49 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     }
   }, [wrongCount]);
 
-  // Bubble floating animation
+  // Pop detection: track which balloon just popped
+  const prevWrongRef = useRef(wrongCount);
+  const [popEffect, setPopEffect] = useState<{ index: number; x: number; y: number } | null>(null);
+  // Delayed balloon visibility — balloon stays until plane hits it
+  const [displayWrong, setDisplayWrong] = useState(wrongCount);
+  // Flying paper airplane state
+  const [flyingPlane, setFlyingPlane] = useState<{
+    startX: number; startY: number;
+    targetX: number; targetY: number;
+    index: number;
+  } | null>(null);
+  // Crashed planes on the grass
+  const [crashedPlanes, setCrashedPlanes] = useState<{ x: number; rotation: number }[]>([]);
+  // Animated attack plane position shared values
+  const atkPlaneX = useSharedValue(-30);
+  const atkPlaneY = useSharedValue(0);
+  const atkPlaneOp = useSharedValue(0);
+  const atkPlaneStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: atkPlaneX.value }, { translateY: atkPlaneY.value }],
+    opacity: atkPlaneOp.value,
+  }));
+
+  // Balloon sway animation
   useEffect(() => {
-    bubble1Y.value = withRepeat(withSequence(
-      withTiming(-8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      withTiming(8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+    b1Sway.value = withRepeat(withSequence(
+      withTiming(-4, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+      withTiming(4, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
     ), -1, true);
-    bubble2Y.value = withDelay(500, withRepeat(withSequence(
-      withTiming(-10, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
-      withTiming(10, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+    b2Sway.value = withDelay(400, withRepeat(withSequence(
+      withTiming(-5, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+      withTiming(5, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
     ), -1, true));
-    bubble3Y.value = withDelay(1000, withRepeat(withSequence(
-      withTiming(-6, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
-      withTiming(6, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+    b3Sway.value = withDelay(800, withRepeat(withSequence(
+      withTiming(-3, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
+      withTiming(3, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
     ), -1, true));
-    bubble4Y.value = withDelay(300, withRepeat(withSequence(
-      withTiming(-9, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
-      withTiming(9, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+    b4Sway.value = withDelay(200, withRepeat(withSequence(
+      withTiming(-6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+    ), -1, true));
+    b5Sway.value = withDelay(600, withRepeat(withSequence(
+      withTiming(-4, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(4, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
     ), -1, true));
     // Scene animations
     cloudX.value = withRepeat(withSequence(
@@ -103,6 +137,13 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
       withTiming(2, { duration: 400, easing: Easing.inOut(Easing.ease) }),
       withTiming(-1, { duration: 300, easing: Easing.inOut(Easing.ease) }),
     ), -1, true));
+    // Idle stickman animations (skip in shop)
+    if (!isShop) {
+      idleSway.value = withRepeat(withSequence(
+        withTiming(5, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-5, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+      ), -1, true);
+    }
   }, []);
   const bodyAnimStyle = useAnimatedStyle(() => ({
     transform: [
@@ -111,11 +152,20 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     ],
   }));
 
-  const bubble1Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble1Y.value }] }));
-  const bubble2Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble2Y.value }] }));
-  const bubble3Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble3Y.value }] }));
-  const bubble4Style = useAnimatedStyle(() => ({ transform: [{ translateY: bubble4Y.value }] }));
-  const bubbleAnimStyles = [bubble1Style, bubble2Style, bubble3Style, bubble4Style];
+  // Idle animation style (stickman only, not background)
+  const idleAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: idleSway.value },
+    ],
+  }));
+
+
+  const b1SwayStyle = useAnimatedStyle(() => ({ transform: [{ translateX: b1Sway.value }] }));
+  const b2SwayStyle = useAnimatedStyle(() => ({ transform: [{ translateX: b2Sway.value }] }));
+  const b3SwayStyle = useAnimatedStyle(() => ({ transform: [{ translateX: b3Sway.value }] }));
+  const b4SwayStyle = useAnimatedStyle(() => ({ transform: [{ translateX: b4Sway.value }] }));
+  const b5SwayStyle = useAnimatedStyle(() => ({ transform: [{ translateX: b5Sway.value }] }));
+  const balloonSwayStyles = [b1SwayStyle, b2SwayStyle, b3SwayStyle, b4SwayStyle, b5SwayStyle];
   const cloudAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: cloudX.value }] }));
   const planeAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: planeX.value }] }));
   const balloonAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: balloonY.value }] }));
@@ -124,12 +174,12 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const flag2AnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flag2Rot.value }] }));
   // -- Layout constants --
   const w = size * 5.2;  // Card width – stretch edge to edge
-  const h = size * 2.2;  // Increased canvas height to fill bottom
+  const h = size * 2.55; // Increased canvas height to fit balloons at top without clipping
   const k = size * 1.5;  // Stickman scale (user can tweak this)
   const bk = size * 1.35; // Stable background scale (locked)
   const cx = w / 2;
-  const headCY = size * 1.0; // Adjusted to keep top position
-  const groundY = size * 2.0; // Adjusted to match feet with larger h
+  const headCY = size * 1.35; // Moved down to give balloons space above head
+  const groundY = size * 2.35; // Moved down to match new stickman position
   const headR = k * 0.12;
   const bodyTop = headCY + headR;
   const bodyLen = k * 0.32;
@@ -147,12 +197,8 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const skyTop = '#E8F5E9';
   const skyBot = '#F0FFF4';
 
-  // Visibility
-  const showLL = wrongCount < 1;
-  const showRL = wrongCount < 2;
-  const showLA = wrongCount < 3;
-  const showRA = wrongCount < 4;
-  const showHead = true;
+  // Balloons: all 5 visible until popped
+  const balloonsLeft = 5 - wrongCount;
 
   // Leg endpoints
   const llEndX = cx - legLen * 0.7;
@@ -1396,24 +1442,275 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     return null;
   };
 
-  // Bubble constants
-  const bubbleR = bk * 0.12;
-  const bubbleColors = [
-    { fill: '#F48FB1', shine: '#FCE4EC' },
-    { fill: '#64B5F6', shine: '#E3F2FD' },
-    { fill: '#81C784', shine: '#E8F5E9' },
-    { fill: '#CE93D8', shine: '#F3E5F5' },
+  // Balloon constants
+  const balloonR = bk * 0.09;
+  const balloonColors = [
+    { fill: '#FF6B6B', stroke: '#E05252', shine: '#FFB3B3' },  // Red
+    { fill: '#4ECDC4', stroke: '#3BA99F', shine: '#A8EDE9' },  // Teal
+    { fill: '#FFE66D', stroke: '#E0C84E', shine: '#FFF4B8' },  // Yellow
+    { fill: '#A78BFA', stroke: '#8B6FE0', shine: '#D4C5FD' },  // Purple
+    { fill: '#FF9FF3', stroke: '#E080D6', shine: '#FFCFF9' },  // Pink
   ];
-  const bubblePositions = [
-    { x: cx - bk * 0.45, y: h * 0.32 }, // Refined and stable Y
-    { x: cx + bk * 0.48, y: h * 0.32 },
-    { x: cx - bk * 0.52, y: h * 0.62 },
-    { x: cx + bk * 0.54, y: h * 0.68 },
+  // Fan balloons above stickman's left hand
+  const handX = laEndX;
+  const handY = laEndY;
+  const balloonSpread = balloonR * 2.5;
+  const balloonBaseY = handY - bk * 0.55;
+  const balloonPositions = [
+    { x: handX - balloonSpread * 1.0, y: balloonBaseY - 5 },
+    { x: handX - balloonSpread * 0.4, y: balloonBaseY - 15 },
+    { x: handX + balloonSpread * 0.2,  y: balloonBaseY - 20 },
+    { x: handX + balloonSpread * 0.8,  y: balloonBaseY - 12 },
+    { x: handX + balloonSpread * 1.4,  y: balloonBaseY - 8 },
   ];
-  const capturedLimbs = [!showLL, !showRL, !showLA, !showRA];
+
+  // ------------- Dynamic Balloon SVG Renderer -------------
+  const renderBalloonShape = (id: string | null | undefined, color: any, bW: number, bH: number, r: number) => {
+    // If not a recognized custom balloon, render the default one
+    if (!id || id === 'default-balloons') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <Ellipse cx={bW / 2} cy={bH * 0.42} rx={r * 1.15} ry={r * 1.5} fill={color.fill} opacity={0.2} />
+          <Ellipse cx={bW / 2} cy={bH * 0.42} rx={r} ry={r * 1.3} fill={color.fill} stroke={color.stroke} strokeWidth={1.5} />
+          <Ellipse cx={bW / 2 - r * 0.2} cy={bH * 0.32} rx={r * 0.35} ry={r * 0.5} fill={color.shine} opacity={0.6} />
+          <Circle cx={bW / 2 + r * 0.35} cy={bH * 0.28} r={r * 0.1} fill="white" opacity={0.8} />
+          <Path d={`M${bW / 2 - 2},${bH * 0.42 + r * 1.3} L${bW / 2},${bH * 0.42 + r * 1.3 + 4} L${bW / 2 + 2},${bH * 0.42 + r * 1.3}`} fill={color.stroke} />
+        </Svg>
+      );
+    }
+
+    const cx = bW / 2;
+    const cy = bH / 2;
+    const scale = r / 16; // Base scale assuming the icons were made for ~r=16
+
+    if (id === 'balloons-penguin') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            <Ellipse cx={0} cy={0} rx={16} ry={20} fill="#263238" />
+            <Ellipse cx={0} cy={5} rx={11} ry={13} fill="#FFFFFF" />
+            <Ellipse cx={-6} cy={-5} rx={3} ry={3} fill="#FFFFFF" />
+            <Ellipse cx={6} cy={-5} rx={3} ry={3} fill="#FFFFFF" />
+            <Circle cx={-6} cy={-5} r={1.5} fill="#000000" />
+            <Circle cx={6} cy={-5} r={1.5} fill="#000000" />
+            <Path d="M-3,2 L3,2 L0,6 Z" fill="#FF9800" />
+            {/* Knot at bottom tying to string */}
+            <Path d="M-2,20 L0,23 L2,20" fill="#263238" />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-dog') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            <Ellipse cx={0} cy={0} rx={17} ry={20} fill="#8D6E63" />
+            <Ellipse cx={-15} cy={-12} rx={6} ry={9} fill="#5D4037" transform="rotate(-30 -15 -12)" />
+            <Ellipse cx={15} cy={-12} rx={6} ry={9} fill="#5D4037" transform="rotate(30 15 -12)" />
+            <Ellipse cx={0} cy={8} rx={9} ry={7} fill="#D7CCC8" />
+            <Ellipse cx={-6} cy={-4} rx={2} ry={3} fill="#000000" />
+            <Ellipse cx={6} cy={-4} rx={2} ry={3} fill="#000000" />
+            <Circle cx={0} cy={6} r={2} fill="#000000" />
+            <Path d="M-4,10 Q0,13 4,10" fill="none" stroke="#000000" strokeWidth={1} />
+            <Path d="M-2,20 L0,23 L2,20" fill="#8D6E63" />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-cat') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            <Path d="M-11,-11 L-15,-21 L-4,-15 Z" fill="#FFA726" />
+            <Path d="M11,-11 L15,-21 L4,-15 Z" fill="#FFA726" />
+            <Ellipse cx={0} cy={0} rx={16} ry={15} fill="#FFA726" />
+            <Ellipse cx={-6} cy={-2} rx={2} ry={3} fill="#000000" />
+            <Ellipse cx={6} cy={-2} rx={2} ry={3} fill="#000000" />
+            <Path d="M-2,3 L2,3 L0,6 Z" fill="#F48FB1" />
+            <Line x1={-7} y1={5} x2={-16} y2={3} stroke="#000" strokeWidth={0.5} />
+            <Line x1={-7} y1={7} x2={-16} y2={7} stroke="#000" strokeWidth={0.5} />
+            <Line x1={7} y1={5} x2={16} y2={3} stroke="#000" strokeWidth={0.5} />
+            <Line x1={7} y1={7} x2={16} y2={7} stroke="#000" strokeWidth={0.5} />
+            <Path d="M-2,15 L0,18 L2,15" fill="#FFA726" />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-bunny') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            <Ellipse cx={-7} cy={-18} rx={4.5} ry={15} fill="#FFFFFF" transform="rotate(-15 -7 -18)" />
+            <Ellipse cx={7} cy={-18} rx={4.5} ry={15} fill="#FFFFFF" transform="rotate(15 7 -18)" />
+            <Ellipse cx={-7} cy={-18} rx={2} ry={11} fill="#F8BBD0" transform="rotate(-15 -7 -18)" />
+            <Ellipse cx={7} cy={-18} rx={2} ry={11} fill="#F8BBD0" transform="rotate(15 7 -18)" />
+            <Ellipse cx={0} cy={0} rx={16} ry={15} fill="#FFFFFF" />
+            <Ellipse cx={-6} cy={-2} rx={2} ry={3} fill="#000000" />
+            <Ellipse cx={6} cy={-2} rx={2} ry={3} fill="#000000" />
+            <Circle cx={0} cy={3} r={1.5} fill="#F48FB1" />
+            <Path d="M-4,6 Q0,8 4,6" fill="none" stroke="#000000" strokeWidth={0.5} />
+            <Path d="M-2,15 L0,18 L2,15" fill="#FFFFFF" stroke="#E0E0E0" strokeWidth={0.5} />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-bear') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            <Circle cx={-13} cy={-13} r={7} fill="#A1887F" />
+            <Circle cx={13} cy={-13} r={7} fill="#A1887F" />
+            <Circle cx={-13} cy={-13} r={3} fill="#D7CCC8" />
+            <Circle cx={13} cy={-13} r={3} fill="#D7CCC8" />
+            <Ellipse cx={0} cy={0} rx={18} ry={16} fill="#A1887F" />
+            <Ellipse cx={0} cy={6} rx={9} ry={6} fill="#D7CCC8" />
+            <Ellipse cx={-6} cy={-3} rx={2} ry={3} fill="#000000" />
+            <Ellipse cx={6} cy={-3} rx={2} ry={3} fill="#000000" />
+            <Circle cx={0} cy={3} r={2} fill="#4E342E" />
+            <Path d="M-3,7 Q0,9 3,7" fill="none" stroke="#4E342E" strokeWidth={1} />
+            <Path d="M-2,16 L0,19 L2,16" fill="#A1887F" />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-star') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy}) scale(${scale})`}>
+            {/* 10-point star logic, drawn manually */}
+            <Path d="M0,-20 L5,-8 L18,-6 L8,3 L10,15 L0,9 L-10,15 L-8,3 L-18,-6 L-5,-8 Z" fill="#FFEB3B" stroke="#F57F17" strokeWidth={1.2} />
+            <Ellipse cx={-6} cy={0} rx={1.5} ry={2.5} fill="#000" />
+            <Ellipse cx={6} cy={0} rx={1.5} ry={2.5} fill="#000" />
+            <Path d="M-3,5 Q0,8 3,5" fill="none" stroke="#000" strokeWidth={0.8} />
+            <Path d="M-2,15 L0,18 L2,15" fill="#FFEB3B" stroke="#F57F17" strokeWidth={1} />
+          </G>
+        </Svg>
+      );
+    }
+
+    if (id === 'balloons-heart') {
+      return (
+        <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
+          <G transform={`translate(${cx}, ${cy - 5}) scale(${scale})`}>
+            <Path d="M0,8 C0,8 -16,-10 -16,-20 C-16,-26 -8,-30 0,-20 C8,-30 16,-26 16,-20 C16,-10 0,8 0,8 Z" fill="#E91E63" stroke="#C2185B" strokeWidth={1.2} />
+            <Ellipse cx={-6} cy={-13} rx={1.5} ry={2.5} fill="#FFF" opacity={0.8} />
+            <Ellipse cx={6} cy={-13} rx={1.5} ry={2.5} fill="#FFF" opacity={0.6} />
+            <Path d="M-2,8 L0,11 L2,8" fill="#E91E63" stroke="#C2185B" strokeWidth={1} />
+          </G>
+        </Svg>
+      );
+    }
+
+    // Fallback if somehow it matches nothing
+    return null;
+  };
+
+  // Trigger plane → pop → crash sequence when wrongCount increases
+  useEffect(() => {
+    if (wrongCount > prevWrongRef.current && wrongCount <= 5) {
+      const poppedIdx = 5 - wrongCount;
+      const pos = balloonPositions[poppedIdx];
+      if (pos) {
+        // 1. Launch paper airplane from left edge toward balloon
+        setFlyingPlane({ startX: -30, startY: pos.y, targetX: pos.x, targetY: pos.y, index: poppedIdx });
+        // Animate plane from left edge to balloon
+        atkPlaneX.value = -30;
+        atkPlaneY.value = pos.y - bk * 0.03;
+        atkPlaneOp.value = 1;
+        atkPlaneX.value = withTiming(pos.x - bk * 0.05, { duration: 400, easing: Easing.out(Easing.quad) });
+
+        const hitTimer = setTimeout(() => {
+          setDisplayWrong(wrongCount); // balloon disappears
+          setPopEffect({ index: poppedIdx, x: pos.x, y: pos.y });
+          atkPlaneOp.value = withTiming(0, { duration: 200 }); // fade out plane
+          setFlyingPlane(null);
+
+          // 3. After 300ms more: add crashed plane on grass
+          const crashTimer = setTimeout(() => {
+            const grassXPositions = [w * 0.15, w * 0.35, w * 0.5, w * 0.65, w * 0.85];
+            setCrashedPlanes(prev => [...prev, {
+              x: grassXPositions[poppedIdx] || w * 0.5,
+              rotation: -15 + Math.random() * 30,
+            }]);
+          }, 300);
+
+          // 4. Clear pop effect
+          const popTimer = setTimeout(() => {
+            setPopEffect(null);
+          }, 800);
+
+          return () => {
+            clearTimeout(crashTimer);
+            clearTimeout(popTimer);
+          };
+        }, 400);
+
+        prevWrongRef.current = wrongCount;
+        return () => clearTimeout(hitTimer);
+      }
+    }
+    prevWrongRef.current = wrongCount;
+  }, [wrongCount]);
 
   return (
     <View style={[styles.container, { width: w, height: h, borderRadius: 16, overflow: 'hidden' }]}>
+
+      {/* ===== SHOP: Dressing Room Background ===== */}
+      {isShop && (
+        <Svg style={{ position: 'absolute' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <Defs>
+            <LinearGradient id="shopWallGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#FFF8E1" />
+              <Stop offset="1" stopColor="#FFECB3" />
+            </LinearGradient>
+            <LinearGradient id="shopFloorGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#D7CCC8" />
+              <Stop offset="1" stopColor="#BCAAA4" />
+            </LinearGradient>
+          </Defs>
+          {/* Wall */}
+          <Rect x={0} y={0} width={w} height={h} rx={16} fill="url(#shopWallGrad)" />
+          {/* Floor */}
+          <Rect x={0} y={groundY} width={w} height={h - groundY} fill="url(#shopFloorGrad)" />
+          {/* Floor line */}
+          <Line x1={0} y1={groundY} x2={w} y2={groundY} stroke="#A1887F" strokeWidth={2} />
+          {/* Wood planks */}
+          <Line x1={0} y1={groundY + (h - groundY) * 0.3} x2={w} y2={groundY + (h - groundY) * 0.3} stroke="#BCAAA4" strokeWidth={0.5} opacity={0.5} />
+          <Line x1={0} y1={groundY + (h - groundY) * 0.6} x2={w} y2={groundY + (h - groundY) * 0.6} stroke="#BCAAA4" strokeWidth={0.5} opacity={0.5} />
+          {/* Left curtain */}
+          <Path d={`M0,0 Q${w*0.08},${h*0.05} ${w*0.03},${h*0.4} Q${w*0.06},${h*0.5} ${w*0.02},${groundY}`} fill="#E91E63" opacity={0.2} />
+          <Path d={`M0,0 Q${w*0.05},${h*0.03} ${w*0.02},${h*0.35} Q${w*0.04},${h*0.45} ${w*0.01},${groundY}`} fill="#E91E63" opacity={0.3} />
+          {/* Right curtain */}
+          <Path d={`M${w},0 Q${w*0.92},${h*0.05} ${w*0.97},${h*0.4} Q${w*0.94},${h*0.5} ${w*0.98},${groundY}`} fill="#E91E63" opacity={0.2} />
+          <Path d={`M${w},0 Q${w*0.95},${h*0.03} ${w*0.98},${h*0.35} Q${w*0.96},${h*0.45} ${w*0.99},${groundY}`} fill="#E91E63" opacity={0.3} />
+          {/* Spotlight from above */}
+          <Ellipse cx={cx} cy={groundY - bk * 0.05} rx={bk * 0.5} ry={bk * 0.04} fill="#FFF9C4" opacity={0.3} />
+          {/* Decorative stars */}
+          <Circle cx={w * 0.15} cy={h * 0.12} r={3} fill="#FFD54F" opacity={0.6} />
+          <Circle cx={w * 0.85} cy={h * 0.08} r={2.5} fill="#FFD54F" opacity={0.5} />
+          <Circle cx={w * 0.7} cy={h * 0.15} r={2} fill="#FFD54F" opacity={0.4} />
+          <Circle cx={w * 0.3} cy={h * 0.18} r={2} fill="#FFD54F" opacity={0.4} />
+          {/* Mirror frame (right side) */}
+          <Rect x={w * 0.78} y={h * 0.2} width={w * 0.15} height={h * 0.35} rx={4} fill="#EFEBE9" stroke="#8D6E63" strokeWidth={2} />
+          <Rect x={w * 0.79} y={h * 0.21} width={w * 0.13} height={h * 0.33} rx={3} fill="#E3F2FD" opacity={0.5} />
+          {/* Clothes rack (left side) */}
+          <Line x1={w * 0.05} y1={h * 0.25} x2={w * 0.22} y2={h * 0.25} stroke="#795548" strokeWidth={2.5} strokeLinecap="round" />
+          <Line x1={w * 0.08} y1={h * 0.25} x2={w * 0.08} y2={groundY} stroke="#795548" strokeWidth={2} />
+          <Line x1={w * 0.19} y1={h * 0.25} x2={w * 0.19} y2={groundY} stroke="#795548" strokeWidth={2} />
+          {/* Hangers on rack */}
+          <Path d={`M${w*0.10},${h*0.25} L${w*0.11},${h*0.28} L${w*0.13},${h*0.25}`} stroke="#9E9E9E" strokeWidth={1} fill="none" />
+          <Path d={`M${w*0.14},${h*0.25} L${w*0.15},${h*0.28} L${w*0.17},${h*0.25}`} stroke="#9E9E9E" strokeWidth={1} fill="none" />
+        </Svg>
+      )}
+
+      {/* ===== GAME: Outdoor Scene Background ===== */}
+      {!isShop && (
+        <>
       {/* -- Layer 1: Deep Sky & Sun -- */}
       <Svg style={{ position: 'absolute' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
         <Defs>
@@ -1581,31 +1878,35 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
             <Circle cx={w * 0.88} cy={groundY - bk * 0.037} r={bk * 0.005} fill="#FFF176" />
           </G>
 
-          {/* ── Floating Bubbles (SVG, behind stickman) ── */}
-          {bubblePositions.map((pos, i) => {
-            const limbLen2 = bk * 0.06;
-            const limbSW2 = bk * 0.015; // Stable limb thickness in bubble
-            const color = bubbleColors[i];
-            const hasCaptured = capturedLimbs[i];
+          {/* -- Crashed Paper Airplanes on Grass -- */}
+          {crashedPlanes.map((plane, i) => (
+            <G key={`crashed-${i}`} transform={`translate(${plane.x}, ${groundY - bk * 0.025}) rotate(${plane.rotation})`}>
+              <Path d={`M0,0 L${bk*0.08},${bk*0.025} L0,${bk*0.05} L${bk*0.025},${bk*0.025} Z`} fill="#E0E0E0" stroke="#BDBDBD" strokeWidth={0.5} />
+              <Path d={`M${bk*0.025},${bk*0.025} L${bk*0.05},${bk*0.035} L${bk*0.035},${bk*0.065} Z`} fill="#BDBDBD" />
+            </G>
+          ))}
+        </Svg>
+      </Animated.View>
+      </>
+      )}
+
+      {/* ── Layer 6: Stickman Body (idle animation in game, static in shop) ── */}
+      <Animated.View style={[{ position: 'absolute', width: w, height: h }, bodyAnimStyle, !isShop ? idleAnimStyle : undefined]}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+
+          {/* -- Balloon Strings (game or shop preview) -- */}
+          {(!isShop || forceShowBalloons) && balloonPositions.map((pos, i) => {
+            const isPopped = i >= 5 - displayWrong;
+            if (isPopped) return null;
             return (
-              <G key={`bubble-${i}`}>
-                <Circle cx={pos.x} cy={pos.y} r={bubbleR * 1.3} fill={color.fill} opacity={0.2} />
-                <Circle cx={pos.x} cy={pos.y} r={bubbleR} fill={color.fill} opacity={hasCaptured ? 0.65 : 0.45} stroke={color.fill} strokeWidth={2.5} />
-                <Ellipse cx={pos.x - bubbleR * 0.2} cy={pos.y - bubbleR * 0.25} rx={bubbleR * 0.4} ry={bubbleR * 0.22} fill="white" opacity={0.5} />
-                <Circle cx={pos.x + bubbleR * 0.35} cy={pos.y - bubbleR * 0.35} r={bubbleR * 0.1} fill="white" opacity={0.7} />
-                {hasCaptured && i === 0 && (
-                  <Line x1={pos.x} y1={pos.y - limbLen2 * 0.3} x2={pos.x - limbLen2 * 0.5} y2={pos.y + limbLen2 * 0.7} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
-                )}
-                {hasCaptured && i === 1 && (
-                  <Line x1={pos.x} y1={pos.y - limbLen2 * 0.3} x2={pos.x + limbLen2 * 0.5} y2={pos.y + limbLen2 * 0.7} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
-                )}
-                {hasCaptured && i === 2 && (
-                  <Line x1={pos.x} y1={pos.y} x2={pos.x - limbLen2} y2={pos.y + limbLen2 * 0.3} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
-                )}
-                {hasCaptured && i === 3 && (
-                  <Line x1={pos.x} y1={pos.y} x2={pos.x + limbLen2} y2={pos.y + limbLen2 * 0.3} stroke={bodyCol} strokeWidth={limbSW2} strokeLinecap="round" opacity={0.5} />
-                )}
-              </G>
+              <Path
+                key={`bstr-${i}`}
+                d={`M${handX},${handY} Q${(handX + pos.x) / 2 + (i % 2 === 0 ? -8 : 8)},${(handY + pos.y) / 2 + 10} ${pos.x},${pos.y + balloonR * 1.3}`}
+                stroke="#9E9E9E"
+                strokeWidth={1}
+                fill="none"
+                opacity={0.7}
+              />
             );
           })}
 
@@ -1613,27 +1914,23 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           {renderBehindClothes()}
 
           {/* -- Left Leg -- */}
-          {showLL && (
-            <G>
-              <Line x1={cx} y1={bodyBot} x2={llEndX} y2={llEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
-              <Circle cx={(cx + llEndX) / 2} cy={(bodyBot + llEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
-              <Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />
-              {equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}
-            </G>
-          )}
+          <G>
+            <Line x1={cx} y1={bodyBot} x2={llEndX} y2={llEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+            <Circle cx={(cx + llEndX) / 2} cy={(bodyBot + llEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
+            <Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />
+            {equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}
+          </G>
 
           {/* -- Right Leg -- */}
-          {showRL && (
-            <G>
-              <Line x1={cx} y1={bodyBot} x2={rlEndX} y2={rlEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
-              <Circle cx={(cx + rlEndX) / 2} cy={(bodyBot + rlEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
-              <Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />
-              {equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}
-            </G>
-          )}
+          <G>
+            <Line x1={cx} y1={bodyBot} x2={rlEndX} y2={rlEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
+            <Circle cx={(cx + rlEndX) / 2} cy={(bodyBot + rlEndY) / 2} r={jointR * 0.7} fill={bodyCol} />
+            <Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />
+            {equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}
+          </G>
 
-          {/* -- Left Arm -- */}
-          {!hideArms && showLA && (
+          {/* -- Left Arm (raised to hold balloons) -- */}
+          {!hideArms && (
             <G>
               <Line x1={cx} y1={armY} x2={laEndX} y2={laEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
               <Circle cx={(cx + laEndX) / 2} cy={(armY + laEndY) / 2} r={jointR * 0.6} fill={bodyCol} />
@@ -1642,7 +1939,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           )}
 
           {/* -- Right Arm -- */}
-          {!hideArms && showRA && (
+          {!hideArms && (
             <G>
               <Line x1={cx} y1={armY} x2={raEndX} y2={raEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" />
               <Circle cx={(cx + raEndX) / 2} cy={(armY + raEndY) / 2} r={jointR * 0.6} fill={bodyCol} />
@@ -1660,82 +1957,123 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           {renderUpper()}
           {renderFrontBackAccessories()}
 
-          {/* -- Head -- */}
-          {showHead && (
-            <G>
-              {wrongCount >= 5 && (
-                <Ellipse cx={cx} cy={headCY - headR * 1.4} rx={headR * 0.8} ry={headR * 0.2} fill="none" stroke="#FFD700" strokeWidth={2.5} opacity={0.9} />
-              )}
-              <Circle cx={cx} cy={headCY} r={headR} stroke={bodyCol} strokeWidth={sw} fill={skyBot} />
-              {equipped.hair !== 'hat-robot' && (
-                <G>
-                  {wrongCount >= 5 ? (
-                    <G>
-                      <Path d={`M${cx - headR * 0.4},${headCY - headR * 0.05} Q${cx - headR * 0.3},${headCY + headR * 0.1} ${cx - headR * 0.2},${headCY - headR * 0.05}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
-                      <Path d={`M${cx + headR * 0.2},${headCY - headR * 0.05} Q${cx + headR * 0.3},${headCY + headR * 0.1} ${cx + headR * 0.4},${headCY - headR * 0.05}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
-                      <Path d={`M${cx - headR * 0.2},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.45} ${cx + headR * 0.2},${headCY + headR * 0.3}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
-                    </G>
-                  ) : (
-                    <G>
-                      <Circle cx={cx - headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
-                      <Circle cx={cx + headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
-                      <Circle cx={cx - headR * 0.25} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
-                      <Circle cx={cx + headR * 0.35} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
-                      {wrongCount === 0 ? (
-                        <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.55} ${cx + headR * 0.25},${headCY + headR * 0.3}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
-                      ) : wrongCount <= 2 ? (
-                        <Line x1={cx - headR * 0.2} y1={headCY + headR * 0.35} x2={cx + headR * 0.2} y2={headCY + headR * 0.35} stroke={bodyCol} strokeWidth={sw * 0.5} strokeLinecap="round" />
-                      ) : (
-                        <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.45} Q${cx},${headCY + headR * 0.25} ${cx + headR * 0.25},${headCY + headR * 0.45}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
-                      )}
-                    </G>
-                  )}
-                </G>
-              )}
-              {renderHat()}
-              {renderGlasses()}
-            </G>
-          )}
+          {/* -- Head (always visible) -- */}
+          <G>
+            <Circle cx={cx} cy={headCY} r={headR} stroke={bodyCol} strokeWidth={sw} fill={skyBot} />
+            {equipped.hair !== 'hat-robot' && (
+              <G>
+                <Circle cx={cx - headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
+                <Circle cx={cx + headR * 0.3} cy={headCY - headR * 0.08} r={headR * 0.09} fill={bodyCol} />
+                <Circle cx={cx - headR * 0.25} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
+                <Circle cx={cx + headR * 0.35} cy={headCY - headR * 0.13} r={headR * 0.03} fill="#fff" />
+                {wrongCount === 0 ? (
+                  <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.55} ${cx + headR * 0.25},${headCY + headR * 0.3}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                ) : wrongCount <= 2 ? (
+                  <Line x1={cx - headR * 0.2} y1={headCY + headR * 0.35} x2={cx + headR * 0.2} y2={headCY + headR * 0.35} stroke={bodyCol} strokeWidth={sw * 0.5} strokeLinecap="round" />
+                ) : wrongCount <= 4 ? (
+                  <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.45} Q${cx},${headCY + headR * 0.25} ${cx + headR * 0.25},${headCY + headR * 0.45}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                ) : (
+                  <G>
+                    {/* Crying face: Standard eyes, tears, sad eyebrows, and a deep frown */}
+                    {/* Eyebrows angled sad */}
+                    <Path d={`M${cx - headR * 0.4},${headCY - headR * 0.25} L${cx - headR * 0.1},${headCY - headR * 0.15}`} stroke={bodyCol} strokeWidth={sw * 0.4} fill="none" strokeLinecap="round" />
+                    <Path d={`M${cx + headR * 0.1},${headCY - headR * 0.15} L${cx + headR * 0.4},${headCY - headR * 0.25}`} stroke={bodyCol} strokeWidth={sw * 0.4} fill="none" strokeLinecap="round" />
 
-          {/* ── Angel Wings (wrongCount >= 5) ── */}
-          {wrongCount >= 5 && (
-            <G>
-              <Path d={`M${cx},${armY} Q${cx - 45},${armY - 55} ${cx - 65},${armY - 10} Q${cx - 55},${armY + 25} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.85)" stroke="#E0E0E0" strokeWidth={1.5} />
-              <Path d={`M${cx},${armY} Q${cx + 45},${armY - 55} ${cx + 65},${armY - 10} Q${cx + 55},${armY + 25} ${cx},${armY + 10} Z`} fill="rgba(255,255,255,0.85)" stroke="#E0E0E0" strokeWidth={1.5} />
-              <Path d={`M${cx - 20},${armY - 15} Q${cx - 35},${armY - 35} ${cx - 50},${armY - 10}`} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
-              <Path d={`M${cx + 20},${armY - 15} Q${cx + 35},${armY - 35} ${cx + 50},${armY - 10}`} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
-            </G>
-          )}
+                    {/* Standard circular eyes */}
+                    <Circle cx={cx - headR * 0.25} cy={headCY - headR * 0.05} r={headR * 0.08} fill={bodyCol} />
+                    <Circle cx={cx + headR * 0.25} cy={headCY - headR * 0.05} r={headR * 0.08} fill={bodyCol} />
+
+                    {/* Streaming tears */}
+                    <Path d={`M${cx - headR * 0.25},${headCY + headR * 0.05} Q${cx - headR * 0.35},${headCY + headR * 0.2} ${cx - headR * 0.25},${headCY + headR * 0.4} Q${cx - headR * 0.15},${headCY + headR * 0.5} ${cx - headR * 0.25},${headCY + headR * 0.6}`} stroke="#42A5F5" strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" opacity={0.8} />
+                    <Path d={`M${cx + headR * 0.25},${headCY + headR * 0.05} Q${cx + headR * 0.35},${headCY + headR * 0.2} ${cx + headR * 0.25},${headCY + headR * 0.4} Q${cx + headR * 0.15},${headCY + headR * 0.5} ${cx + headR * 0.25},${headCY + headR * 0.6}`} stroke="#42A5F5" strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" opacity={0.8} />
+
+                    {/* Deep frown */}
+                    <Path d={`M${cx - headR * 0.3},${headCY + headR * 0.5} Q${cx},${headCY + headR * 0.15} ${cx + headR * 0.3},${headCY + headR * 0.5}`} stroke={bodyCol} strokeWidth={sw * 0.5} fill="none" strokeLinecap="round" />
+                  </G>
+                )}
+              </G>
+            )}
+            {renderHat()}
+            {renderGlasses()}
+          </G>
         </Svg>
       </Animated.View>
 
-      {/* -- Floating Bubble Overlays (animated) -- */}
-      {bubblePositions.map((pos, i) => {
-        const bDiam = bubbleR * 3;
-        const bCenter = bDiam / 2;
-        const color = bubbleColors[i];
-        const hasCaptured = capturedLimbs[i];
+      {/* -- Animated Balloon Overlays (game or shop preview) -- */}
+      {(!isShop || forceShowBalloons) && balloonPositions.map((pos, i) => {
+        if (i >= 5 - displayWrong) return null; // popped (delayed)
+        const color = balloonColors[i];
+        const bW = balloonR * 2.8;
+        const bH = balloonR * 3.6;
         return (
           <Animated.View
-            key={`float-bubble-${i}`}
+            key={`balloon-${i}`}
             pointerEvents="none"
             style={[{
               position: 'absolute',
-              left: pos.x - bDiam / 2,
-              top: pos.y - bDiam / 2,
-              width: bDiam,
-              height: bDiam,
-            }, bubbleAnimStyles[i]]}
+              left: pos.x - bW / 2,
+              top: pos.y - bH / 2,
+              width: bW,
+              height: bH,
+            }, balloonSwayStyles[i]]}
           >
-            <Svg width={bDiam} height={bDiam} viewBox={`0 0 ${bDiam} ${bDiam}`}>
-              <Circle cx={bCenter} cy={bCenter} r={bubbleR * 1.1} fill={color.fill} opacity={0.15} />
-              <Circle cx={bCenter} cy={bCenter} r={bubbleR} fill={color.fill} opacity={hasCaptured ? 0.55 : 0.35} stroke={color.fill} strokeWidth={2} />
-              <Ellipse cx={bCenter - bubbleR * 0.15} cy={bCenter - bubbleR * 0.2} rx={bubbleR * 0.35} ry={bubbleR * 0.2} fill="white" opacity={0.5} />
-              <Circle cx={bCenter + bubbleR * 0.3} cy={bCenter - bubbleR * 0.3} r={bubbleR * 0.08} fill="white" opacity={0.65} />
-            </Svg>
+            {renderBalloonShape(equipped.balloons, color, bW, bH, balloonR)}
           </Animated.View>
         );
       })}
+
+      {/* -- Pop Burst Effect -- */}
+      {popEffect && (
+        <Animated.View
+          key={`pop-${popEffect.index}-${Date.now()}`}
+          pointerEvents="none"
+          entering={ZoomIn.duration(200)}
+          exiting={FadeOut.duration(600)}
+          style={{
+            position: 'absolute',
+            left: popEffect.x - balloonR * 2,
+            top: popEffect.y - balloonR * 2,
+            width: balloonR * 4,
+            height: balloonR * 4,
+          }}
+        >
+          <Svg width={balloonR * 4} height={balloonR * 4} viewBox={`0 0 ${balloonR * 4} ${balloonR * 4}`}>
+            {/* Expanding ring */}
+            <Circle cx={balloonR * 2} cy={balloonR * 2} r={balloonR * 1.5} fill="none" stroke={balloonColors[popEffect.index]?.fill || '#FF6B6B'} strokeWidth={2} opacity={0.6} />
+            {/* Burst particles (small circles radiating outward) */}
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, j) => {
+              const rad = (angle * Math.PI) / 180;
+              const px = balloonR * 2 + Math.cos(rad) * balloonR * 1.2;
+              const py = balloonR * 2 + Math.sin(rad) * balloonR * 1.2;
+              const particleColor = j % 2 === 0
+                ? (balloonColors[popEffect.index]?.fill || '#FF6B6B')
+                : (balloonColors[popEffect.index]?.shine || '#FFB3B3');
+              return (
+                <Circle key={`p-${j}`} cx={px} cy={py} r={balloonR * 0.12} fill={particleColor} opacity={0.8} />
+              );
+            })}
+            {/* Center flash */}
+            <Circle cx={balloonR * 2} cy={balloonR * 2} r={balloonR * 0.5} fill="white" opacity={0.6} />
+          </Svg>
+        </Animated.View>
+      )}
+
+      {/* -- Flying Paper Airplane (animated from left to balloon) -- */}
+      <Animated.View
+        pointerEvents="none"
+        style={[{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: bk * 0.12,
+          height: bk * 0.08,
+        }, atkPlaneStyle]}
+      >
+        <Svg width={bk * 0.12} height={bk * 0.08} viewBox={`0 0 ${bk * 0.12} ${bk * 0.08}`}>
+          <Path d={`M${bk*0.12},${bk*0.025} L0,0 L${bk*0.03},${bk*0.025} L0,${bk*0.05} Z`} fill="#FFFFFF" stroke="#BDBDBD" strokeWidth={0.8} />
+          <Path d={`M${bk*0.03},${bk*0.025} L${bk*0.06},${bk*0.035} L${bk*0.045},${bk*0.065} Z`} fill="#E0E0E0" />
+        </Svg>
+      </Animated.View>
 
       {/* -- Emoji Reaction Bubbles -- */}
       {emojiReaction && emojiReaction.emojis.map((emoji, i) => {

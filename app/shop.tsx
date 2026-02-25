@@ -16,7 +16,7 @@ import StickmanCoin from '@/components/StickmanCoin';
 // Shop items are now fetched from the database in the component body
 
 // ─── Category definitions ───
-type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back';
+type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back' | 'balloons';
 
 interface Category {
   key: CategoryKey;
@@ -34,6 +34,7 @@ const CATEGORIES: Category[] = [
   { key: 'lower', label: 'Lower', icon: 'walk-outline', color: '#2ECC71', types: ['lower'] },
   { key: 'shoes', label: 'Shoes', icon: 'footsteps-outline', color: '#E74C3C', types: ['shoes'] },
   { key: 'back', label: 'Back', icon: 'briefcase-outline', color: '#1ABC9C', types: ['back'] },
+  { key: 'balloons', label: 'Balloons', icon: 'balloon-outline', color: '#FF4081', types: ['balloons'] },
 ];
 
 const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: string }) => {
@@ -976,6 +977,127 @@ const AccessoryIcon = ({ id, color = Colors.primary }: { id: string, color?: str
     );
   }
 
+  if (id === 'balloons-penguin') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Ellipse cx={0} cy={0} rx={22} ry={25} fill="#263238" />
+          <Ellipse cx={0} cy={5} rx={16} ry={18} fill="#FFFFFF" />
+          <Ellipse cx={-8} cy={-5} rx={4} ry={4} fill="#FFFFFF" />
+          <Ellipse cx={8} cy={-5} rx={4} ry={4} fill="#FFFFFF" />
+          <Circle cx={-8} cy={-5} r={2} fill="#000000" />
+          <Circle cx={8} cy={-5} r={2} fill="#000000" />
+          <Path d="M-4,2 L4,2 L0,8 Z" fill="#FF9800" />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-dog') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Ellipse cx={0} cy={0} rx={22} ry={25} fill="#8D6E63" />
+          <Ellipse cx={-20} cy={-15} rx={8} ry={12} fill="#5D4037" transform="rotate(-30 -20 -15)" />
+          <Ellipse cx={20} cy={-15} rx={8} ry={12} fill="#5D4037" transform="rotate(30 20 -15)" />
+          <Ellipse cx={0} cy={10} rx={12} ry={10} fill="#D7CCC8" />
+          <Ellipse cx={-8} cy={-5} rx={3} ry={4} fill="#000000" />
+          <Ellipse cx={8} cy={-5} rx={3} ry={4} fill="#000000" />
+          <Circle cx={0} cy={8} r={3} fill="#000000" />
+          <Path d="M-5,14 Q0,18 5,14" fill="none" stroke="#000000" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-cat') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Path d="M-15,-15 L-20,-28 L-5,-20 Z" fill="#FFA726" />
+          <Path d="M15,-15 L20,-28 L5,-20 Z" fill="#FFA726" />
+          <Ellipse cx={0} cy={0} rx={22} ry={20} fill="#FFA726" />
+          <Ellipse cx={-8} cy={-2} rx={3} ry={4} fill="#000000" />
+          <Ellipse cx={8} cy={-2} rx={3} ry={4} fill="#000000" />
+          <Path d="M-3,5 L3,5 L0,9 Z" fill="#F48FB1" />
+          <Line x1={-10} y1={8} x2={-22} y2={5} stroke="#000" strokeWidth={1} />
+          <Line x1={-10} y1={10} x2={-22} y2={10} stroke="#000" strokeWidth={1} />
+          <Line x1={10} y1={8} x2={22} y2={5} stroke="#000" strokeWidth={1} />
+          <Line x1={10} y1={10} x2={22} y2={10} stroke="#000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-bunny') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55)">
+          <Path d="M0,20 Q10,35 0,40" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Ellipse cx={-10} cy={-25} rx={6} ry={20} fill="#FFFFFF" transform="rotate(-15 -10 -25)" />
+          <Ellipse cx={10} cy={-25} rx={6} ry={20} fill="#FFFFFF" transform="rotate(15 10 -25)" />
+          <Ellipse cx={-10} cy={-25} rx={3} ry={15} fill="#F8BBD0" transform="rotate(-15 -10 -25)" />
+          <Ellipse cx={10} cy={-25} rx={3} ry={15} fill="#F8BBD0" transform="rotate(15 10 -25)" />
+          <Ellipse cx={0} cy={0} rx={22} ry={20} fill="#FFFFFF" />
+          <Ellipse cx={-8} cy={-2} rx={3} ry={4} fill="#000000" />
+          <Ellipse cx={8} cy={-2} rx={3} ry={4} fill="#000000" />
+          <Circle cx={0} cy={4} r={2.5} fill="#F48FB1" />
+          <Path d="M-5,8 Q0,11 5,8" fill="none" stroke="#000000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-bear') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Circle cx={-18} cy={-18} r={10} fill="#A1887F" />
+          <Circle cx={18} cy={-18} r={10} fill="#A1887F" />
+          <Circle cx={-18} cy={-18} r={5} fill="#D7CCC8" />
+          <Circle cx={18} cy={-18} r={5} fill="#D7CCC8" />
+          <Ellipse cx={0} cy={0} rx={24} ry={22} fill="#A1887F" />
+          <Ellipse cx={0} cy={8} rx={12} ry={9} fill="#D7CCC8" />
+          <Ellipse cx={-8} cy={-4} rx={3} ry={4} fill="#000000" />
+          <Ellipse cx={8} cy={-4} rx={3} ry={4} fill="#000000" />
+          <Circle cx={0} cy={5} r={3} fill="#4E342E" />
+          <Path d="M-4,10 Q0,12 4,10" fill="none" stroke="#4E342E" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-star') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50)">
+          <Path d="M0,25 Q10,40 0,45" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Path d="M0,-25 L6,-10 L22,-8 L10,3 L13,18 L0,11 L-13,18 L-10,3 L-22,-8 L-6,-10 Z" fill="#FFEB3B" stroke="#F57F17" strokeWidth={1.5} />
+          <Ellipse cx={-8} cy={0} rx={2} ry={3} fill="#000" />
+          <Ellipse cx={8} cy={0} rx={2} ry={3} fill="#000" />
+          <Path d="M-4,6 Q0,10 4,6" fill="none" stroke="#000" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'balloons-heart') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 55) scale(0.9)">
+          <Path d="M0,28 Q10,43 0,48" fill="none" stroke="#9E9E9E" strokeWidth={2} />
+          <Path d="M0,8 C0,8 -20,-12 -20,-24 C-20,-32 -10,-38 0,-24 C10,-38 20,-32 20,-24 C20,-12 0,8 0,8 Z" fill="#E91E63" stroke="#C2185B" strokeWidth={1.5} />
+          <Ellipse cx={-7} cy={-16} rx={2} ry={3} fill="#FFF" opacity={0.8} />
+          <Ellipse cx={7} cy={-16} rx={2} ry={3} fill="#FFF" opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+
   return <Ionicons name="shirt-outline" size={32} color={color} />;
 };
 
@@ -1008,8 +1130,8 @@ export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isSmallScreen = screenHeight < 700;
-  const previewMaxHeight = Math.min(screenHeight * 0.25, 200);
-  const shopStickmanSize = Math.min(Math.round(screenWidth * 0.20), isSmallScreen ? 120 : 150);
+  const previewMaxHeight = isSmallScreen ? 200 : 250;
+  const shopStickmanSize = Math.min(Math.round(screenWidth * 0.20), isSmallScreen ? 110 : 130);
   const { coins, ownedAccessories, buyAccessory, equipAccessory, equippedAccessories, buyAccessoryForUser, equipAccessoryForUser, powerUps, buyPowerUp, buyPowerUpForUser } = useGameState();
   const { user, isGuest } = useAuth();
 
@@ -1203,7 +1325,7 @@ export default function ShopScreen() {
         <>
           {/* Preview area with trial badge */}
           <View style={[styles.previewArea, { maxHeight: previewMaxHeight }, trialItem && styles.previewAreaTrial]}>
-            <Stickman wrongCount={0} size={shopStickmanSize} previewOverrides={previewOverrides} />
+            <Stickman wrongCount={0} size={shopStickmanSize} previewOverrides={previewOverrides} isShop={true} forceShowBalloons={activeCategory === 'balloons'} />
             {trialItem && (
               <View style={styles.trialBadge}>
                 <Ionicons name="eye" size={12} color={Colors.primary} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -50,6 +50,19 @@ import {
   type MathProblem,
 } from '@/lib/math-engine';
 import { useAudioPlayer } from 'expo-audio';
+
+const SOUNDTRACK_ASSETS = [
+  require('@/assets/sounds/soundtrack_1.mp3'),
+  require('@/assets/sounds/soundtrack_2.mp3'),
+  require('@/assets/sounds/soundtrack_3.mp3'),
+  require('@/assets/sounds/soundtrack_4.mp3'),
+  require('@/assets/sounds/soundtrack_5.mp3'),
+  require('@/assets/sounds/soundtrack_6.mp3'),
+  require('@/assets/sounds/soundtrack_7.mp3'),
+  require('@/assets/sounds/soundtrack_8.mp3'),
+  require('@/assets/sounds/soundtrack_9.mp3'),
+  require('@/assets/sounds/soundtrack_10.mp3'),
+];
 
 interface GameResult {
   problem: MathProblem;
@@ -107,16 +120,31 @@ export default function GameScreen() {
   // Emoji pools
   const positiveEmojis = ['🎉', '🌟', '✨', '💪', '🔥', '👏', '🎯', '💫', '🏆', '😊', '🥳', '👍', '⭐', '💖', '🦄'];
   const sadEmojis = ['😢', '😔', '💔', '😥', '🥺', '😿', '🫤', '😞'];
-  const haloEmojis = ['😇', '👼', '🕊️', '✝️', '💫'];
+  const haloEmojis = ['😇', '👼'];
 
   const pickRandom = (arr: string[], count = 1): string[] => {
     const shuffled = [...arr].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
   };
 
-  const pingPlayer = useAudioPlayer(require('@/assets/sounds/ping.wav'));
+  const pingPlayer = useAudioPlayer(require('@/assets/sounds/balloon-pop.mp3'));
   const goPlayer = useAudioPlayer(require('@/assets/sounds/go.wav'));
   const tickPlayer = useAudioPlayer(require('@/assets/sounds/tick.wav'));
+
+  // Pick a random BGM once per game mount
+  const randomBgmSource = useMemo(() => SOUNDTRACK_ASSETS[Math.floor(Math.random() * SOUNDTRACK_ASSETS.length)], []);
+  const bgmPlayer = useAudioPlayer(randomBgmSource);
+
+  const safePlay = useCallback((player: any) => {
+    try {
+      if (player) {
+        player.seekTo(0);
+        player.play();
+      }
+    } catch (err) {
+      console.warn('Audio play failed', err);
+    }
+  }, []);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -160,17 +188,19 @@ export default function GameScreen() {
   useEffect(() => {
     if (preGameCountdown === null) return;
     if (preGameCountdown === 'GO') {
-      goPlayer.seekTo(0);
-      goPlayer.play();
+      safePlay(goPlayer);
       const t = setTimeout(() => {
         setPreGameCountdown(null);
         startTimer();
+        // Start BGM
+        bgmPlayer.loop = true;
+        bgmPlayer.volume = 0.3;
+        safePlay(bgmPlayer);
       }, 600);
       return () => clearTimeout(t);
     }
     if (preGameCountdown > 0) {
-      pingPlayer.seekTo(0);
-      pingPlayer.play();
+      safePlay(tickPlayer);
       const t = setTimeout(() => {
         if (preGameCountdown === 1) setPreGameCountdown('GO');
         else setPreGameCountdown(preGameCountdown - 1);
@@ -178,6 +208,16 @@ export default function GameScreen() {
       return () => clearTimeout(t);
     }
   }, [preGameCountdown]);
+
+  // Stop BGM on game over or unmount
+  useEffect(() => {
+    if (gameOver) {
+      try { bgmPlayer.pause(); } catch (_) {}
+    }
+    return () => {
+      try { bgmPlayer.pause(); } catch (_) {}
+    };
+  }, [gameOver]);
 
   // Timeout handler
   useEffect(() => {
@@ -189,8 +229,7 @@ export default function GameScreen() {
   // Tick sound
   useEffect(() => {
     if (timeLeft <= 5 && timeLeft > 0 && preGameCountdown === null && !gameOver) {
-      tickPlayer.seekTo(0);
-      tickPlayer.play();
+      safePlay(tickPlayer);
     }
   }, [timeLeft]);
 
@@ -211,6 +250,10 @@ export default function GameScreen() {
     setIsTransitioning(true);
     const newWrong = wrongCount + 1;
     setWrongCount(newWrong);
+    // Balloon pop sound after 400ms delay to sync with plane hit
+    setTimeout(() => {
+      safePlay(pingPlayer);
+    }, 400);
     setFeedback('timeout');
     setStreak(0);
 
@@ -324,6 +367,10 @@ export default function GameScreen() {
     } else {
       newWrong = wrongCount + 1;
       setWrongCount(newWrong);
+      // Balloon pop sound after 400ms delay to sync with plane hit
+      setTimeout(() => {
+        safePlay(pingPlayer);
+      }, 400);
       setFeedback('wrong');
       setStreak(0);
       setLastCoinReward(null);
@@ -634,6 +681,8 @@ export default function GameScreen() {
   };
 
   const handleConfirmQuit = () => {
+    // Stop BGM
+    bgmPlayer.pause();
     if (mode === 'classic') {
       router.replace('/classic-map');
     } else {

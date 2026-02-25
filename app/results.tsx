@@ -26,6 +26,7 @@ import type { Difficulty, GameMode } from '@/lib/math-engine';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import * as dbLib from '@/lib/db';
+import { useAudioPlayer } from 'expo-audio';
 
 
 
@@ -217,6 +218,23 @@ export default function ResultsScreen() {
   const isLevelComplete = mode === 'classic' && !isGameOver && percentage >= 75;
 
   const { user, isGuest, refreshUser } = useAuth();
+  const gameOverPlayer = useAudioPlayer(require('@/assets/sounds/game_over.mp3'));
+  const levelCompletePlayer = useAudioPlayer(require('@/assets/sounds/level_complete.mp3'));
+
+  const safePlay = React.useCallback(
+    (player: any, volume: number = 1.0) => {
+      try {
+        if (player) {
+          player.volume = volume;
+          player.seekTo(0);
+          player.play();
+        }
+      } catch (err) {
+        console.warn('Audio play failed in results:', err);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const saveResults = async () => {
@@ -254,6 +272,13 @@ export default function ResultsScreen() {
       if (percentage >= 70) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+    }
+
+    const shouldPlayGameOverSound = isGameOver || (mode === 'classic' && !isLevelComplete);
+    if (shouldPlayGameOverSound) {
+      safePlay(gameOverPlayer, 0.5);
+    } else if (isLevelComplete) {
+      safePlay(levelCompletePlayer, 0.5);
     }
   }, []);
   const getMessage = () => {
