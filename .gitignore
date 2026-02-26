@@ -39,3 +39,8 @@ yarn-error.*
 .vercel
 
 .env
+
+# Release keystore and credentials (NEVER COMMIT)
+android/app/release.keystore
+credentials/
+credentials.json
