@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,7 +6,11 @@ import {
   Pressable,
   Platform,
   FlatList,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -37,6 +41,7 @@ interface ResultItem {
   correct: boolean;
   timeUp: boolean;
   topic: string;
+  stringAnswer?: string;
   coinsEarned?: number;
   multiplier?: number;
   problem?: any;
@@ -91,9 +96,16 @@ const starStyles = StyleSheet.create({
   },
 });
 
-function ResultRow({ item }: { item: ResultItem }) {
+function ResultRow({ item, onPress }: { item: ResultItem; onPress?: () => void }) {
   return (
-    <View style={[rowStyles.row, item.correct ? rowStyles.correct : rowStyles.wrong]}>
+    <Pressable 
+      onPress={onPress}
+      style={({ pressed }) => [
+        rowStyles.row, 
+        item.correct ? rowStyles.correct : rowStyles.wrong,
+        pressed && { opacity: 0.7 }
+      ]}
+    >
       <View style={rowStyles.left}>
         <Ionicons
           name={item.correct ? 'checkmark-circle' : 'close-circle'}
@@ -105,22 +117,25 @@ function ResultRow({ item }: { item: ResultItem }) {
           <Text style={rowStyles.topic}>{item.topic}</Text>
         </View>
       </View>
-      <View style={rowStyles.right}>
-        {item.timeUp ? (
-          <View style={rowStyles.timeUpBadge}>
-            <Ionicons name="time-outline" size={14} color={Colors.secondaryDark} />
-            <Text style={rowStyles.timeUpText}>Time up</Text>
-          </View>
-        ) : (
-          <Text style={[rowStyles.answerText, !item.correct && rowStyles.wrongAnswer]}>
-            {item.userAnswer}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={rowStyles.right}>
+          {item.timeUp ? (
+            <View style={rowStyles.timeUpBadge}>
+              <Ionicons name="time-outline" size={14} color={Colors.secondaryDark} />
+              <Text style={rowStyles.timeUpText}>Time up</Text>
+            </View>
+          ) : (
+            <Text style={[rowStyles.answerText, !item.correct && rowStyles.wrongAnswer]}>
+              {item.userAnswer}
+            </Text>
+          )}
+          <Text style={rowStyles.correctAnswer}>
+            = {item.stringAnswer || item.answer}
           </Text>
-        )}
-        <Text style={rowStyles.correctAnswer}>
-          = {item.problem?.stringAnswer || item.answer}
-        </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textLight} style={{ opacity: 0.5 }} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -198,6 +213,8 @@ export default function ResultsScreen() {
   }>();
 
   const insets = useSafeAreaInsets();
+  const [selectedProblem, setSelectedProblem] = useState<ResultItem | null>(null);
+
   const score = parseInt(params.score || '0', 10);
   const total = parseInt(params.total || '0', 10);
   const wrongCount = parseInt(params.wrong || '0', 10);
@@ -236,11 +253,417 @@ export default function ResultsScreen() {
     []
   );
 
+  const getStepByStepSolution = (prob: any) => {
+    if (!prob) return '';
+    try {
+      const { operation, num1, num2, answer, stringAnswer, display, topic } = prob;
+
+      // Helper: right-align numbers for vertical arithmetic
+      const pad = (n: number | string, width: number) => String(n).padStart(width, ' ');
+
+      // Helper: GCD for fraction simplification
+      const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+
+      // Helper: LCM
+      const lcm = (a: number, b: number) => (a * b) / gcd(a, b);
+
+      switch (operation) {
+        case 'add': {
+          const w = Math.max(String(num1).length, String(num2).length, String(answer).length);
+          const line = '─'.repeat(w + 2);
+
+          // Column-by-column working
+          const s1 = String(num1).padStart(w, '0');
+          const s2 = String(num2).padStart(w, '0');
+          const steps: string[] = [];
+          let carry = 0;
+          for (let i = w - 1; i >= 0; i--) {
+            const d1 = parseInt(s1[i]);
+            const d2 = parseInt(s2[i]);
+            const sum = d1 + d2 + carry;
+            const digit = sum % 10;
+            const newCarry = Math.floor(sum / 10);
+            let stepText = `  ${d1} + ${d2}`;
+            if (carry > 0) stepText += ` + ${carry} (carried)`;
+            stepText += ` = ${sum}`;
+            if (newCarry > 0) stepText += `  ✏️ write ${digit}, carry ${newCarry}`;
+            else stepText += `  ✏️ write ${digit}`;
+            steps.push(stepText);
+            carry = newCarry;
+          }
+
+          return [
+            `📝 Step 1: Line up the numbers`,
+            ``,
+            `    ${pad(num1, w)}`,
+            `  + ${pad(num2, w)}`,
+            `  ${line}`,
+            ``,
+            `📝 Step 2: Add each column from right to left`,
+            ``,
+            ...steps,
+            ``,
+            `📝 Step 3: Write the answer! 🎉`,
+            ``,
+            `    ${pad(num1, w)}`,
+            `  + ${pad(num2, w)}`,
+            `  ${line}`,
+            `    ${pad(answer, w)}  ✓`,
+          ].join('\n');
+        }
+
+        case 'subtract': {
+          const w = Math.max(String(num1).length, String(num2).length, String(answer).length);
+          const line = '─'.repeat(w + 2);
+
+          const s1 = String(num1).padStart(w, '0');
+          const s2 = String(num2).padStart(w, '0');
+          const steps: string[] = [];
+          const digits1 = s1.split('').map(Number);
+          let borrowed = Array(w).fill(0);
+
+          for (let i = w - 1; i >= 0; i--) {
+            let d1 = digits1[i] - borrowed[i];
+            const d2 = parseInt(s2[i]);
+            if (d1 < d2 && i > 0) {
+              steps.push(`  ${d1} < ${d2}, so borrow 1 from the left`);
+              d1 += 10;
+              borrowed[i - 1] = 1;
+              steps.push(`  ${d1} − ${d2} = ${d1 - d2}  ✏️ write ${d1 - d2}`);
+            } else {
+              steps.push(`  ${d1} − ${d2} = ${d1 - d2}  ✏️ write ${d1 - d2}`);
+            }
+          }
+
+          return [
+            `📝 Step 1: Put the bigger number on top`,
+            ``,
+            `    ${pad(num1, w)}`,
+            `  − ${pad(num2, w)}`,
+            `  ${line}`,
+            ``,
+            `📝 Step 2: Subtract each column from right to left`,
+            ``,
+            ...steps,
+            ``,
+            `📝 Step 3: Write the answer! 🎉`,
+            ``,
+            `    ${pad(num1, w)}`,
+            `  − ${pad(num2, w)}`,
+            `  ${line}`,
+            `    ${pad(answer, w)}  ✓`,
+          ].join('\n');
+        }
+
+        case 'multiply': {
+          const n2str = String(num2);
+          const w = Math.max(String(num1).length, n2str.length, String(answer).length);
+          const line = '─'.repeat(w + 2);
+
+          if (n2str.length === 1) {
+            const steps: string[] = [];
+            const s1 = String(num1);
+            let carry = 0;
+            for (let i = s1.length - 1; i >= 0; i--) {
+              const d = parseInt(s1[i]);
+              const product = d * num2 + carry;
+              const digit = product % 10;
+              const newCarry = Math.floor(product / 10);
+              let stepText = `  ${d} × ${num2}`;
+              if (carry > 0) stepText += ` + ${carry} (carried)`;
+              stepText += ` = ${product}`;
+              if (newCarry > 0) stepText += `  ✏️ write ${digit}, carry ${newCarry}`;
+              else stepText += `  ✏️ write ${digit}`;
+              steps.push(stepText);
+              carry = newCarry;
+            }
+
+            return [
+              `📝 Step 1: Set up the multiplication`,
+              ``,
+              `    ${pad(num1, w)}`,
+              `  × ${pad(num2, w)}`,
+              `  ${line}`,
+              ``,
+              `📝 Step 2: Multiply each digit from right to left`,
+              ``,
+              ...steps,
+              ``,
+              `📝 Step 3: Write the answer! 🎉`,
+              ``,
+              `    ${pad(num1, w)}`,
+              `  × ${pad(num2, w)}`,
+              `  ${line}`,
+              `    ${pad(answer, w)}  ✓`,
+            ].join('\n');
+          }
+
+          // Multi-digit
+          const partials: string[] = [];
+          const partialExplains: string[] = [];
+          for (let i = 0; i < n2str.length; i++) {
+            const digit = parseInt(n2str[n2str.length - 1 - i]);
+            const partial = num1 * digit * Math.pow(10, i);
+            partials.push(partial.toString());
+            const zeros = i > 0 ? ` (add ${i} zero${i > 1 ? 's' : ''})` : '';
+            partialExplains.push(`  ${num1} × ${digit}${zeros} = ${partial}`);
+          }
+
+          const pw = Math.max(w, ...partials.map(p => p.length));
+          const pline = '─'.repeat(pw + 2);
+          const lines = [
+            `📝 Step 1: Set up the multiplication`,
+            ``,
+            `    ${pad(num1, pw)}`,
+            `  × ${pad(num2, pw)}`,
+            `  ${pline}`,
+            ``,
+            `📝 Step 2: Multiply by each digit`,
+            ``,
+            ...partialExplains,
+            ``,
+            `📝 Step 3: Add the partial results! 🎉`,
+            ``,
+          ];
+          partials.forEach((p, i) => {
+            lines.push(`  ${i === 0 ? ' ' : '+'} ${pad(p, pw)}`);
+          });
+          lines.push(`  ${pline}`);
+          lines.push(`    ${pad(answer, pw)}  ✓`);
+          return lines.join('\n');
+        }
+
+        case 'divide': {
+          const quotient = answer;
+          const dividendStr = String(num1);
+          let remainder = 0;
+          const workLines: string[] = [];
+
+          for (let i = 0; i < dividendStr.length; i++) {
+            const current = remainder * 10 + parseInt(dividendStr[i]);
+            const q = Math.floor(current / num2);
+            const product = q * num2;
+            remainder = current - product;
+            const bringDown = remainder > 0 && i < dividendStr.length - 1 
+              ? `  👉 leftover ${remainder}, bring down next digit` 
+              : '';
+            workLines.push(`  ${num2} goes into ${current} → ${q} time${q !== 1 ? 's' : ''}  (${num2} × ${q} = ${product})${bringDown}`);
+          }
+
+          return [
+            `📝 Step 1: How many times does ${num2} fit?`,
+            ``,
+            `  ${num1} ÷ ${num2}`,
+            ``,
+            `📝 Step 2: Divide digit by digit`,
+            ``,
+            ...workLines,
+            ``,
+            `📝 Step 3: Write the answer! 🎉`,
+            ``,
+            `  ${num1} ÷ ${num2} = ${quotient}  ✓`,
+          ].join('\n');
+        }
+
+        case 'fraction_add': {
+          if (!display) return `= ${stringAnswer || answer}`;
+          const parts = display.split(' + ');
+          if (parts.length !== 2) return `${display} = ${stringAnswer || answer}`;
+
+          const [aFrac, bFrac] = parts;
+          const [aN, aD] = aFrac.split('/').map(Number);
+          const [bN, bD] = bFrac.split('/').map(Number);
+          const finalAns = stringAnswer || answer;
+
+          if (aD === bD) {
+            const sumN = aN + bN;
+            const g = gcd(Math.abs(sumN), aD);
+            const simpN = sumN / g;
+            const simpD = aD / g;
+            const lines = [
+              `📝 Step 1: Check the bottom numbers`,
+              ``,
+              `  ${aFrac} + ${bFrac}`,
+              `  Both have ${aD} on the bottom — great! 🎉`,
+              ``,
+              `📝 Step 2: Add the top numbers`,
+              ``,
+              `  ${aN} + ${bN} = ${sumN}`,
+              `  Keep the bottom number: ${aD}`,
+              ``,
+              `  = ${sumN}/${aD}`,
+            ];
+            if (g > 1) {
+              lines.push(``);
+              lines.push(`📝 Step 3: Simplify! Both ${sumN} and ${aD} can be divided by ${g}`);
+              lines.push(`  = ${simpN}/${simpD}`);
+            }
+            lines.push(``);
+            lines.push(`  Answer: ${finalAns}  ✓`);
+            return lines.join('\n');
+          } else {
+            const commonD = lcm(aD, bD);
+            const newAN = aN * (commonD / aD);
+            const newBN = bN * (commonD / bD);
+            const sumN = newAN + newBN;
+            const g = gcd(Math.abs(sumN), commonD);
+            const simpN = sumN / g;
+            const simpD = commonD / g;
+            const lines = [
+              `📝 Step 1: The bottom numbers are different!`,
+              ``,
+              `  ${aFrac} + ${bFrac}`,
+              `  ${aD} and ${bD} are not the same 🤔`,
+              ``,
+              `📝 Step 2: Make the bottoms the same (find LCD)`,
+              ``,
+              `  LCD of ${aD} and ${bD} = ${commonD}`,
+              ``,
+              `  ${aN}/${aD} → multiply top and bottom by ${commonD / aD}`,
+              `       = ${newAN}/${commonD}`,
+              `  ${bN}/${bD} → multiply top and bottom by ${commonD / bD}`,
+              `       = ${newBN}/${commonD}`,
+              ``,
+              `📝 Step 3: Now add the top numbers! 🎉`,
+              ``,
+              `  ${newAN}/${commonD} + ${newBN}/${commonD}`,
+              `  = ${sumN}/${commonD}`,
+            ];
+            if (g > 1) {
+              lines.push(``);
+              lines.push(`📝 Step 4: Simplify! Divide both by ${g}`);
+              lines.push(`  = ${simpN}/${simpD}`);
+            }
+            lines.push(``);
+            lines.push(`  Answer: ${finalAns}  ✓`);
+            return lines.join('\n');
+          }
+        }
+
+        case 'fraction_subtract': {
+          if (!display) return `= ${stringAnswer || answer}`;
+          const parts = display.split(' - ');
+          if (parts.length !== 2) return `${display} = ${stringAnswer || answer}`;
+
+          const [aFrac, bFrac] = parts;
+          const [aN, aD] = aFrac.split('/').map(Number);
+          const [bN, bD] = bFrac.split('/').map(Number);
+          const finalAns = stringAnswer || answer;
+
+          if (aD === bD) {
+            const diffN = aN - bN;
+            const g = gcd(Math.abs(diffN), aD);
+            const simpN = diffN / g;
+            const simpD = aD / g;
+            const lines = [
+              `📝 Step 1: Check the bottom numbers`,
+              ``,
+              `  ${aFrac} − ${bFrac}`,
+              `  Both have ${aD} on the bottom — great! 🎉`,
+              ``,
+              `📝 Step 2: Subtract the top numbers`,
+              ``,
+              `  ${aN} − ${bN} = ${diffN}`,
+              `  Keep the bottom number: ${aD}`,
+              ``,
+              `  = ${diffN}/${aD}`,
+            ];
+            if (g > 1) {
+              lines.push(``);
+              lines.push(`📝 Step 3: Simplify! Both ${diffN} and ${aD} can be divided by ${g}`);
+              lines.push(`  = ${simpN}/${simpD}`);
+            }
+            lines.push(``);
+            lines.push(`  Answer: ${finalAns}  ✓`);
+            return lines.join('\n');
+          } else {
+            const commonD = lcm(aD, bD);
+            const newAN = aN * (commonD / aD);
+            const newBN = bN * (commonD / bD);
+            const diffN = newAN - newBN;
+            const g = gcd(Math.abs(diffN), commonD);
+            const simpN = diffN / g;
+            const simpD = commonD / g;
+            const lines = [
+              `📝 Step 1: The bottom numbers are different!`,
+              ``,
+              `  ${aFrac} − ${bFrac}`,
+              `  ${aD} and ${bD} are not the same 🤔`,
+              ``,
+              `📝 Step 2: Make the bottoms the same (find LCD)`,
+              ``,
+              `  LCD of ${aD} and ${bD} = ${commonD}`,
+              ``,
+              `  ${aN}/${aD} → multiply top and bottom by ${commonD / aD}`,
+              `       = ${newAN}/${commonD}`,
+              `  ${bN}/${bD} → multiply top and bottom by ${commonD / bD}`,
+              `       = ${newBN}/${commonD}`,
+              ``,
+              `📝 Step 3: Now subtract the top numbers! 🎉`,
+              ``,
+              `  ${newAN}/${commonD} − ${newBN}/${commonD}`,
+              `  = ${diffN}/${commonD}`,
+            ];
+            if (g > 1) {
+              lines.push(``);
+              lines.push(`📝 Step 4: Simplify! Divide both by ${g}`);
+              lines.push(`  = ${simpN}/${simpD}`);
+            }
+            lines.push(``);
+            lines.push(`  Answer: ${finalAns}  ✓`);
+            return lines.join('\n');
+          }
+        }
+
+        default:
+          return `= ${stringAnswer || answer}`;
+      }
+    } catch (e) {
+      return `= ${prob.stringAnswer || prob.answer}`;
+    }
+  };
+
+  const renderSolutionModal = () => {
+    if (!selectedProblem) return null;
+
+    const prob = selectedProblem.problem;
+    const explanation = prob 
+      ? getStepByStepSolution(prob) 
+      : `The correct answer is ${selectedProblem.stringAnswer || selectedProblem.answer}. (Detailed problem data is missing)`;
+
+    return (
+      <Modal
+        visible={!!selectedProblem}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedProblem(null)}
+      >
+        <View style={modalStyles.overlay}>
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          <Animated.View entering={FadeInUp.duration(300).springify()} style={modalStyles.container}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Solution</Text>
+              <TouchableOpacity onPress={() => setSelectedProblem(null)} style={modalStyles.closeBtn}>
+                <Ionicons name="close" size={24} color={Colors.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={modalStyles.body} contentContainerStyle={{ paddingBottom: 40 }}>
+              <Text style={modalStyles.problemDisplay}>{selectedProblem.display}</Text>
+              <Text style={modalStyles.explanation}>{explanation}</Text>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+    );
+  };
+
   useEffect(() => {
     const saveResults = async () => {
       const { addCoins, updateHighScore, advanceClassicLevel, advanceClassicLevelForUser } = useGameState.getState();
       addCoins(earnedCoins);
-      updateHighScore(difficulty, score);
+      if (mode === 'survival') {
+        updateHighScore(difficulty, score);
+      }
 
       // Advance classic level on completion
       if (isLevelComplete) {
@@ -387,10 +810,11 @@ export default function ResultsScreen() {
 
       <View style={styles.listContainer}>
         <Text style={styles.listTitle}>Review Answers</Text>
+        <Text style={styles.listHint}>👆 Tap any question to see how to solve it!</Text>
         <FlatList
           data={resultItems}
           keyExtractor={(_, index) => index.toString()}
-          renderItem={({ item }) => <ResultRow item={item} />}
+          renderItem={({ item }) => <ResultRow item={item} onPress={() => setSelectedProblem(item)} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           scrollEnabled={resultItems.length > 0}
@@ -420,6 +844,7 @@ export default function ResultsScreen() {
           <Text style={styles.playAgainText}>{mode === 'classic' && isLevelComplete ? 'Next Level' : 'Play Again'}</Text>
         </Pressable>
       </Animated.View>
+      {renderSolutionModal()}
     </View>
   );
 }
@@ -516,6 +941,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.text,
+    marginBottom: 2,
+  },
+  listHint: {
+    fontSize: 12,
+    fontFamily: 'Fredoka_400Regular',
+    color: Colors.textLight,
     marginBottom: 10,
   },
   listContent: {
@@ -559,4 +990,58 @@ const styles = StyleSheet.create({
     fontFamily: 'Fredoka_700Bold',
     color: Colors.textWhite,
   },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    width: '85%',
+    maxHeight: '70%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  title: {
+    fontSize: 22,
+    fontFamily: 'Fredoka_700Bold',
+    color: Colors.text,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  body: {
+    padding: 24,
+  },
+  problemDisplay: {
+    fontSize: 28,
+    fontFamily: 'Fredoka_700Bold',
+    color: Colors.primary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  explanation: {
+    fontSize: 18,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: Colors.text,
+    lineHeight: 28,
+    textAlign: 'left',
+  }
 });

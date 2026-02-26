@@ -74,8 +74,9 @@
         "origin": "https://localhost:8081"
       },
       "eas": {
-        "projectId": "672f23bd-48ed-48b7-a7c8-38405618bf49"
+        "projectId": "a319cbd1-992f-4fbf-956c-1acd6941d7da"
       }
-    }
+    },
+    "owner": "stickman_math_85"
   }
 }

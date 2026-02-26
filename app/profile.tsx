@@ -20,10 +20,12 @@ import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { BlurView } from 'expo-blur';
 import StickmanCoin from '@/components/StickmanCoin';
+import { useGameState } from '@/hooks/useGameState';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest, updateUsername, updatePassword, logout } = useAuth();
+  const { coins } = useGameState();
   
   const [newUsername, setNewUsername] = useState(user?.username || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -165,7 +167,7 @@ export default function ProfileScreen() {
               <Text style={styles.usernameText}>{user?.username}</Text>
               <View style={styles.coinBadge}>
                 <StickmanCoin size={18} />
-                <Text style={styles.coinText}>{user?.coins?.toLocaleString()} Coins</Text>
+                <Text style={styles.coinText}>{coins.toLocaleString()} Coins</Text>
               </View>
             </View>
           </LinearGradient>

@@ -9,9 +9,23 @@ interface NumberPadProps {
   onDelete: () => void;
   onSubmit: () => void;
   disabled?: boolean;
+  isSmallScreen?: boolean;
+  screenHeight?: number;
 }
 
-export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: NumberPadProps) {
+export default function NumberPad({ onPress, onDelete, onSubmit, disabled, isSmallScreen = false, screenHeight = 800 }: NumberPadProps) {
+  // Proportional sizing: keys take up ~35% of screen height for 5 rows
+  const availableHeight = screenHeight * 0.35;
+  const keyHeight = Math.max(36, Math.min(56, Math.floor((availableHeight - 4 * 6) / 5)));
+  const keyWidth = Math.max(55, Math.min(80, Math.round(keyHeight * 1.4)));
+  const keyGap = Math.max(4, Math.min(8, Math.round(keyHeight * 0.12)));
+  const fontSize = Math.max(16, Math.min(24, Math.round(keyHeight * 0.42)));
+  const goKeyWidth = (keyWidth * 3) + (keyGap * 2);
+
+  const dynamicRow = { gap: keyGap };
+  const dynamicKey = { width: keyWidth, height: keyHeight };
+  const dynamicGoKey = { width: goKeyWidth };
+  const dynamicText = { fontSize };
   const handlePress = (value: string) => {
     if (disabled) return;
     if (Platform.OS !== 'web') {
@@ -45,9 +59,9 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { gap: keyGap }]}>
       {keys.map((row, rowIndex) => (
-        <View key={rowIndex} style={styles.row}>
+        <View key={rowIndex} style={[styles.row, dynamicRow]}>
           {row.map((key) => {
             if (key === 'del') {
               return (
@@ -55,6 +69,7 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
                   key={key}
                   style={({ pressed }) => [
                     styles.key,
+                    dynamicKey,
                     styles.specialKey,
                     { backgroundColor: Colors.tertiary },
                     pressed && styles.keyPressed,
@@ -63,7 +78,7 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
                   onPress={handleDelete}
                   disabled={disabled}
                 >
-                  <Ionicons name="backspace-outline" size={26} color={Colors.text} />
+                  <Ionicons name="backspace-outline" size={isSmallScreen ? 22 : 26} color={Colors.text} />
                 </Pressable>
               );
             }
@@ -73,14 +88,16 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
                   key={key}
                   style={({ pressed }) => [
                     styles.key,
+                    dynamicKey,
                     styles.goKey,
+                    dynamicGoKey,
                     pressed && styles.keyPressed,
                     disabled && styles.keyDisabled,
                   ]}
                   onPress={handleSubmit}
                   disabled={disabled}
                 >
-                  <Ionicons name="checkmark" size={30} color={Colors.textWhite} />
+                  <Ionicons name="checkmark" size={isSmallScreen ? 26 : 30} color={Colors.textWhite} />
                 </Pressable>
               );
             }
@@ -89,13 +106,14 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled }: Num
                 key={key}
                 style={({ pressed }) => [
                   styles.key,
+                  dynamicKey,
                   pressed && styles.keyPressed,
                   disabled && styles.keyDisabled,
                 ]}
                 onPress={() => handlePress(key)}
                 disabled={disabled}
               >
-                <Text style={styles.keyText}>{key}</Text>
+                <Text style={[styles.keyText, dynamicText]}>{key}</Text>
               </Pressable>
             );
           })}

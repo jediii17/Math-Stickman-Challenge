@@ -213,7 +213,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const raEndY = armY + armLen * 0.5;
 
   const hasHat = equipped.hair === 'hat-robot' || equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3' || equipped.hair === 'hat-4' || (equipped.hair && equipped.hair.startsWith('hair-'));
-  const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3' || (equipped.face && equipped.face.startsWith('face-'));
+  const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3' || equipped.face === 'face-hero';
   const hasUpper = !!equipped.upper;
   const hasLower = !!equipped.lower;
   const hasBack = !!equipped.back;
@@ -405,121 +405,101 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     return null;
   };
 
-  const renderGlasses = () => {
+  const renderFaceAccessories = () => {
     // If the helmet is on, don't render any face accessories
     if (equipped.hair === 'hat-robot') return null;
-    if (!hasGlasses) return null;
+    
     const lensR = headR * 0.25;
     const eyeOffsetX = headR * 0.4;
+    
+    return (
+      <G>
+        {/* === CHEEKS === */}
+        {equipped.cheeks === 'face-blush' && (
+          <G>
+            <Ellipse cx={cx - eyeOffsetX * 1.2} cy={headCY + headR * 0.3} rx={headR * 0.25} ry={headR * 0.15} fill="#FF8A80" opacity={0.7} />
+            <Ellipse cx={cx + eyeOffsetX * 1.2} cy={headCY + headR * 0.3} rx={headR * 0.25} ry={headR * 0.15} fill="#FF8A80" opacity={0.7} />
+          </G>
+        )}
+        {equipped.cheeks === 'face-star' && (
+          <G>
+            <Path d={`M${cx - eyeOffsetX},${headCY - lensR} L${cx - eyeOffsetX + lensR * 0.3},${headCY - lensR * 0.3} L${cx - eyeOffsetX + lensR},${headCY - lensR * 0.3} L${cx - eyeOffsetX + lensR * 0.4},${headCY + lensR * 0.2} L${cx - eyeOffsetX + lensR * 0.6},${headCY + lensR} L${cx - eyeOffsetX},${headCY + lensR * 0.5} L${cx - eyeOffsetX - lensR * 0.6},${headCY + lensR} L${cx - eyeOffsetX - lensR * 0.4},${headCY + lensR * 0.2} L${cx - eyeOffsetX - lensR},${headCY - lensR * 0.3} L${cx - eyeOffsetX - lensR * 0.3},${headCY - lensR * 0.3} Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
+            <Path d={`M${cx + eyeOffsetX},${headCY - lensR} L${cx + eyeOffsetX + lensR * 0.3},${headCY - lensR * 0.3} L${cx + eyeOffsetX + lensR},${headCY - lensR * 0.3} L${cx + eyeOffsetX + lensR * 0.4},${headCY + lensR * 0.2} L${cx + eyeOffsetX + lensR * 0.6},${headCY + lensR} L${cx + eyeOffsetX},${headCY + lensR * 0.5} L${cx + eyeOffsetX - lensR * 0.6},${headCY + lensR} L${cx + eyeOffsetX - lensR * 0.4},${headCY + lensR * 0.2} L${cx + eyeOffsetX - lensR},${headCY - lensR * 0.3} L${cx + eyeOffsetX - lensR * 0.3},${headCY - lensR * 0.3} Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
+          </G>
+        )}
+        {equipped.cheeks === 'face-freckles' && (
+          <G>
+            <Circle cx={cx - eyeOffsetX * 1.5} cy={headCY + headR * 0.2} r={1} fill="#8D6E63" />
+            <Circle cx={cx - eyeOffsetX * 1.1} cy={headCY + headR * 0.3} r={1.2} fill="#8D6E63" />
+            <Circle cx={cx - eyeOffsetX * 0.7} cy={headCY + headR * 0.25} r={0.8} fill="#8D6E63" />
+            <Circle cx={cx + eyeOffsetX * 1.5} cy={headCY + headR * 0.2} r={1} fill="#8D6E63" />
+            <Circle cx={cx + eyeOffsetX * 1.1} cy={headCY + headR * 0.3} r={1.2} fill="#8D6E63" />
+            <Circle cx={cx + eyeOffsetX * 0.7} cy={headCY + headR * 0.25} r={0.8} fill="#8D6E63" />
+            <Circle cx={cx} cy={headCY + headR * 0.15} r={0.8} fill="#8D6E63" />
+          </G>
+        )}
 
-    if (equipped.face === 'glasses-1') {
-      return (
-        <G>
-          <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
-          <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
-          <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#37474F" strokeWidth={2} />
-          <Line x1={cx - eyeOffsetX - lensR} y1={headCY} x2={cx - headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
-          <Line x1={cx + eyeOffsetX + lensR} y1={headCY} x2={cx + headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
-        </G>
-      );
-    }
-
-    if (equipped.face === 'glasses-2') {
-      return (
-        <G>
-          <Path d={`M${cx - eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx - eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
-          <Path d={`M${cx + eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx + eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
-          <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#2196F3" strokeWidth={2} />
-        </G>
-      );
-    }
-
-    if (equipped.face === 'glasses-3') {
-      const g3R = lensR * 1.1;
-      return (
-        <G>
-          <Circle cx={cx - eyeOffsetX} cy={headCY} r={g3R} fill="none" stroke="#E91E63" strokeWidth={2} />
-          <Circle cx={cx + eyeOffsetX} cy={headCY} r={g3R} fill="none" stroke="#E91E63" strokeWidth={2} />
-          <Line x1={cx - eyeOffsetX + g3R} y1={headCY} x2={cx + eyeOffsetX - g3R} y2={headCY} stroke="#E91E63" strokeWidth={2} />
-          <Path d={`M${cx - eyeOffsetX - g3R},${headCY - g3R * 0.5} L${cx - headR},${headCY - g3R * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
-          <Path d={`M${cx + eyeOffsetX + g3R},${headCY - g3R * 0.5} L${cx + headR},${headCY - g3R * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
-        </G>
-      );
-    }
-
-    // --- New Creative Face Accessories ---
-    if (equipped.face === 'face-blush') {
-      return (
-        <G>
-          <Ellipse cx={cx - eyeOffsetX * 1.2} cy={headCY + headR * 0.3} rx={headR * 0.25} ry={headR * 0.15} fill="#FF8A80" opacity={0.7} />
-          <Ellipse cx={cx + eyeOffsetX * 1.2} cy={headCY + headR * 0.3} rx={headR * 0.25} ry={headR * 0.15} fill="#FF8A80" opacity={0.7} />
-        </G>
-      );
-    }
-
-    if (equipped.face === 'face-star') {
-      return (
-        <G>
-          <Path d={`M${cx - eyeOffsetX},${headCY - lensR} L${cx - eyeOffsetX + lensR * 0.3},${headCY - lensR * 0.3} L${cx - eyeOffsetX + lensR},${headCY - lensR * 0.3} L${cx - eyeOffsetX + lensR * 0.4},${headCY + lensR * 0.2} L${cx - eyeOffsetX + lensR * 0.6},${headCY + lensR} L${cx - eyeOffsetX},${headCY + lensR * 0.5} L${cx - eyeOffsetX - lensR * 0.6},${headCY + lensR} L${cx - eyeOffsetX - lensR * 0.4},${headCY + lensR * 0.2} L${cx - eyeOffsetX - lensR},${headCY - lensR * 0.3} L${cx - eyeOffsetX - lensR * 0.3},${headCY - lensR * 0.3} Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
-          <Path d={`M${cx + eyeOffsetX},${headCY - lensR} L${cx + eyeOffsetX + lensR * 0.3},${headCY - lensR * 0.3} L${cx + eyeOffsetX + lensR},${headCY - lensR * 0.3} L${cx + eyeOffsetX + lensR * 0.4},${headCY + lensR * 0.2} L${cx + eyeOffsetX + lensR * 0.6},${headCY + lensR} L${cx + eyeOffsetX},${headCY + lensR * 0.5} L${cx + eyeOffsetX - lensR * 0.6},${headCY + lensR} L${cx + eyeOffsetX - lensR * 0.4},${headCY + lensR * 0.2} L${cx + eyeOffsetX - lensR},${headCY - lensR * 0.3} L${cx + eyeOffsetX - lensR * 0.3},${headCY - lensR * 0.3} Z`} fill="#FFD700" stroke="#FFC107" strokeWidth={1} />
-        </G>
-      );
-    }
-
-    if (equipped.face === 'face-bandaid') {
-      return (
-        <G>
+        {/* === MOUTH === */}
+        {equipped.mouth === 'face-bandaid' && (
           <G transform={`translate(${cx}, ${headCY + headR * 0.3}) rotate(-15)`}>
             <Rect x={-headR * 0.4} y={-headR * 0.15} width={headR * 0.8} height={headR * 0.3} rx={headR * 0.1} fill="#FFCCBC" stroke="#D84315" strokeWidth={1} />
             <Rect x={-headR * 0.15} y={-headR * 0.15} width={headR * 0.3} height={headR * 0.3} fill="#FFAB91" />
             <Circle cx={-headR * 0.05} cy={-headR * 0.05} r={0.5} fill="#D84315" />
             <Circle cx={headR * 0.05} cy={headR * 0.05} r={0.5} fill="#D84315" />
           </G>
-        </G>
-      );
-    }
+        )}
+        {equipped.mouth === 'face-cat' && (
+          <G>
+            <Path d={`M${cx - headR * 0.2},${headCY + headR * 0.2} L${cx + headR * 0.2},${headCY + headR * 0.2} L${cx},${headCY + headR * 0.4} Z`} fill="#F48FB1" />
+            <Path d={`M${cx},${headCY + headR * 0.4} Q${cx - headR * 0.2},${headCY + headR * 0.6} ${cx - headR * 0.4},${headCY + headR * 0.5}`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
+            <Path d={`M${cx},${headCY + headR * 0.4} Q${cx + headR * 0.2},${headCY + headR * 0.6} ${cx + headR * 0.4},${headCY + headR * 0.5}`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
+            <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.3} x2={cx - headR * 0.8} y2={headCY + headR * 0.1} stroke="#000" strokeWidth={0.8} />
+            <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.4} x2={cx - headR * 0.8} y2={headCY + headR * 0.4} stroke="#000" strokeWidth={0.8} />
+            <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.5} x2={cx - headR * 0.8} y2={headCY + headR * 0.7} stroke="#000" strokeWidth={0.8} />
+            <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.3} x2={cx + headR * 0.8} y2={headCY + headR * 0.1} stroke="#000" strokeWidth={0.8} />
+            <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.4} x2={cx + headR * 0.8} y2={headCY + headR * 0.4} stroke="#000" strokeWidth={0.8} />
+            <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.5} x2={cx + headR * 0.8} y2={headCY + headR * 0.7} stroke="#000" strokeWidth={0.8} />
+          </G>
+        )}
 
-    if (equipped.face === 'face-freckles') {
-      return (
-        <G>
-          <Circle cx={cx - eyeOffsetX * 1.5} cy={headCY + headR * 0.2} r={1} fill="#8D6E63" />
-          <Circle cx={cx - eyeOffsetX * 1.1} cy={headCY + headR * 0.3} r={1.2} fill="#8D6E63" />
-          <Circle cx={cx - eyeOffsetX * 0.7} cy={headCY + headR * 0.25} r={0.8} fill="#8D6E63" />
-          <Circle cx={cx + eyeOffsetX * 1.5} cy={headCY + headR * 0.2} r={1} fill="#8D6E63" />
-          <Circle cx={cx + eyeOffsetX * 1.1} cy={headCY + headR * 0.3} r={1.2} fill="#8D6E63" />
-          <Circle cx={cx + eyeOffsetX * 0.7} cy={headCY + headR * 0.25} r={0.8} fill="#8D6E63" />
-          <Circle cx={cx} cy={headCY + headR * 0.15} r={0.8} fill="#8D6E63" />
-        </G>
-      );
-    }
+        {/* === FACE (Eyes/Glasses/Masks) === */}
+        {hasGlasses && equipped.face === 'glasses-1' && (
+          <G>
+            <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
+            <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR} fill="rgba(54, 69, 79, 0.4)" stroke="#37474F" strokeWidth={2} />
+            <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#37474F" strokeWidth={2} />
+            <Line x1={cx - eyeOffsetX - lensR} y1={headCY} x2={cx - headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
+            <Line x1={cx + eyeOffsetX + lensR} y1={headCY} x2={cx + headR} y2={headCY - lensR} stroke="#37474F" strokeWidth={1.5} />
+          </G>
+        )}
 
-    if (equipped.face === 'face-cat') {
-      return (
-        <G>
-          <Path d={`M${cx - headR * 0.2},${headCY + headR * 0.2} L${cx + headR * 0.2},${headCY + headR * 0.2} L${cx},${headCY + headR * 0.4} Z`} fill="#F48FB1" />
-          <Path d={`M${cx},${headCY + headR * 0.4} Q${cx - headR * 0.2},${headCY + headR * 0.6} ${cx - headR * 0.4},${headCY + headR * 0.5}`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
-          <Path d={`M${cx},${headCY + headR * 0.4} Q${cx + headR * 0.2},${headCY + headR * 0.6} ${cx + headR * 0.4},${headCY + headR * 0.5}`} fill="none" stroke="#F48FB1" strokeWidth={1.5} />
-          <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.3} x2={cx - headR * 0.8} y2={headCY + headR * 0.1} stroke="#000" strokeWidth={0.8} />
-          <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.4} x2={cx - headR * 0.8} y2={headCY + headR * 0.4} stroke="#000" strokeWidth={0.8} />
-          <Line x1={cx - headR * 0.3} y1={headCY + headR * 0.5} x2={cx - headR * 0.8} y2={headCY + headR * 0.7} stroke="#000" strokeWidth={0.8} />
-          <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.3} x2={cx + headR * 0.8} y2={headCY + headR * 0.1} stroke="#000" strokeWidth={0.8} />
-          <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.4} x2={cx + headR * 0.8} y2={headCY + headR * 0.4} stroke="#000" strokeWidth={0.8} />
-          <Line x1={cx + headR * 0.3} y1={headCY + headR * 0.5} x2={cx + headR * 0.8} y2={headCY + headR * 0.7} stroke="#000" strokeWidth={0.8} />
-        </G>
-      );
-    }
+        {hasGlasses && equipped.face === 'glasses-2' && (
+          <G>
+            <Path d={`M${cx - eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx - eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx - eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
+            <Path d={`M${cx + eyeOffsetX - lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY - lensR * 0.8} L${cx + eyeOffsetX + lensR},${headCY + lensR * 0.8} L${cx + eyeOffsetX - lensR},${headCY + lensR * 0.8} Z`} fill="none" stroke="#2196F3" strokeWidth={2} />
+            <Line x1={cx - eyeOffsetX + lensR} y1={headCY} x2={cx + eyeOffsetX - lensR} y2={headCY} stroke="#2196F3" strokeWidth={2} />
+          </G>
+        )}
+        
+        {hasGlasses && equipped.face === 'glasses-3' && (
+          <G>
+            <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR * 1.1} fill="none" stroke="#E91E63" strokeWidth={2} />
+            <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR * 1.1} fill="none" stroke="#E91E63" strokeWidth={2} />
+            <Line x1={cx - eyeOffsetX + lensR * 1.1} y1={headCY} x2={cx + eyeOffsetX - lensR * 1.1} y2={headCY} stroke="#E91E63" strokeWidth={2} />
+            <Path d={`M${cx - eyeOffsetX - lensR * 1.1},${headCY - lensR * 1.1 * 0.5} L${cx - headR},${headCY - lensR * 1.1 * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
+            <Path d={`M${cx + eyeOffsetX + lensR * 1.1},${headCY - lensR * 1.1 * 0.5} L${cx + headR},${headCY - lensR * 1.1 * 1.5}`} stroke="#E91E63" strokeWidth={1.5} strokeLinecap="round" />
+          </G>
+        )}
 
-    if (equipped.face === 'face-hero') {
-      return (
-        <G>
-          <Path d={`M${cx - headR * 0.9},${headCY - headR * 0.3} Q${cx - headR * 0.9},${headCY + headR * 0.4} ${cx - headR * 0.4},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.1} ${cx + headR * 0.4},${headCY + headR * 0.3} Q${cx + headR * 0.9},${headCY + headR * 0.4} ${cx + headR * 0.9},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.9},${headCY - headR * 0.3} Z`} fill="#000000" />
-          <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR * 0.8} fill="#FFF" />
-          <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR * 0.8} fill="#FFF" />
-        </G>
-      );
-    }
-
-    return null;
+        {hasGlasses && equipped.face === 'face-hero' && (
+          <G>
+            <Path d={`M${cx - headR * 0.9},${headCY - headR * 0.3} Q${cx - headR * 0.9},${headCY + headR * 0.4} ${cx - headR * 0.4},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.1} ${cx + headR * 0.4},${headCY + headR * 0.3} Q${cx + headR * 0.9},${headCY + headR * 0.4} ${cx + headR * 0.9},${headCY - headR * 0.3} Q${cx},${headCY - headR * 0.5} ${cx - headR * 0.9},${headCY - headR * 0.3} Z`} fill="#000000" />
+            <Circle cx={cx - eyeOffsetX} cy={headCY} r={lensR * 0.8} fill="#FFF" />
+            <Circle cx={cx + eyeOffsetX} cy={headCY} r={lensR * 0.8} fill="#FFF" />
+          </G>
+        )}
+      </G>
+    );
   };
 
   const renderBehindClothes = () => {
@@ -2095,7 +2075,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
               </G>
             )}
             {renderHat()}
-            {renderGlasses()}
+            {renderFaceAccessories()}
           </G>
         </Svg>
       </Animated.View>

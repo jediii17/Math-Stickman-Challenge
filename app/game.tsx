@@ -76,7 +76,13 @@ interface GameResult {
 export default function GameScreen() {
   const params = useLocalSearchParams<{ difficulty: Difficulty; mode?: GameMode; level?: string }>();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isSmallScreen = screenHeight < 700;
+
+  // Dynamic proportional sizing based on available height
+  const arenaHeight = Math.max(100, Math.min(220, screenHeight * 0.22));
+  const stickmanSize = Math.max(70, Math.min(82, Math.round(arenaHeight * 0.6)));
+  const problemMinHeight = Math.max(100, Math.min(180, screenHeight * 0.18));
 
   const diff = (params.difficulty as Difficulty) || 'easy';
   const mode: GameMode = (params.mode as GameMode) || 'survival';
@@ -470,8 +476,18 @@ export default function GameScreen() {
           correct: r.correct,
           timeUp: r.timeUp,
           topic: r.problem.topic,
+          stringAnswer: r.problem.stringAnswer,
           coinsEarned: r.coinsEarned,
           multiplier: r.multiplier,
+          problem: {
+            operation: r.problem.operation,
+            num1: r.problem.num1,
+            num2: r.problem.num2,
+            answer: r.problem.answer,
+            stringAnswer: r.problem.stringAnswer,
+            display: r.problem.display,
+            topic: r.problem.topic,
+          },
         }))),
       },
     });
@@ -738,8 +754,8 @@ export default function GameScreen() {
       {!scribbleMode && (
         <View style={styles.arenaContainer}>
           {/* Stickman display */}
-          <View style={styles.stickmanArena}>
-            <Stickman wrongCount={wrongCount} size={Math.min(Math.round(screenWidth * 0.25), 200)} emojiReaction={emojiReaction} />
+          <View style={[styles.stickmanArena, { height: arenaHeight }]}>
+            <Stickman wrongCount={wrongCount} size={stickmanSize} emojiReaction={emojiReaction} />
           </View>
 
           {/* Overlaid Hearts — top left */}
@@ -790,19 +806,19 @@ export default function GameScreen() {
       {isTimerPaused && <Snowflakes />}
 
       {/* ── Problem + Feedback Area ── */}
-      <View style={styles.gameArea}>
-        <Animated.View style={[styles.problemCard, problemAnimStyle]}>
+      <View style={[styles.gameArea, isSmallScreen && { gap: 6, paddingHorizontal: 10 }]}>
+        <Animated.View style={[styles.problemCard, problemAnimStyle, { minHeight: problemMinHeight }, isSmallScreen && { padding: 12 }]}>
           {preGameCountdown !== null ? (
             <View style={[StyleSheet.absoluteFill, styles.countdownProblemOverlay]}>
               <Ionicons name="lock-closed" size={32} color={Colors.textLight} />
-              <Text style={styles.countdownProblemText}>Get Ready!</Text>
+              <Text style={[styles.countdownProblemText, isSmallScreen && { fontSize: 16 }]}>Get Ready!</Text>
             </View>
           ) : (
             <>
               <Text style={styles.topicLabel}>{currentProblem.topic}</Text>
-              <Text style={styles.problemText}>{currentProblem.display} = ?</Text>
-              <View style={styles.answerBox}>
-                <Text style={styles.answerText}>
+              <Text style={[styles.problemText, isSmallScreen && { fontSize: 26 }]}>{currentProblem.display} = ?</Text>
+              <View style={[styles.answerBox, isSmallScreen && { paddingVertical: 6, paddingHorizontal: 20 }]}>
+                <Text style={[styles.answerText, isSmallScreen && { fontSize: 24, minHeight: 28 }]}>
                   {userInput.trim() === '' ? '_' : userInput.replace(/ /g, '_')}
                 </Text>
               </View>
@@ -930,6 +946,8 @@ export default function GameScreen() {
             onDelete={handleDelete}
             onSubmit={handleSubmit}
             disabled={isTransitioning || gameOver || preGameCountdown !== null}
+            isSmallScreen={isSmallScreen}
+            screenHeight={screenHeight}
           />
         </Animated.View>
       )}

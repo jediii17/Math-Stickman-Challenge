@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { useGameState, Accessory, PowerUps, AccessoryType } from '@/hooks/useGameState';
+import { useGameState, Accessory, PowerUps, AccessoryType, getSlotForAccessory } from '@/hooks/useGameState';
 import Stickman from '@/components/Stickman';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudioPlayer } from 'expo-audio';
@@ -29,7 +29,7 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { key: 'hair', label: 'Head', icon: 'ribbon-outline', color: '#9B59B6', types: ['hair'] },
-  { key: 'face', label: 'Face', icon: 'glasses-outline', color: '#3498DB', types: ['face'] },
+  { key: 'face', label: 'Face', icon: 'glasses-outline', color: '#3498DB', types: ['face', 'cheeks', 'mouth'] },
   { key: 'upper', label: 'Upper', icon: 'shirt-outline', color: '#E67E22', types: ['upper'] },
   { key: 'lower', label: 'Lower', icon: 'walk-outline', color: '#2ECC71', types: ['lower'] },
   { key: 'shoes', label: 'Shoes', icon: 'footsteps-outline', color: '#E74C3C', types: ['shoes'] },
@@ -1230,7 +1230,7 @@ export default function ShopScreen() {
 
   // Build preview overrides from trial item
   const previewOverrides: Partial<Record<AccessoryType, string | null>> | undefined = trialItem
-    ? { [trialItem.type]: trialItem.id }
+    ? { [getSlotForAccessory(trialItem.id) || trialItem.type]: trialItem.id }
     : undefined;
 
   // Filter items by active category
@@ -1263,9 +1263,9 @@ export default function ShopScreen() {
     }
     // After buying, auto-equip and clear trial
     if (!isGuest && user) {
-      await equipAccessoryForUser(user.id, item.type as AccessoryType, item.id);
+      await equipAccessoryForUser(user.id, getSlotForAccessory(item.id) || item.type as AccessoryType, item.id);
     } else {
-      equipAccessory(item.type as AccessoryType, item.id);
+      equipAccessory(getSlotForAccessory(item.id) || item.type as AccessoryType, item.id);
     }
     setTrialItem(null);
   };
@@ -1297,9 +1297,9 @@ export default function ShopScreen() {
             style={[styles.actionBtn, isEquipped ? styles.equippedBtn : styles.equipBtn]}
             onPress={async () => {
               if (!isGuest && user) {
-                await equipAccessoryForUser(user.id, item.type as AccessoryType, isEquipped ? null : item.id);
+                await equipAccessoryForUser(user.id, getSlotForAccessory(item.id) || item.type as AccessoryType, isEquipped ? null : item.id);
               } else {
-                equipAccessory(item.type as AccessoryType, isEquipped ? null : item.id);
+                equipAccessory(getSlotForAccessory(item.id) || item.type as AccessoryType, isEquipped ? null : item.id);
               }
             }}
           >
@@ -1323,10 +1323,10 @@ export default function ShopScreen() {
                   purchasePlayer.play();
                   if (!isGuest && user) {
                     await buyAccessoryForUser(user.id, item as unknown as Accessory);
-                    await equipAccessoryForUser(user.id, item.type as AccessoryType, item.id);
+                    await equipAccessoryForUser(user.id, getSlotForAccessory(item.id) || item.type as AccessoryType, item.id);
                   } else {
                     buyAccessory(item as unknown as Accessory);
-                    equipAccessory(item.type as AccessoryType, item.id);
+                    equipAccessory(getSlotForAccessory(item.id) || item.type as AccessoryType, item.id);
                   }
                   if (trialItem?.id === item.id) setTrialItem(null);
                 }

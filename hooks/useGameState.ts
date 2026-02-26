@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as db from '@/lib/db';
 
-export type AccessoryType = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back' | 'balloons';
+export type AccessoryType = 'hair' | 'face' | 'cheeks' | 'mouth' | 'upper' | 'lower' | 'shoes' | 'back' | 'balloons';
 
 export interface Accessory {
   id: string;
@@ -53,9 +53,13 @@ interface GameState {
 const DEFAULT_ACCESSORIES = ['default-hair', 'default-face', 'default-clothes', 'default-shoes', 'default-back', 'default-balloons'];
 
 /** Maps any accessory ID to its equipment slot */
-function getSlotForAccessory(id: string): AccessoryType | null {
+export function getSlotForAccessory(id: string): AccessoryType | null {
   if (id.startsWith('hat-') || id.startsWith('hair-')) return 'hair';
+  
+  if (['face-blush', 'face-star', 'face-freckles'].includes(id)) return 'cheeks';
+  if (['face-bandaid', 'face-cat'].includes(id)) return 'mouth';
   if (id.startsWith('glasses-') || id.startsWith('face-')) return 'face';
+  
   if (id.startsWith('shoes-')) return 'shoes';
   // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand
   if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
@@ -77,6 +81,8 @@ export const useGameState = create<GameState>()(
       equippedAccessories: {
         hair: null,
         face: null,
+        cheeks: null,
+        mouth: null,
         upper: null,
         lower: null,
         shoes: null,
@@ -166,6 +172,8 @@ export const useGameState = create<GameState>()(
             const equipped: Record<AccessoryType, string | null> = {
               hair: null,
               face: null,
+              cheeks: null,
+              mouth: null,
               upper: null,
               lower: null,
               shoes: null,
@@ -267,7 +275,7 @@ export const useGameState = create<GameState>()(
           highScores: { easy: 0, average: 0, difficult: 0 },
           classicLevel: 1,
           ownedAccessories: [...DEFAULT_ACCESSORIES],
-          equippedAccessories: { hair: null, face: null, upper: null, lower: null, shoes: null, back: null, balloons: null },
+          equippedAccessories: { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, back: null, balloons: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
         }),
     }),

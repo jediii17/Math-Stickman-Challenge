@@ -427,15 +427,6 @@ export function getCoinMultiplier(timeLimit: number, timeLeft: number): number {
   return 1;
 }
 
-/**
- * Get diminishing returns factor for easy survival mode.
- * Q1-10: 100%, Q11-20: 50%, Q21+: 0%
- */
-function getEasySurvivalFactor(questionNum: number): number {
-  if (questionNum <= 10) return 1;
-  if (questionNum <= 20) return 0.5;
-  return 0;
-}
 
 export function calculateQuestionCoins(
   difficulty: Difficulty,
@@ -446,12 +437,7 @@ export function calculateQuestionCoins(
 ): { base: number; multiplier: number; total: number } {
   const base = getBaseCoinReward(difficulty, mode);
   const multiplier = getCoinMultiplier(timeLimit, timeLeft);
-  let total = base * multiplier;
-
-  // Apply diminishing returns for easy survival
-  if (mode === 'survival' && difficulty === 'easy') {
-    total = Math.ceil(total * getEasySurvivalFactor(questionNum));
-  }
+  const total = base * multiplier;
 
   return { base, multiplier, total };
 }

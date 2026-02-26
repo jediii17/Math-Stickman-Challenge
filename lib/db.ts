@@ -205,7 +205,11 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
   if (type === 'hair') {
     unequipQuery = unequipQuery.or('accessory_id.like.hat-%,accessory_id.like.hair-%');
   } else if (type === 'face') {
-    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.like.face-%');
+    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.eq.face-hero');
+  } else if (type === 'cheeks') {
+    unequipQuery = unequipQuery.in('accessory_id', ['face-blush', 'face-star', 'face-freckles']);
+  } else if (type === 'mouth') {
+    unequipQuery = unequipQuery.in('accessory_id', ['face-bandaid', 'face-cat']);
   } else if (type === 'back') {
     unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
   } else if (type === 'upper') {
@@ -318,13 +322,16 @@ export async function saveGameSession(
 export async function getUserHighScores(userId: string) {
   const { data, error } = await supabase
     .from('game_sessions')
-    .select('difficulty, score')
+    .select('difficulty, score, game_mode')
     .eq('user_id', userId);
 
   const highScores = { easy: 0, average: 0, difficult: 0 };
   
   if (!error && data) {
     data.forEach(row => {
+      // Only include survival score entries for the High Score display
+      if (row.game_mode && row.game_mode !== 'survival') return;
+
       const diff = row.difficulty as 'easy' | 'average' | 'difficult';
       if (diff && highScores[diff] !== undefined && row.score > highScores[diff]) {
         highScores[diff] = row.score;
