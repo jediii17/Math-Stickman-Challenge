@@ -3,6 +3,7 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import * as db from '@/lib/db';
+import { useGameState } from '@/hooks/useGameState';
 
 interface AuthUser {
   id: string;
@@ -227,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
- const logout = useCallback(async () => {
+  const logout = useCallback(async () => {
     try {
       // Use scope: 'local' to clear the session immediately without
       // needing a valid (non-expired) token for server-side revocation.
@@ -238,6 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ALWAYS clear the local React state, even if the token was already dead
       setUser(null);
       setIsGuest(true);
+      // Clear equipped accessories so stickman resets to default after logout
+      useGameState.getState().resetForGuest();
     }
   }, []);
 
@@ -245,6 +248,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsGuest(true);
     setIsLoading(false);
+    // Ensure guest starts with no accessories equipped
+    useGameState.getState().resetForGuest();
   }, []);
 
   const refreshUser = useCallback(async () => {
