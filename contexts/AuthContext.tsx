@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Platform, AppState, AppStateStatus, Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import * as db from '@/lib/db';
@@ -59,6 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (error) {
             console.warn('Foreground session check failed. Clearing local session...');
+            if (error.message?.includes('Refresh Token') || error.message?.includes('expired') || error.name === 'AuthSessionMissingError') {
+              Alert.alert(
+                'Session Expired',
+                'Your login session has expired. Please restart the game to continue.',
+                [{ text: 'OK' }]
+              );
+            }
             await supabase.auth.signOut({ scope: 'local' });
             setUser(null);
             setIsGuest(true);
@@ -474,7 +481,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const heartbeat = setInterval(async () => {
       if (!isGuest && user) {
         try {
-          await supabase.auth.getSession();
+          const { error } = await supabase.auth.getSession();
+          if (error && (error.message?.includes('Refresh Token') || error.message?.includes('expired') || error.name === 'AuthSessionMissingError')) {
+            Alert.alert(
+              'Session Expired',
+              'Your login session has expired. Please restart the game to continue.',
+              [{ text: 'OK' }]
+            );
+            await supabase.auth.signOut({ scope: 'local' });
+            setUser(null);
+            setIsGuest(true);
+          }
         } catch (e) {
           console.warn('Heartbeat session check failed:', e);
         }

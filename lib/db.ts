@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { Alert } from 'react-native';
 
 // --- Retry helper for resilient DB calls ---
 
@@ -11,6 +12,11 @@ async function ensureSession() {
     const { data, error } = await supabase.auth.getSession();
     
     if (error && error.message.includes('Refresh Token')) {
+      Alert.alert(
+        'Session Expired',
+        'Your login session has expired. Please restart the game to continue.',
+        [{ text: 'OK' }]
+      );
       await supabase.auth.signOut({ scope: 'local' });
     }
   } catch (e) {
