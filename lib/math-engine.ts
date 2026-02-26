@@ -383,7 +383,17 @@ export function generateClassicProblem(level: number): MathProblem {
 
 // ─── Time & question config ───
 
-export function getTimeLimit(difficulty: Difficulty): number {
+export function getTimeLimit(difficulty: Difficulty, mode?: GameMode, level?: number): number {
+  if (mode === 'classic') {
+    // 60 seconds base, but reduce by 1s every level past 55 (min 25s)
+    let timeLimit = 60;
+    if (level && level > 55) {
+      const reduction = level - 55;
+      timeLimit = Math.max(25, 60 - reduction);
+    }
+    return timeLimit;
+  }
+
   switch (difficulty) {
     case 'easy': return 15;
     case 'average': return 30;

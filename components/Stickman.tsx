@@ -1574,9 +1574,10 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     }
 
     if (id === 'balloons-heart') {
+      const heartScale = scale * 0.85;
       return (
         <Svg width={bW} height={bH} viewBox={`0 0 ${bW} ${bH}`}>
-          <G transform={`translate(${cx}, ${cy - 5}) scale(${scale})`}>
+          <G transform={`translate(${cx}, ${cy + 2}) scale(${heartScale})`}>
             <Path d="M0,8 C0,8 -16,-10 -16,-20 C-16,-26 -8,-30 0,-20 C8,-30 16,-26 16,-20 C16,-10 0,8 0,8 Z" fill="#E91E63" stroke="#C2185B" strokeWidth={1.2} />
             <Ellipse cx={-6} cy={-13} rx={1.5} ry={2.5} fill="#FFF" opacity={0.8} />
             <Ellipse cx={6} cy={-13} rx={1.5} ry={2.5} fill="#FFF" opacity={0.6} />
@@ -1692,6 +1693,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   };
 
   // Trigger plane → pop → crash sequence when wrongCount increases
+  // Also handle balloon revival when wrongCount decreases (potion use)
   useEffect(() => {
     if (wrongCount > prevWrongRef.current && wrongCount <= 5) {
       const poppedIdx = 5 - wrongCount;
@@ -1734,6 +1736,10 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         prevWrongRef.current = wrongCount;
         return () => clearTimeout(hitTimer);
       }
+    } else if (wrongCount < prevWrongRef.current) {
+      // Balloon revival (potion used) — restore balloon and remove a crashed plane
+      setDisplayWrong(wrongCount);
+      setCrashedPlanes(prev => prev.slice(0, -1));
     }
     prevWrongRef.current = wrongCount;
   }, [wrongCount]);

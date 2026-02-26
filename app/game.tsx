@@ -974,8 +974,8 @@ export default function GameScreen() {
           exiting={FadeOut.duration(500)}
           style={styles.potionHealAnim}
         >
-          <Ionicons name="medical" size={40} color="#E91E63" />
-          <Ionicons name="heart" size={30} color="#E91E63" style={{ position: 'absolute', top: -20, right: -10, opacity: 0.7 }} />
+          <Ionicons name="balloon" size={40} color="#FF6B6B" />
+          <Ionicons name="sparkles" size={28} color="#FFD700" style={{ position: 'absolute', top: -20, right: -10, opacity: 0.8 }} />
           <Ionicons name="star" size={20} color="#FFC107" style={{ position: 'absolute', top: 10, left: -15, opacity: 0.8 }} />
         </Animated.View>
       )}

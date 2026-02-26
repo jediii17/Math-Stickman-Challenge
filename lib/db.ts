@@ -283,6 +283,12 @@ export async function updateUserPowerUps(
 
 // --- Game Sessions ---
 
+/**
+ * Saves a game session using upsert strategy:
+ * - One row per (user_id, difficulty, game_mode)
+ * - Only updates when the new score beats the personal record
+ * - Skips the write entirely if the score is not a new best
+ */
 export async function saveGameSession(
   userId: string,
   difficulty: string,
@@ -292,48 +298,70 @@ export async function saveGameSession(
   coinsEarned: number,
   gameMode: string = 'survival',
 ) {
-  const { error } = await supabase
-    .from('game_sessions')
-    .insert({
-      user_id: userId,
-      difficulty,
-      score,
-      total_questions: totalQuestions,
-      wrong_count: wrongCount,
-      coins_earned: coinsEarned,
-      game_mode: gameMode,
-    });
-  if (error) {
-    // game_mode column might not exist yet - try without it
-    const { error: fallbackError } = await supabase
+  try {
+    // 1. Fetch existing personal best for this user+difficulty+gameMode
+    const { data: existing } = await supabase
       .from('game_sessions')
-      .insert({
-        user_id: userId,
-        difficulty,
-        score,
-        total_questions: totalQuestions,
-        wrong_count: wrongCount,
-        coins_earned: coinsEarned,
-      });
-    if (fallbackError) throw fallbackError;
+      .select('id, score')
+      .eq('user_id', userId)
+      .eq('difficulty', difficulty)
+      .eq('game_mode', gameMode)
+      .maybeSingle();
+
+    if (existing) {
+      // 2a. Row exists — only update if the new score is higher
+      if (score > existing.score) {
+        const { error } = await supabase
+          .from('game_sessions')
+          .update({
+            score,
+            total_questions: totalQuestions,
+            wrong_count: wrongCount,
+            coins_earned: coinsEarned,
+            played_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (error) throw error;
+        console.log(`[db.ts] Updated personal best for ${difficulty}/${gameMode}: ${existing.score} → ${score}`);
+      } else {
+        console.log(`[db.ts] Score ${score} did not beat personal best ${existing.score} for ${difficulty}/${gameMode}, skipping save.`);
+      }
+    } else {
+      // 2b. No row yet — insert the first record
+      const { error } = await supabase
+        .from('game_sessions')
+        .insert({
+          user_id: userId,
+          difficulty,
+          score,
+          total_questions: totalQuestions,
+          wrong_count: wrongCount,
+          coins_earned: coinsEarned,
+          game_mode: gameMode,
+        });
+      if (error) throw error;
+      console.log(`[db.ts] Inserted first record for ${difficulty}/${gameMode}: ${score}`);
+    }
+  } catch (err: any) {
+    console.error('[db.ts] saveGameSession error:', err.message || err);
+    throw err;
   }
 }
 
 export async function getUserHighScores(userId: string) {
+  // Each row is already the personal best (one per difficulty for survival)
   const { data, error } = await supabase
     .from('game_sessions')
-    .select('difficulty, score, game_mode')
-    .eq('user_id', userId);
+    .select('difficulty, score')
+    .eq('user_id', userId)
+    .eq('game_mode', 'survival');
 
   const highScores = { easy: 0, average: 0, difficult: 0 };
-  
+
   if (!error && data) {
     data.forEach(row => {
-      // Only include survival score entries for the High Score display
-      if (row.game_mode && row.game_mode !== 'survival') return;
-
       const diff = row.difficulty as 'easy' | 'average' | 'difficult';
-      if (diff && highScores[diff] !== undefined && row.score > highScores[diff]) {
+      if (diff && highScores[diff] !== undefined) {
         highScores[diff] = row.score;
       }
     });
@@ -412,7 +440,7 @@ export async function getClassicLeaderboard(limit: number = 50, offset: number =
   });
 }
 
-// --- Survival Leaderboard (best score per difficulty, shows all users) ---
+// --- Survival Leaderboard (one row per user per difficulty = personal best) ---
 
 export async function getSurvivalLeaderboard(difficulty: string, limit: number = 50, offset: number = 0) {
   return withRetry(async () => {
@@ -431,47 +459,32 @@ export async function getSurvivalLeaderboard(difficulty: string, limit: number =
 
     console.warn('Survival RPC fallback, error:', rpcError?.message);
 
-    // Fallback: fetch profiles + sessions client-side
+    // Fallback: join profiles with game_sessions directly
+    // Each game_sessions row is already the personal best (unique constraint)
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
-      .select('id, username')
-      .range(offset, offset + limit - 1);
+      .select('id, username');
 
     if (profileError || !profiles) throw profileError || new Error('No profiles returned');
 
-    // Try fetching with game_mode filter first
-    let sessions: any[] | null = null;
-    const { data: sessionsData, error: sessionsError } = await supabase
+    const { data: sessions } = await supabase
       .from('game_sessions')
       .select('user_id, score')
       .eq('difficulty', difficulty)
       .eq('game_mode', 'survival');
 
-    if (!sessionsError) {
-      sessions = sessionsData;
-    } else {
-      // game_mode column might not exist yet - try without it
-      const { data: fallbackData } = await supabase
-        .from('game_sessions')
-        .select('user_id, score')
-        .eq('difficulty', difficulty);
-      sessions = fallbackData;
-    }
-
-    const bestScores = new Map<string, number>();
+    // Build a lookup map (each user has at most one row now)
+    const scoreMap = new Map<string, number>();
     if (sessions) {
       for (const row of sessions) {
-        const existing = bestScores.get(row.user_id) || 0;
-        if (row.score > existing) {
-          bestScores.set(row.user_id, row.score);
-        }
+        scoreMap.set(row.user_id, row.score);
       }
     }
 
     const merged = profiles.map(p => ({
       id: p.id,
       username: p.username,
-      value: bestScores.get(p.id) || 0,
+      value: scoreMap.get(p.id) || 0,
     }));
 
     merged.sort((a, b) => b.value - a.value);
