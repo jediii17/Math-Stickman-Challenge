@@ -665,8 +665,9 @@ export default function ResultsScreen() {
         updateHighScore(difficulty, score);
       }
 
-      // Advance classic level on completion
-      if (isLevelComplete) {
+      // Advance classic level on completion — only if the player finished their current frontier level
+      const { classicLevel: currentClassicLevel } = useGameState.getState();
+      if (isLevelComplete && level === currentClassicLevel) {
         if (!isGuest && user) {
           await advanceClassicLevelForUser(user.id);
         } else {
@@ -727,7 +728,7 @@ export default function ResultsScreen() {
     if (mode === 'classic') {
       if (isLevelComplete) {
         // Go to map
-        router.replace('/classic-map');
+        router.replace({ pathname: '/classic-map', params: { justFinished: 'true' } });
       } else {
         // Retry current level
         const { classicLevel: currentLevel } = useGameState.getState();
@@ -745,7 +746,7 @@ export default function ResultsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     if (mode === 'classic') {
-      router.replace('/classic-map');
+      router.replace({ pathname: '/classic-map', params: isLevelComplete ? { justFinished: 'true' } : {} });
     } else {
       router.replace('/difficulty');
     }

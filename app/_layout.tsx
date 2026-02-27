@@ -15,22 +15,30 @@ import {
   Fredoka_700Bold,
 } from "@expo-google-fonts/fredoka";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import mobileAds from 'react-native-google-mobile-ads';
+import mobileAds, { MaxAdContentRating } from 'react-native-google-mobile-ads';
 
 SplashScreen.preventAutoHideAsync();
 
-// Initialize the Google Mobile Ads SDK safely
+// Configure Google Mobile Ads SDK for strict child-directed compliance (Families Policy)
 try {
   mobileAds()
-    .initialize()
+    .setRequestConfiguration({
+      maxAdContentRating: MaxAdContentRating.G,
+      tagForChildDirectedTreatment: true,
+      tagForUnderAgeOfConsent: true,
+    })
+    .then(() => {
+      // Initialize after configuration is set
+      return mobileAds().initialize();
+    })
     .then(adapterStatuses => {
-      // Initialization complete!
+      console.log('AdMob successfully configured and initialized for Families policy');
     })
     .catch(error => {
-      console.warn("Could not initialize mobile ads", error);
+      console.warn('Could not initialize mobile ads', error);
     });
 } catch (error) {
-  console.warn("AdMob init error (non-fatal):", error);
+  console.warn('AdMob init error (non-fatal):', error);
 }
 
 function RootLayoutNav() {

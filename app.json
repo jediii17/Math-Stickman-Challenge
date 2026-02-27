@@ -32,8 +32,7 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "com.google.android.gms.permission.AD_ID"
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -54,7 +53,8 @@
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-6444794425179350~1891441091",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "userTrackingUsageDescription": "This identifier is used strictly for non-personalized ads in compliance with child-directed treatment."
         }
       ],
       [

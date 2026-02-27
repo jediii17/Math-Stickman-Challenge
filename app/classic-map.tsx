@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Text, Pressable, ScrollView, useWindowDimensions, Platform, Modal, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +20,8 @@ import Animated, {
   FadeInUp,
   FadeOut,
   FadeOutDown,
+  ZoomIn,
+  BounceIn,
   useAnimatedScrollHandler,
   useAnimatedReaction,
 } from 'react-native-reanimated';
@@ -26,6 +29,8 @@ import { runOnJS } from 'react-native-worklets';
 import Colors from '@/constants/colors';
 import { useGameState } from '@/hooks/useGameState';
 import AnimatedStickman from '@/components/AnimatedStickman';
+import RouletteWheel from '@/components/RouletteWheel';
+import { useAuth } from '@/contexts/AuthContext';
 import { getClassicDifficulty } from '@/lib/math-engine';
 
 // width and screenHeight are now obtained via useWindowDimensions() inside each component
@@ -36,6 +41,16 @@ const NODE_SIZE = 60;
 const LEVEL_SPACING = 110; // vertical gap between levels
 const MAP_PADDING_BOTTOM = 120;
 const MAP_PADDING_TOP = 80;
+
+// --- Ticket milestone levels ---
+const TICKET_MILESTONES: Record<number, number> = {
+  3: 1, 7: 1, 12: 1, 18: 2, 25: 2,
+};
+function isTicketLevel(level: number): number {
+  if (TICKET_MILESTONES[level]) return TICKET_MILESTONES[level];
+  if (level > 25 && (level - 25) % 10 === 0) return 2;
+  return 0;
+}
 
 // --- Seasonal Configuration ---
 const SEASONS = [
@@ -95,6 +110,83 @@ interface LevelNodeProps {
   y: number;
   onPress: () => void;
   index: number;
+}
+
+// Floating ticket icon above milestone nodes
+function TicketFloat({ x, y, count, collected }: { x: number; y: number; count: number; collected: boolean }) {
+  const bob = useSharedValue(0);
+
+  useEffect(() => {
+    bob.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(6, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bob.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          left: x - 20,
+          top: y - NODE_SIZE / 2 - 46,
+          width: 40,
+          alignItems: 'center',
+          zIndex: 5,
+        },
+        animStyle,
+      ]}
+    >
+      <View style={{
+        backgroundColor: collected ? '#E0E0E0' : '#FF4081',
+        borderRadius: 14,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        shadowColor: collected ? '#999' : '#FF4081',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: collected ? 0.1 : 0.4,
+        shadowRadius: 4,
+        elevation: 4,
+        opacity: collected ? 0.5 : 1,
+      }}>
+        <MaterialCommunityIcons
+          name="ticket-confirmation-outline"
+          size={14}
+          color={collected ? '#999' : '#fff'}
+        />
+        {count > 1 && (
+          <Text style={{
+            color: collected ? '#999' : '#fff',
+            fontSize: 10,
+            fontFamily: 'Fredoka_700Bold',
+          }}>×{count}</Text>
+        )}
+      </View>
+      {!collected && (
+        <View style={{
+          width: 0,
+          height: 0,
+          borderLeftWidth: 5,
+          borderRightWidth: 5,
+          borderTopWidth: 5,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderTopColor: '#FF4081',
+        }} />
+      )}
+    </Animated.View>
+  );
 }
 
 function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
@@ -266,9 +358,12 @@ function AnnoyingHereButton({ onPress, bottomPadding, direction, stickmanY, scro
 
 export default function ClassicMapScreen() {
   const insets = useSafeAreaInsets();
-  const { classicLevel } = useGameState();
+  const { classicLevel, rouletteTickets, lastCelebratedLevel } = useGameState();
+  const { justFinished } = useLocalSearchParams<{ justFinished?: string }>();
+  const { isGuest } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const { width, height: screenHeight } = useWindowDimensions();
+  const [showRoulette, setShowRoulette] = useState(false);
   
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -282,8 +377,75 @@ export default function ClassicMapScreen() {
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showHereIndicator, setShowHereIndicator] = useState(false);
+  const [ticketCelebration, setTicketCelebration] = useState<{ count: number } | null>(null);
+  // Roulette animations
+  const roulettePulse = useSharedValue(1);
+  const rouletteRotation = useSharedValue(0);
   // Track stickman position in state to avoid reading shared values during render
   const stickmanPosRef = useRef({ x: 0, y: 0 });
+
+  const checkAndCelebrateTicket = (level: number, delay: number = 800) => {
+    if (isGuest) return;
+    const { lastCelebratedLevel } = useGameState.getState();
+    const tickets = isTicketLevel(level);
+    
+    if (tickets > 0 && lastCelebratedLevel !== level) {
+      useGameState.setState({ lastCelebratedLevel: level });
+      // Only SHOW the confetti — tickets are awarded when the user presses "Claim"
+      const timer = setTimeout(() => {
+        setTicketCelebration({ count: tickets });
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }, delay);
+      return () => { clearTimeout(timer); };
+    }
+  };
+
+  const handleClaimTicket = () => {
+    if (!ticketCelebration) return;
+    const { addRouletteTickets } = useGameState.getState();
+    addRouletteTickets(ticketCelebration.count);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setTicketCelebration(null);
+  };
+
+  // Check if player just landed on a ticket milestone (authenticated only)
+  useEffect(() => {
+    // If we're doing the auto-walk, DON'T celebrate yet. 
+    // It will be triggered in onWalkComplete after he arrives.
+    if (justFinished === 'true') return;
+    
+    return checkAndCelebrateTicket(classicLevel);
+  }, [classicLevel, justFinished]);
+
+  // Start roulette button animations
+  useEffect(() => {
+    if (!isGuest) {
+      roulettePulse.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        true
+      );
+      rouletteRotation.value = withRepeat(
+        withTiming(360, { duration: 10000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    }
+  }, [isGuest]);
+
+  const rouletteAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: roulettePulse.value },
+      { rotate: `${rouletteRotation.value}deg` }
+    ],
+  }));
 
   // Show all levels from 1 up to current + a few locked ahead
   const totalLevels = classicLevel + EXTRA_LOCKED_LEVELS;
@@ -380,9 +542,85 @@ export default function ClassicMapScreen() {
 
   const points = levels.map((_, i) => getPosition(i));
 
+  // Dedicated auto-walk function (no haptics, no modal, just walk + ticket on arrival)
+  const autoWalkToLevel = (targetLevel: number) => {
+    const targetIndex = levels.indexOf(targetLevel);
+    if (targetIndex === -1) return;
+
+    const { x: targetX, y: targetY } = points[targetIndex];
+    const curX = stickmanPosRef.current.x;
+    const curY = stickmanPosRef.current.y;
+
+    // Find closest node to the stickman's current position
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const d = Math.sqrt(Math.pow(points[i].x - curX, 2) + Math.pow(points[i].y - curY, 2));
+      if (d < minDistance) {
+        minDistance = d;
+        closestIndex = i;
+      }
+    }
+
+    const startIndex = closestIndex;
+    if (startIndex === targetIndex) {
+      // Already there, just celebrate if applicable
+      checkAndCelebrateTicket(targetLevel, 300);
+      return;
+    }
+
+    setIsWalking(true);
+    setPendingLevel(targetLevel);
+
+    const step = startIndex < targetIndex ? 1 : -1;
+    const seqX: any[] = [];
+    const seqY: any[] = [];
+    const jumpDuration = 700;
+
+    // Flip stickman direction
+    const firstPoint = points[startIndex + step];
+    if (firstPoint) {
+      scaleX.value = firstPoint.x < curX ? -1 : 1;
+    }
+
+    let pathIndex = startIndex;
+    while (pathIndex !== targetIndex) {
+      pathIndex += step;
+      const nextPoint = points[pathIndex];
+      
+      seqX.push(withTiming(nextPoint.x, { duration: jumpDuration, easing: Easing.linear }));
+      seqY.push(withTiming(nextPoint.y, { duration: jumpDuration, easing: Easing.linear }));
+    }
+
+    if (seqX.length > 0) {
+      stickmanX.value = withSequence(...seqX);
+      stickmanY.value = withSequence(...seqY);
+      stickmanPosRef.current = { x: targetX, y: targetY };
+      
+      // Use standard JS setTimeout instead of Reanimated callbacks in while loops (which drop often)
+      const totalDuration = seqX.length * jumpDuration;
+      setTimeout(() => {
+        onAutoWalkComplete(targetLevel);
+      }, totalDuration);
+    }
+  };
+
+  // Called only when auto-walk (from results screen) completes
+  const onAutoWalkComplete = (level: number) => {
+    setIsWalking(false);
+    setPendingLevel(null);
+    scaleX.value = 1;
+    // Award ticket + show confetti ONLY now
+    checkAndCelebrateTicket(level, 300);
+  };
+
   // Set initial stickman position to current level
   useEffect(() => {
-    const currentIndex = levels.indexOf(classicLevel);
+    // If we just finished a level, start the stickman at the PREVIOUS level
+    // so the user can see him walk to the new level
+    const initialLevel = (justFinished === 'true') ? Math.max(1, classicLevel - 1) : classicLevel;
+
+    const currentIndex = levels.indexOf(initialLevel);
     if (currentIndex !== -1) {
       const { x, y } = points[currentIndex];
       stickmanX.value = x;
@@ -391,14 +629,24 @@ export default function ClassicMapScreen() {
     }
     
     // Scroll to current level position
-    setTimeout(() => {
-      const currentIndex = levels.indexOf(classicLevel);
-      if (currentIndex !== -1 && scrollRef.current) {
-        const { y } = points[currentIndex];
-        const scrollTarget = Math.max(0, y - screenHeight / 2);
-        scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
-      }
-    }, 300);
+    const scrollToIndex = levels.indexOf(classicLevel);
+    if (scrollToIndex !== -1) {
+      setTimeout(() => {
+        if (scrollRef.current) {
+          const { y } = points[scrollToIndex];
+          const scrollTarget = Math.max(0, y - screenHeight / 2);
+          scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
+        }
+      }, 300);
+    }
+
+    // If just finished, trigger the auto-walk after a short delay
+    if (justFinished === 'true') {
+      const walkTimer = setTimeout(() => {
+        autoWalkToLevel(classicLevel);
+      }, 1000);
+      return () => clearTimeout(walkTimer);
+    }
   }, [classicLevel]);
 
   const stickmanAnimStyle = useAnimatedStyle(() => ({
@@ -447,6 +695,10 @@ export default function ClassicMapScreen() {
     }
     
     const startIndex = closestIndex;
+    if (startIndex === targetIndex) {
+      setSelectedLevel(level);
+      return;
+    }
     const levelDiff = Math.abs(targetIndex - startIndex);
     
     // If jump is > 20 levels, teleport instantly instead of walking
@@ -466,8 +718,7 @@ export default function ClassicMapScreen() {
     const seqY: any[] = [];
     
     // Base speed per node-to-node jump
-    const jumpDuration = 400; 
-    
+    const jumpDuration = 700; // Slower, smoother walking    
     let pathIndex = startIndex;
     
     while (pathIndex !== targetIndex) {
@@ -511,8 +762,12 @@ export default function ClassicMapScreen() {
     setIsWalking(false);
     setPendingLevel(null);
     scaleX.value = 1; // Reset stickman facing right on stop
-    // Prompt the user to start the level instead of automatic launch
-    setSelectedLevel(level);
+    
+    // Claim ticket upon arrival if we just finished a level or reached a milestone
+    checkAndCelebrateTicket(level, 300);
+    
+    // We no longer automatically show the start modal. 
+    // The user must click the level to play.
   };
 
   // Use a reaction to sync state with shared values safely outside the render cycle
@@ -685,6 +940,27 @@ export default function ClassicMapScreen() {
             );
           })}
 
+          {/* Floating Ticket Icons on milestone levels (authenticated users only) */}
+          {!isGuest && levels.map((lvl, index) => {
+            const ticketCount = isTicketLevel(lvl);
+            if (ticketCount === 0) return null;
+            
+            // Hide tickets for levels the player hasn't reached yet or has already celebrated
+            if (lvl < classicLevel) return null;
+            if (lvl === classicLevel && lastCelebratedLevel >= lvl) return null;
+            
+            const { x, y } = points[index];
+            return (
+              <TicketFloat
+                key={`ticket-${lvl}`}
+                x={x}
+                y={y}
+                count={ticketCount}
+                collected={false}
+              />
+            );
+          })}
+
           {/* Walking Stickman (AnimatedStickman with accessories) */}
           <Animated.View style={stickmanAnimStyle}>
             <AnimatedStickman size={110} hideArms={false} />
@@ -713,6 +989,66 @@ export default function ClassicMapScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Ticket Celebration Overlay */}
+      {ticketCelebration && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(400)}
+          style={styles.ticketToast}
+        >
+          <Animated.View
+            entering={ZoomIn.delay(100).duration(500).springify()}
+            style={styles.ticketToastInner}
+          >
+            {/* Bouncing emoji */}
+            <Animated.Text
+              entering={BounceIn.delay(300).duration(600)}
+              style={styles.ticketToastEmoji}
+            >
+              🎉🎫
+            </Animated.Text>
+
+            {/* Sliding title */}
+            <Animated.Text
+              entering={FadeInDown.delay(500).duration(400).springify()}
+              style={styles.ticketToastTitle}
+            >
+              You got {ticketCelebration.count > 1 ? `${ticketCelebration.count} ` : 'a '}Stickman Ticket{ticketCelebration.count > 1 ? 's' : ''}!
+            </Animated.Text>
+
+            <Animated.Text
+              entering={FadeInDown.delay(650).duration(400).springify()}
+              style={styles.ticketToastSub}
+            >
+              Use it to spin the Lucky Wheel!
+            </Animated.Text>
+
+            {/* Claim button with bounce entrance */}
+            <Animated.View entering={BounceIn.delay(800).duration(500)}>
+              <Pressable
+                onPress={handleClaimTicket}
+                style={({ pressed }) => [
+                  styles.claimTicketBtn,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+                ]}
+              >
+                <MaterialCommunityIcons name="ticket-confirmation-outline" size={18} color="#fff" />
+                <Text style={styles.claimTicketText}>Claim Ticket{ticketCelebration.count > 1 ? 's' : ''}</Text>
+              </Pressable>
+            </Animated.View>
+
+            {/* Explosion of confetti using the library */}
+            <ConfettiCannon
+              count={200}
+              origin={{ x: width / 2, y: -20 }}
+              fadeOut={true}
+              autoStart={true}
+              fallSpeed={3000}
+            />
+          </Animated.View>
+        </Animated.View>
+      )}
       
       {/* "You are here" Floating Button */}
       {hereDirection && (
@@ -793,6 +1129,54 @@ export default function ClassicMapScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Floating Roulette Button (authenticated users only) */}
+      {!isGuest && (
+        <Animated.View
+          style={[
+            styles.rouletteBtnContainer,
+            { top: topPadding + 70 },
+            rouletteAnimStyle,
+          ]}
+        >
+          <Pressable
+            style={({ pressed }) => [
+              styles.rouletteBtn,
+              pressed && { transform: [{ scale: 0.9 }] },
+            ]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setShowRoulette(true);
+            }}
+          >
+            <MaterialCommunityIcons name="ferris-wheel" size={28} color="#FF4081" />
+            {rouletteTickets > 0 && (
+              <View style={styles.rouletteTicketBadge}>
+                <Text style={styles.rouletteTicketBadgeText}>{rouletteTickets}</Text>
+              </View>
+            )}
+          </Pressable>
+          {/* Refresh countdown */}
+          {(() => {
+            const wrt = useGameState.getState().wheelRefreshTime;
+            if (!wrt) return null;
+            const rem = (3 * 24 * 60 * 60 * 1000) - (Date.now() - wrt);
+            if (rem <= 0) return null;
+            const d = Math.floor(rem / (24*60*60*1000));
+            const h = Math.floor((rem % (24*60*60*1000)) / (60*60*1000));
+            return (
+              <View style={styles.refreshCountBadge}>
+                <Text style={styles.refreshCountText}>{d}d {h}h</Text>
+              </View>
+            );
+          })()}
+        </Animated.View>
+      )}
+
+      {/* Roulette Modal */}
+      {!isGuest && <RouletteWheel visible={showRoulette} onClose={() => setShowRoulette(false)} />}
     </View>
   );
 }
@@ -1090,5 +1474,120 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderTopColor: '#E74C3C',
+  },
+  rouletteBtnContainer: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 20,
+  },
+  rouletteBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF4081',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#FFCDD2',
+  },
+  rouletteTicketBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF4081',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  rouletteTicketBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'Fredoka_700Bold',
+  },
+  ticketToast: {
+    position: 'absolute',
+    top: '35%',
+    alignSelf: 'center',
+    zIndex: 200,
+  },
+  ticketToastInner: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 20,
+    alignItems: 'center',
+    shadowColor: '#FF4081',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: '#FFCDD2',
+    overflow: 'hidden',
+  },
+  ticketToastEmoji: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  ticketToastTitle: {
+    fontSize: 18,
+    fontFamily: 'Fredoka_700Bold',
+    color: '#FF4081',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  ticketToastSub: {
+    fontSize: 13,
+    fontFamily: 'Fredoka_500Medium',
+    color: Colors.textLight,
+    textAlign: 'center',
+  },
+  claimTicketBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FF4081',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 12,
+    shadowColor: '#FF4081',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  claimTicketText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'Fredoka_700Bold',
+    letterSpacing: 0.5,
+  },
+  confettiDot: {
+    position: 'absolute',
+  },
+  refreshCountBadge: {
+    backgroundColor: '#EDE7F6',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 4,
+    alignSelf: 'center',
+  },
+  refreshCountText: {
+    fontSize: 9,
+    fontFamily: 'Fredoka_500Medium',
+    color: '#7C4DFF',
   },
 });

@@ -2,79 +2,61 @@
 
 ## Overview
 
-MATH Stickman Challenge is a mobile math quiz game built with Expo (React Native) and an Express backend. Aligned with the MATATAG curriculum by DepEd for Grade 1. Players choose a difficulty level (Easy, Average, Difficult) and answer timed math problems (addition, subtraction up to 3 digits; multiplication and division of 1-digit numbers). The stickman starts fully drawn and loses body parts with each wrong answer (legs first, then arms, then head rolls off). 5 attempts total. Results are shown at the end.
+MATH Stickman Challenge is a premium mobile math quiz game built with Expo (React Native) and an Express backend, aligned with the MATATAG curriculum. Players face timed math problems (addition, subtraction, multiplication, division and fractions) while managing a unique survival mechanic. Instead of a health bar, the stickman is held aloft by **5 vibrant balloons**. Every wrong answer or timeout triggers a paper airplane attack that pops a balloon. Lose all 5 balloons, and the game is over!
 
 ## Features & Progress
 
-- **Authentication**: Guest mode or local user accounts stored via Supabase (SQLite in-app for now).
-- **Shop**: Earn coins by answering questions correctly. Spend coins to customize your Stickman or buy consumable power-ups.
-  - **Accessories**: Choose from diverse sets including Cool Caps, Boy/Girl themed hats, Sunglasses, outfits (Hero Cape, Boy Outfit, Girl Dress), and various footwear. All rendered natively as detailed SVG attachments.
-  - **Magic Consumables**:
-    - **Pixie Patch Potion**: Heals 1 body part (with new heart/medical floating animation)
-    - **Moonlit Minute Dust**: Adds 30s to the timer (with animated +30s floating text)
-    - **Aurora Pause Powder**: Freezes time for 30s (with falling snowflakes and cyan countdown)
-    - **Hinting Firefly**: Reveals a digit of the answer (with new animated firefly fly-in sequence)
-- **Power-up Balancing**: Usage is balanced to once per game session to maintain challenge and strategic play.
-- **Scribble Mode Optimization**: The drawing canvas automatically hides the stickman area on smaller screens to maximize writing space.
-- **Color scheme**: Green primary (#2ECC71), Yellow secondary (#F1C40F), Baby pink tertiary (#FFB6C1), Purple (#9b59b6) for scribbling.
-- **Stickman mechanic**: Starts complete, loses parts on wrong answers (legs -> arms -> head rolls off).
-- **Timer**: Easy=60s, Average=45s, Difficult=30s.
-- **Ads**: Google Mobile Ads (Banner and Interstitial)
+- **Dynamic Game Mechanics**:
+  - **Balloon System**: 5 attempts represented by floating balloons.
+  - **Attack Animations**: Paper airplanes dive in to pop balloons on incorrect answers.
+  - **Difficulty Scaling**: Easy (60s), Average (45s), and Difficult (30s) modes.
+- **Shop & Customization**:
+  - **Balloon Skins**: Customize your look with unique balloon themes including Penguin, Dog, Cat, Bunny, Bear, Star, Heart, etc.
+  - **Accessories**: Choose from diverse sets including Cool Caps, Robot Helmets, Hero Capes, and varied outfits/footwear.
+  - **Magic Shop**: Purchase consumable power-ups like Balloon Revival Potion(restore balloons) or Aurora Pause Powder (freeze time).
+- **Competitve Edge**:
+  - **Global Leaderboard**: Compete in the "Hall of Fame" across multiple categories: Coins collected, Classic levels reached, and Survival high scores (Easy/Average/Hard).
+- **Social & Security**:
+  - **Authentication**: Secure login via Supabase or quick play with Guest mode.
+  - **Ad Integration**: Rewarded and Interstitial ads via Google Mobile Ads.
+- **Premium Design**:
+  - **Animations**: Smooth transitions using React Native Reanimated.
+  - **Soundscape**: Immersive audio effects and multiple curated soundtracks created by GEMINI.
+  - **Haptics**: Tactile feedback for every interaction.
 
 ## System Architecture
 
 ### Frontend (Expo / React Native)
-- **Framework**: Expo SDK 54 with expo-router for file-based routing
-- **Screens**: Three main screens managed by expo-router Stack navigation
-  - `app/index.tsx` — Home/difficulty selection screen
-  - `app/auth.tsx` — Registration and login
-  - `app/shop.tsx` — Character and Magic Shop for spending coins
-  - `app/game.tsx` — Active game screen with math problems, timer, stickman, number pad, and power-up buttons
-  - `app/results.tsx` — Results summary screen
-- **Animations**: react-native-reanimated for smooth animations (floating shapes, stickman shake, head rolling, timer pulse, snowflakes)
-- **Audio**: expo-audio for sound effects (ping, go, tick, purchase)
-- **Fonts**: Fredoka font family via @expo-google-fonts
-- **Haptics**: expo-haptics for tactile feedback
-- **State Management**: Zustand with AsyncStorage persistence for tracking coins, accessories, high scores, and power-up inventory (`hooks/useGameState.ts`)
-- **Database**: Local SQLite and Supabase for user persistence (`lib/db.ts`)
-- **Key Components**:
-  - `Stickman` — Detailed SVG stickman that loses body parts on wrong answers. Now supports multiple accessory variants and dismembered limb clothing rendering.
-  - `AnimatedStickman` — Lively home screen stickman that proudly wears your equipped customizations.
-  - `NumberPad` — Custom numeric input pad for fast calculations
-  - `Timer` — Circular countdown timer with color changes and pulse effects
-  - `Snowflakes` — Beautiful falling snow animation for the time freeze effect
-  - `ScribbleArea` — Drawing canvas scratchpad with intelligent layout toggling for space efficiency
+- **Framework**: Expo SDK 54 with expo-router.
+- **Key Screens**:
+  - Dashboard & Mode Selection
+  - Core Game Loop (Math problems, Balloons, Power-ups)
+  - Global Hall of Fame
+  - Customization & Magic Shop
+- **State Management**: Zustand with persistent storage for coins and inventory.
+- **Visuals**: React Native SVG for the modular Stickman and Balloon systems.
 
-### Game Logic (`lib/math-engine.ts`)
-- Generates random math problems based on difficulty
-- Difficulty affects number ranges and time limits:
-  - Easy: 1-digit add/sub, 60s per question, 10 questions
-  - Average: 2-digit add/sub, 45s per question, 12 questions
-  - Difficult: 3-digit add/sub, 30s per question, 15 questions
-- Multiplication & division always 1-digit numbers regardless of difficulty
-- Operations: addition, subtraction, multiplication, division
+### Game Logic
+- **Survival Mode**: Infinite questions with increasing streak multipliers.
+- **Classic Mode**: 10 questions per level to progress through the map.
+- **Math Engine**: Generates curriculum-aligned problems across addition, subtraction, multiplication, division and fractions.
 
-### Backend (Express)
-- **Runtime**: Node.js with Express, TypeScript compiled via tsx (dev) or esbuild (prod)
-- **Entry point**: `server/index.ts`
-- **Routes**: `server/routes.ts` — currently minimal, set up for `/api` prefixed routes
-- **CORS**: Configured for dev/deployment domains and localhost
-- **Static serving**: In production, serves built Expo web assets; in dev, proxies to Metro bundler
-
-### Build & Deployment
-- **Dev mode**: Two processes — `expo:dev` for Metro bundler and `server:dev` for Express
-- **Production**: `expo:static:build` creates static web build, `server:build` bundles server with esbuild, `server:prod` serves everything
-
-### Path Aliases
-- `@/*` maps to project root
-- `@shared/*` maps to `./shared/*`
+### Backend & Database
+- **Runtime**: Node.js with Express and TypeScript.
+- **Persistence**: Hybrid approach using local SQLite (via Drizzle) for offline state and Supabase for global syncing and leaderboards.
+- **Migrations**: SQL-based migrations for maintaining user sessions and leaderboard rankings.
 
 ## External Dependencies
+- **Expo SDK 54** & **React Native**
+- **React Native Reanimated**: High-performance animations.
+- **React Native SVG**: Vector-based character and skin rendering.
+- **Supabase**: Real-time database and authentication.
+- **Express**: Backend API services.
+- **Google Mobile Ads**: Monetization layer.
 
-- **Expo SDK 54**: Core mobile framework with numerous Expo modules
-- **React Native Reanimated**: Animation library for performant UI animations
-- **React Native SVG**: Used for the Stickman component
-- **@expo-google-fonts/fredoka**: Custom font loading
-- **expo-haptics**: Native haptic feedback
-- **expo-linear-gradient**: Gradient backgrounds
-- **Express**: HTTP server framework
+## Future Plans
+- Add more levels and challenges.
+- Add more characters and skins.
+- Add more power-ups.
+- Add more game modes.
+- Add more features.

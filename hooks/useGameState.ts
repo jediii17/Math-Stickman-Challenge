@@ -30,10 +30,19 @@ interface GameState {
   coins: number;
   highScores: HighScores;
   classicLevel: number;
+  rouletteTickets: number;
+  coinSpinsToday: number;
+  lastCoinSpinTime: number | null;
+  lastCelebratedLevel: number;
+  wheelRefreshTime: number | null;
   ownedAccessories: string[];
   equippedAccessories: Record<AccessoryType, string | null>;
   powerUps: PowerUps;
   addCoins: (amount: number) => void;
+  addRouletteTickets: (amount: number) => void;
+  useRouletteTicket: () => boolean;
+  incrementCoinSpins: () => void;
+  resetCoinSpins: () => void;
   buyAccessory: (accessory: Accessory) => boolean;
   equipAccessory: (type: AccessoryType, id: string | null) => void;
   buyPowerUp: (id: keyof PowerUps, price: number) => boolean;
@@ -77,6 +86,11 @@ export const useGameState = create<GameState>()(
       coins: 0,
       highScores: { easy: 0, average: 0, difficult: 0 },
       classicLevel: 1,
+      rouletteTickets: 0,
+      coinSpinsToday: 0,
+      lastCoinSpinTime: null,
+      lastCelebratedLevel: 0,
+      wheelRefreshTime: null,
       ownedAccessories: [...DEFAULT_ACCESSORIES],
       equippedAccessories: {
         hair: null,
@@ -91,6 +105,20 @@ export const useGameState = create<GameState>()(
       },
       powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
       addCoins: (amount) => set((state) => ({ coins: state.coins + amount })),
+      addRouletteTickets: (amount) => set((state) => ({ rouletteTickets: state.rouletteTickets + amount })),
+      useRouletteTicket: () => {
+        const { rouletteTickets } = get();
+        if (rouletteTickets > 0) {
+          set({ rouletteTickets: rouletteTickets - 1 });
+          return true;
+        }
+        return false;
+      },
+      incrementCoinSpins: () => set((state) => ({ 
+        coinSpinsToday: state.coinSpinsToday + 1,
+        lastCoinSpinTime: Date.now()
+      })),
+      resetCoinSpins: () => set({ coinSpinsToday: 0, lastCoinSpinTime: null }),
       buyAccessory: (accessory) => {
         const { coins, ownedAccessories } = get();
         if (coins >= accessory.price && !ownedAccessories.includes(accessory.id)) {
@@ -146,12 +174,13 @@ export const useGameState = create<GameState>()(
       advanceClassicLevel: () =>
         set((state) => ({
           classicLevel: state.classicLevel + 1,
+          lastCelebratedLevel: state.classicLevel, // reset to completed level so new level can be celebrated
         })),
 
       advanceClassicLevelForUser: async (userId: string) => {
         const { classicLevel } = get();
         const nextLevel = classicLevel + 1;
-        set({ classicLevel: nextLevel });
+        set({ classicLevel: nextLevel, lastCelebratedLevel: classicLevel });
         try {
           await db.updateClassicLevel(userId, nextLevel);
         } catch (e) {
@@ -274,6 +303,9 @@ export const useGameState = create<GameState>()(
           coins: 0,
           highScores: { easy: 0, average: 0, difficult: 0 },
           classicLevel: 1,
+          rouletteTickets: 0,
+          coinSpinsToday: 0,
+          lastCoinSpinTime: null,
           ownedAccessories: [...DEFAULT_ACCESSORIES],
           equippedAccessories: { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, back: null, balloons: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },

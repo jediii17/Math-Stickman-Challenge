@@ -87,11 +87,11 @@ export default function GameScreen() {
   const diff = (params.difficulty as Difficulty) || 'easy';
   const mode: GameMode = (params.mode as GameMode) || 'survival';
   const classicLevel = parseInt(params.level || '1', 10);
-  const timeLimit = getTimeLimit(diff);
+  const timeLimit = getTimeLimit(diff, mode, classicLevel);
   const totalQ = mode === 'classic' ? 10 : 0; // 0 = infinite for survival
 
   const [currentProblem, setCurrentProblem] = useState<MathProblem>(() =>
-    mode === 'classic' ? generateClassicProblem(classicLevel) : generateProblem(diff)
+    mode === 'classic' ? generateClassicProblem(classicLevel) : generateProblem(diff, 1)
   );
   const [userInput, setUserInput] = useState('');
   const [questionNum, setQuestionNum] = useState(1);
@@ -436,11 +436,14 @@ export default function GameScreen() {
   const nextQuestion = (currentResults: GameResult[], currentScore: number, currentWrong: number, currentCoins: number) => {
     const newProblem = mode === 'classic' 
       ? generateClassicProblem(classicLevel) 
-      : generateProblem(diff);
+      : generateProblem(diff, questionNum + 1);
     setCurrentProblem(newProblem);
     setUserInput('');
     setQuestionNum((prev) => prev + 1);
-    setTimeLeft(timeLimit);
+    
+    // For survival Easy, recalculate time limit for the NEW question number
+    const nextTimeLimit = getTimeLimit(diff, mode, classicLevel, questionNum + 1);
+    setTimeLeft(nextTimeLimit);
     setFeedback(null);
     setIsTransitioning(false);
     setLastCoinReward(null);

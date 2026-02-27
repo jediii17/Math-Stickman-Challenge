@@ -286,19 +286,63 @@ export function simplifyFractionStr(input: string): string | null {
 // ─── Main generators ───
 
 /** Generate a problem for Survival mode */
-export function generateProblem(difficulty: Difficulty): MathProblem {
+export function generateProblem(difficulty: Difficulty, questionNum: number = 1): MathProblem {
   let operations: (() => MathProblem)[];
 
   switch (difficulty) {
     case 'easy':
-      operations = [
-        () => generateAddition('easy'),
-        () => generateSubtraction('easy'),
-        () => generateMultiplication('easy'),
-        () => generateDivision('easy'),
-      ];
+      if (questionNum <= 30) {
+        operations = [
+          () => generateAddition('easy'),
+          () => generateSubtraction('easy'),
+        ];
+      } else if (questionNum <= 50) {
+        operations = [
+          () => generateAddition('easy'),
+          () => generateSubtraction('easy'),
+          () => generateMultiplication('easy'),
+        ];
+      } else if (questionNum <= 70) {
+        operations = [
+          () => generateAddition('easy'),
+          () => generateSubtraction('easy'),
+          () => generateMultiplication('easy'),
+          () => generateDivision('easy'),
+        ];
+      } else if (questionNum <= 90) {
+        operations = [
+          () => generateAddition('easy'),
+          () => generateSubtraction('easy'),
+          () => generateMultiplication('easy'),
+          () => generateDivision('easy'),
+        ];
+      }
+      else {
+        operations = [
+          () => generateAddition('easy'),
+          () => generateSubtraction('easy'),
+          () => generateMultiplication('easy'),
+          () => generateDivision('easy'),
+          () => generateSimilarFractionAdd(),
+          () => generateSimilarFractionSub(),
+        ];
+      }
       break;
     case 'average':
+     if(questionNum <= 25) {
+      operations = [
+        () => generateAddition('average'),
+        () => generateSubtraction('average'),
+        () => generateMultiplication('average'),
+      ];
+     } else if (questionNum <= 50) {
+      operations = [
+        () => generateAddition('average'),
+        () => generateSubtraction('average'),
+        () => generateMultiplication('average'),
+        () => generateDivision('average'),
+      ];
+     } else if (questionNum <= 75) {
       operations = [
         () => generateAddition('average'),
         () => generateSubtraction('average'),
@@ -307,6 +351,18 @@ export function generateProblem(difficulty: Difficulty): MathProblem {
         () => generateSimilarFractionAdd(),
         () => generateSimilarFractionSub(),
       ];
+     } else {
+      operations = [
+        () => generateAddition('average'),
+        () => generateSubtraction('average'),
+        () => generateMultiplication('average'),
+        () => generateDivision('average'),
+        () => generateSimilarFractionAdd(),
+        () => generateSimilarFractionSub(),
+        () => generateDissimilarFractionAdd(),
+        () => generateDissimilarFractionSub(),
+      ];
+     }
       break;
     case 'difficult':
       operations = [
@@ -357,6 +413,11 @@ export function generateClassicProblem(level: number): MathProblem {
     }
   }
   
+  // Levels 1-25 strictly addition and subtraction
+  if (level <= 25) {
+    return Math.random() < 0.5 ? generateAddition('easy') : generateSubtraction('easy');
+  }
+
   // Basic generation based on difficulty
   const baseProblem = generateProblem(diff);
   
@@ -383,19 +444,26 @@ export function generateClassicProblem(level: number): MathProblem {
 
 // ─── Time & question config ───
 
-export function getTimeLimit(difficulty: Difficulty, mode?: GameMode, level?: number): number {
+export function getTimeLimit(difficulty: Difficulty, mode?: GameMode, level?: number, questionNum: number = 1): number {
   if (mode === 'classic') {
-    // 60 seconds base, but reduce by 1s every level past 55 (min 25s)
+    // 60s until level 35. Then gradually reduce down to 20s.
     let timeLimit = 60;
-    if (level && level > 55) {
-      const reduction = level - 55;
-      timeLimit = Math.max(25, 60 - reduction);
+    if (level && level >= 35) {
+      const reduction = level - 34; // level 35 = -1s, level 36 = -2s, etc.
+      timeLimit = Math.max(20, 60 - reduction);
     }
     return timeLimit;
   }
 
   switch (difficulty) {
-    case 'easy': return 15;
+    case 'easy': 
+      // 60s until question 35. Then gradually reduce down to 20s.
+      let survivalTime = 60;
+      if (questionNum >= 35) {
+        const reduction = questionNum - 34;
+        survivalTime = Math.max(20, 60 - reduction);
+      }
+      return survivalTime;
     case 'average': return 30;
     case 'difficult': return 60;
   }
