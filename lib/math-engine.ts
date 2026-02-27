@@ -1,4 +1,4 @@
-export type Difficulty = 'easy' | 'average' | 'difficult';
+export type Difficulty = 'easy' | 'average' | 'hard';
 export type GameMode = 'survival' | 'classic';
 export type Operation = 'add' | 'subtract' | 'multiply' | 'divide' | 'fraction_add' | 'fraction_subtract';
 
@@ -58,7 +58,7 @@ function generateAddition(difficulty: Difficulty): MathProblem {
       num1 = randomInt(10, 99);
       num2 = randomInt(10, 99);
       break;
-    case 'difficult':
+    case 'hard':
       num1 = randomInt(100, 999);
       num2 = randomInt(100, 999);
       break;
@@ -82,7 +82,7 @@ function generateSubtraction(difficulty: Difficulty): MathProblem {
       num1 = randomInt(20, 99);
       num2 = randomInt(10, num1);
       break;
-    case 'difficult':
+    case 'hard':
       num1 = randomInt(200, 999);
       num2 = randomInt(100, num1);
       break;
@@ -106,7 +106,7 @@ function generateMultiplication(difficulty: Difficulty): MathProblem {
       num1 = randomInt(10, 99);
       num2 = randomInt(2, 9);
       break;
-    case 'difficult':
+    case 'hard':
       num1 = randomInt(100, 999);
       num2 = randomInt(2, 9);
       break;
@@ -132,7 +132,7 @@ function generateDivision(difficulty: Difficulty): MathProblem {
       answer = randomInt(10, 99);
       num1 = num2 * answer;
       break;
-    case 'difficult':
+    case 'hard':
       num2 = randomInt(2, 9);
       answer = randomInt(100, 999);
       num1 = num2 * answer;
@@ -364,12 +364,12 @@ export function generateProblem(difficulty: Difficulty, questionNum: number = 1)
       ];
      }
       break;
-    case 'difficult':
+    case 'hard':
       operations = [
-        () => generateAddition('difficult'),
-        () => generateSubtraction('difficult'),
-        () => generateMultiplication('difficult'),
-        () => generateDivision('difficult'),
+        () => generateAddition('hard'),
+        () => generateSubtraction('hard'),
+        () => generateMultiplication('hard'),
+        () => generateDivision('hard'),
         () => generateSimilarFractionAdd(),
         () => generateSimilarFractionSub(),
         () => generateDissimilarFractionAdd(),
@@ -381,11 +381,11 @@ export function generateProblem(difficulty: Difficulty, questionNum: number = 1)
   return pickRandom(operations)();
 }
 
-/** Get the difficulty label for a classic level */
+/** Get the hardy label for a classic level */
 export function getClassicDifficulty(level: number): Difficulty {
   if (level <= 25) return 'easy';
   if (level <= 50) return 'average';
-  return 'difficult';
+  return 'hard';
 }
 
 /** Get the hardness multiplier based on level seasons (every 25 levels) */
@@ -465,7 +465,7 @@ export function getTimeLimit(difficulty: Difficulty, mode?: GameMode, level?: nu
       }
       return survivalTime;
     case 'average': return 30;
-    case 'difficult': return 60;
+    case 'hard': return 60;
   }
 }
 
@@ -482,14 +482,14 @@ export function getBaseCoinReward(difficulty: Difficulty, mode: GameMode = 'surv
     switch (difficulty) {
       case 'easy': return 1;
       case 'average': return 2;
-      case 'difficult': return 3;
+      case 'hard': return 3;
     }
   }
-  // Survival mode: buff difficult
+  // Survival mode: buff hard
   switch (difficulty) {
     case 'easy': return 1;
     case 'average': return 2;
-    case 'difficult': return 4;
+    case 'hard': return 4;
   }
 }
 

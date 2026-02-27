@@ -16,7 +16,7 @@ export interface Accessory {
 export interface HighScores {
   easy: number;
   average: number;
-  difficult: number;
+  hard: number;
 }
 
 export interface PowerUps {
@@ -33,7 +33,7 @@ interface GameState {
   rouletteTickets: number;
   coinSpinsToday: number;
   lastCoinSpinTime: number | null;
-  lastCelebratedLevel: number;
+  claimedTicketLevels: number[];
   wheelRefreshTime: number | null;
   ownedAccessories: string[];
   equippedAccessories: Record<AccessoryType, string | null>;
@@ -51,6 +51,7 @@ interface GameState {
   advanceClassicLevelForUser: (userId: string) => Promise<void>;
   loadFromDb: (userId: string) => Promise<void>;
   syncCoinsToDb: (userId: string) => Promise<void>;
+  syncTicketsToDb: (userId: string) => Promise<void>;
   buyAccessoryForUser: (userId: string, accessory: Accessory) => Promise<boolean>;
   equipAccessoryForUser: (userId: string, type: AccessoryType, id: string | null) => Promise<void>;
   buyPowerUpForUser: (userId: string, id: keyof PowerUps, price: number) => Promise<boolean>;
@@ -84,12 +85,12 @@ export const useGameState = create<GameState>()(
   persist(
     (set, get) => ({
       coins: 0,
-      highScores: { easy: 0, average: 0, difficult: 0 },
+      highScores: { easy: 0, average: 0, hard: 0 },
       classicLevel: 1,
       rouletteTickets: 0,
       coinSpinsToday: 0,
       lastCoinSpinTime: null,
-      lastCelebratedLevel: 0,
+      claimedTicketLevels: [],
       wheelRefreshTime: null,
       ownedAccessories: [...DEFAULT_ACCESSORIES],
       equippedAccessories: {
@@ -174,13 +175,12 @@ export const useGameState = create<GameState>()(
       advanceClassicLevel: () =>
         set((state) => ({
           classicLevel: state.classicLevel + 1,
-          lastCelebratedLevel: state.classicLevel, // reset to completed level so new level can be celebrated
         })),
 
       advanceClassicLevelForUser: async (userId: string) => {
         const { classicLevel } = get();
         const nextLevel = classicLevel + 1;
-        set({ classicLevel: nextLevel, lastCelebratedLevel: classicLevel });
+        set({ classicLevel: nextLevel });
         try {
           await db.updateClassicLevel(userId, nextLevel);
         } catch (e) {
@@ -220,6 +220,8 @@ export const useGameState = create<GameState>()(
             set({
               coins: profile.coins,
               classicLevel: profile.classic_level || 1,
+              rouletteTickets: profile.roulette_tickets || 0,
+              claimedTicketLevels: profile.claimed_ticket_levels || [],
               ownedAccessories: [...DEFAULT_ACCESSORIES, ...ownedIds],
               equippedAccessories: equipped,
               powerUps: dbPowerUps || { potion: 0, dust: 0, powder: 0, firefly: 0 },
@@ -238,6 +240,16 @@ export const useGameState = create<GameState>()(
           await db.updateCoins(userId, coins);
         } catch (e) {
           console.warn('Failed to sync coins:', e);
+        }
+      },
+
+      // Sync tickets to Supabase
+      syncTicketsToDb: async (userId) => {
+        try {
+          const { rouletteTickets, claimedTicketLevels } = get();
+          await db.updateTicketsData(userId, rouletteTickets, claimedTicketLevels);
+        } catch (e) {
+          console.warn('Failed to sync tickets:', e);
         }
       },
 
@@ -301,11 +313,12 @@ export const useGameState = create<GameState>()(
       resetForGuest: () =>
         set({
           coins: 0,
-          highScores: { easy: 0, average: 0, difficult: 0 },
+          highScores: { easy: 0, average: 0, hard: 0 },
           classicLevel: 1,
           rouletteTickets: 0,
           coinSpinsToday: 0,
           lastCoinSpinTime: null,
+          claimedTicketLevels: [],
           ownedAccessories: [...DEFAULT_ACCESSORIES],
           equippedAccessories: { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, back: null, balloons: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },

@@ -22,6 +22,7 @@ import Colors from '@/constants/colors';
 import { useGameState, getSlotForAccessory } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
 import StickmanCoin from '@/components/StickmanCoin';
+import AccessoryIcon from '@/components/AccessoryIcon';
 
 // ─── Prize Configuration ───
 export interface RoulettePrize {
@@ -39,22 +40,54 @@ export interface RoulettePrize {
 }
 
 // ─── Prize Pool (for randomization every 3 days) ───
+
 const ACCESSORY_POOL = [
-  { id: 'hat-robot', label: 'Robot\nHelmet', icon: 'robot-outline', color: '#00E5FF', bgColor: '#E0F7FA' },
-  { id: 'hat-1', label: 'Cool\nCap', icon: 'school-outline', color: '#2196F3', bgColor: '#E3F2FD' },
-  { id: 'hat-2', label: 'Boy\nCap', icon: 'baseball-outline', color: '#FF5722', bgColor: '#FBE9E7' },
-  { id: 'hat-3', label: 'Girl\nHat', icon: 'flower-outline', color: '#F06292', bgColor: '#FCE4EC' },
-  { id: 'hat-4', label: 'Fairy\nCrown', icon: 'crown-outline', color: '#FFD700', bgColor: '#FFF8E1' },
+  { id: 'hat-robot', label: 'Robot\nHelmet', color: '#00E5FF', bgColor: '#E0F7FA' },
+  { id: 'hat-1', label: 'Cool\nCap', color: '#2196F3', bgColor: '#E3F2FD' },
+  { id: 'hat-2', label: 'Boy\nCap', color: '#FF5722', bgColor: '#FBE9E7' },
+  { id: 'hat-3', label: 'Girl\nHat', color: '#F06292', bgColor: '#FCE4EC' },
+  { id: 'hat-4', label: 'Fairy\nCrown', color: '#FFD700', bgColor: '#FFF8E1' },
+  { id: 'balloons-bear', label: 'Bear\nBalloon', color: '#A1887F', bgColor: '#EFEBE9' },
+  { id: 'balloons-cat', label: 'Cat\nBalloon', color: '#FFA726', bgColor: '#FFF3E0' },
+  { id: 'balloons-dog', label: 'Dog\nBalloon', color: '#8D6E63', bgColor: '#EFEBE9' },
+  { id: 'balloons-kuromi', label: 'Kurumu\nBalloon', color: '#FFD700', bgColor: '#FFF8E1' },
+  { id: 'back-b3', label: 'Sci-Fi\nShield', color: '#00E5FF', bgColor: '#E0F7FA' },
+  { id: 'back-b4', label: 'Backpack', color: '#795548', bgColor: '#EFEBE9' },
+  { id: 'back-g2', label: 'Giant\nBow', color: '#E91E63', bgColor: '#FCE4EC' },
+  { id: 'back-g3', label: 'Star\nCloak', color: '#673AB7', bgColor: '#EDE7F6' },
+  { id: 'back-g4', label: 'Bear\nBackpack', color: '#8D6E63', bgColor: '#EFEBE9' },
+  { id: 'face-bandaid', label: 'Cool\nBand-aid', color: '#D84315', bgColor: '#FBE9E7' },
+  { id: 'face-blush', label: 'Blush', color: '#FF8A80', bgColor: '#FCE4EC' },
+  { id: 'face-cat', label: 'Cat\nWhiskers', color: '#F48FB1', bgColor: '#FCE4EC' },
+  { id: 'glasses-1', label: 'Sunglasses', color: '#37474F', bgColor: '#ECEFF1' },
+  { id: 'glasses-2', label: 'Boy\nGlasses', color: '#2196F3', bgColor: '#E3F2FD' },
+  { id: 'hair-b1', label: 'Spiky\nBlue Hair', color: '#2196F3', bgColor: '#E3F2FD' },
+  { id: 'hair-b2', label: 'Messy\nBrown Hair', color: '#795548', bgColor: '#EFEBE9' },
+  { id: 'hair-g1', label: 'Pink\nPigtails', color: '#F06292', bgColor: '#FCE4EC' },
+  { id: 'hair-g2', label: 'Long\nPurple Wavy', color: '#AB47BC', bgColor: '#F3E5F5' },
+  { id: 'hair-g3', label: 'Blonde\nBob', color: '#FFD54F', bgColor: '#FFF8E1' },
+  { id: 'hair-g4', label: 'Red\nPonytail', color: '#F44336', bgColor: '#FFEBEE' },
+  { id: 'shirt-3', label: 'Princess\nTop', color: '#9C27B0', bgColor: '#F3E5F5' },
+  { id: 'shirt-2', label: 'Boy\nShirt', color: '#4CAF50', bgColor: '#E8F5E9' },
+  { id: 'shoes-b1', label: 'Rocket\nBoots', color: '#78909C', bgColor: '#ECEFF1' },
+  { id: 'shoes-b4', label: 'Ninja\nTabi', color: '#212121', bgColor: '#F5F5F5' },
+  { id: 'shoes-g1', label: 'Roller\nSkates', color: '#F06292', bgColor: '#FCE4EC' },
+  { id: 'shoes-g2', label: 'Mermaid\nFins', color: '#26C6DA', bgColor: '#E0F7FA' },
+  { id: 'lower-b3', label: 'Robot\nLegs', color: '#B0BEC5', bgColor: '#ECEFF1' },
+  { id: 'lower-b4', label: 'Ninja\nPants', color: '#212121', bgColor: '#F5F5F5' },
+  { id: 'lower-g1', label: 'Fairy\nSkirt', color: '#F48FB1', bgColor: '#FCE4EC' },
+  { id: 'lower-g2', label: 'Rainbow\nLegs', color: '#E1BEE7', bgColor: '#F3E5F5' },
 ];
+
 
 const POWERUP_POOL = [
   { key: 'potion' as const, label: 'Balloon\nRevival Potion', icon: 'flask', color: '#E91E63', bgColor: '#FCE4EC' },
   { key: 'dust' as const, label: 'Moonlit\nMinute Dust', icon: 'hourglass', color: '#9C27B0', bgColor: '#F3E5F5' },
-  { key: 'powder' as const, label: 'Aurora\nPause Powder', icon: 'snow', color: '#00BCD4', bgColor: '#E0F7FA' },
+  { key: 'powder' as const, label: 'Aurora\nPause Powder', icon: 'snow-outline', color: '#00BCD4', bgColor: '#E0F7FA' },
   { key: 'firefly' as const, label: 'Hinting\nFirefly', icon: 'bulb', color: '#FFC107', bgColor: '#FFFDE7' },
 ];
 
-const REFRESH_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const REFRESH_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 // Fixed epoch for global 3-day cycle — same for ALL users
 const WHEEL_EPOCH = new Date('2026-01-01T00:00:00Z').getTime();
 
@@ -85,7 +118,7 @@ function generatePrizes(refreshTime: number): RoulettePrize[] {
     { id: 'coins-200', label: '200 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FF8F00', bgColor: '#FFF8E1', chance: 10,    type: 'coins',     value: 200 },
     { id: 'powerup-2', label: pickedPowerups[1].label, icon: pickedPowerups[1].icon, iconFamily: 'Ionicons', color: pickedPowerups[1].color, bgColor: pickedPowerups[1].bgColor, chance: 10,    type: 'powerup', value: 1, powerUpKey: pickedPowerups[1].key },
     { id: 'coins-500', label: '500 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#E65100', bgColor: '#FBE9E7', chance: 0.1,   type: 'coins',     value: 500 },
-    { id: 'accessory', label: pickedAccessory.label, icon: pickedAccessory.icon, iconFamily: 'MaterialCommunityIcons', color: pickedAccessory.color, bgColor: pickedAccessory.bgColor, chance: 0.05,  type: 'accessory', value: 1, accessoryId: pickedAccessory.id },
+    { id: 'accessory', label: pickedAccessory.label, icon: 'star', iconFamily: 'MaterialCommunityIcons', color: pickedAccessory.color, bgColor: pickedAccessory.bgColor, chance: 0.05,  type: 'accessory', value: 1, accessoryId: pickedAccessory.id },
   ];
 }
 
@@ -277,80 +310,31 @@ const WheelPrizeIcon = ({ prize, midAngle }: { prize: RoulettePrize; midAngle: n
   }
 
   if (prize.type === 'accessory') {
-    // Dynamic accessory icon based on accessoryId
     const accId = prize.accessoryId || 'hat-robot';
-    const accStyles: Record<string, { fill: string; label: string }> = {
-      'hat-robot': { fill: '#424242', label: 'ROBOT\nHELMET' },
-      'hat-1':    { fill: '#1aca26ff', label: 'COOL\nCAP' },
-      'hat-2':    { fill: '#FF5722', label: 'BOY\nCAP' },
-      'hat-3':    { fill: '#F06292', label: 'GIRL\nHAT' },
-      'hat-4':    { fill: '#FFD700', label: 'FAIRY\nCROWN' },
-    };
-    const style = accStyles[accId] || accStyles['hat-robot'];
+    const label = prize.label.replace('\n', '\n');
 
     return (
-      <G transform="translate(-18, -18)">
-        {accId === 'hat-robot' ? (
-          <G transform="translate(15, 15) scale(0.35)">
-            <Path d={`M-15,-5 Q-15,-20 0,-20 Q15,-20 15,-5 L15,12 Q0,18 -15,12 Z`} fill="#37474F" stroke="#263238" strokeWidth={2} />
-            <Path d={`M-12,-2 Q0,-5 12,-2 L10,8 Q0,10 -10,8 Z`} fill="#111" />
-            <Path d={`M-8,2 L8,2`} stroke="#00E5FF" strokeWidth={3} strokeLinecap="round" />
-            <Circle cx={-4} cy={2} r={3} fill="#FFF" />
-            <Circle cx={4} cy={2} r={3} fill="#FFF" />
-            <Line x1={0} y1={-20} x2={0} y2={-30} stroke="#90A4AE" strokeWidth={2} />
-            <Circle cx={0} cy={-32} r={4} fill="#00E5FF" />
-            <Rect x={-18} y={0} width={4} height={6} fill="#78909C" />
-            <Rect x={14} y={0} width={4} height={6} fill="#78909C" />
-          </G>
-        ) : accId === 'hat-1' ? (
-          <G transform="translate(15, 20) scale(0.32)">
-            <Ellipse cx={0} cy={0} rx={22} ry={4} fill={style.fill} />
-            <Path
-              d={`M-16.5,0 Q-16.5,-16 0,-17 Q16.5,-16 16.5,0 Z`}
-              fill={style.fill}
-              stroke="#1976D2"
-              strokeWidth={1}
-            />
-            <Line x1={-15} y1={-2} x2={15} y2={-2} stroke="#1976D2" strokeWidth={2} />
-          </G>
-        ) : accId === 'hat-2' ? (
-          <G transform="translate(15, 20) scale(0.32)">
-            <Path d={`M-18,0 Q-18,-18 0,-18 Q18,-18 18,0 Z`} fill="#FF5722" stroke="#E64A19" strokeWidth={1} />
-            <Path d={`M-18,0 L25,0`} stroke="#E64A19" strokeWidth={3} strokeLinecap="round" />
-          </G>
-        ) : accId === 'hat-3' ? (
-          <G transform="translate(15, 18) scale(0.32)">
-            <Ellipse cx={0} cy={2} rx={26} ry={6} fill="#F06292" />
-            <Path d={`M-15,0 Q-15,-20 0,-20 Q15,-20 15,0 Z`} fill="#F48FB1" stroke="#D81B60" strokeWidth={1} />
-            <Line x1={-14} y1={-2} x2={14} y2={-2} stroke="#D81B60" strokeWidth={3} />
-          </G>
-        ) : accId === 'hat-4' ? (
-          <G transform="translate(15, 15) scale(0.35)">
-            <Path d="M-15,5 Q-15,-5 0,-8 Q15,-5 15,5" fill="none" stroke="#FFD700" strokeWidth={2} />
-            <Path d="M-12,2 Q-6,-6 0,-12 Q6,-6 12,2" fill="none" stroke="#FFD700" strokeWidth={2} />
-            <Circle cx={0} cy={-12} r={3} fill="#F06292" stroke="#D81B60" strokeWidth={0.5} />
-            <Path d="M-10,-5 L-8,-7 M-8,-5 L-10,-7" stroke="#FFD700" strokeWidth={1} />
-            <Line x1={10} y1={-5} x2={8} y2={-7} stroke="#FFD700" strokeWidth={1} />
-          </G>
-        ) : (
-          <>
-            <Path d="M8,22 L28,22 L30,24 L6,24 Z" fill={style.fill} stroke="#fff" strokeWidth={1} />
-            <Path d="M12,22 Q12,8 18,8 Q24,8 24,22 Z" fill={style.fill} stroke="#fff" strokeWidth={1} />
-          </>
-        )}
+      <G transform="translate(-15, -20)">
+        <G transform="scale(0.5)">
+          <AccessoryIcon id={accId} />
+        </G>
 
         <SvgText 
-          x={18} 
+          x={15} 
           y={40} 
           fill="#fff" 
           fontSize={8} 
           fontFamily="Fredoka_700Bold" 
           textAnchor="middle"
-          transform={`rotate(${-midAngle - 180}, 18, 40)`}
+          transform={`rotate(${-midAngle - 180}, 15, 40)`}
           stroke="#000"
           strokeWidth={0.5}
         >
-          {style.label}
+          {label.split('\n').map((line: string, i: number) => (
+            <TSpan key={i} x={15} dy={i === 0 ? 0 : 9}>
+              {line}
+            </TSpan>
+          ))}
         </SvgText>
       </G>
     );
@@ -364,6 +348,7 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
   const { user, isGuest } = useAuth();
   const [isSpinning, setIsSpinning] = useState(false);
   const [wonPrize, setWonPrize] = useState<RoulettePrize | null>(null);
+  const [wonPowerUpCount, setWonPowerUpCount] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
   const [refreshCountdown, setRefreshCountdown] = useState<string>('');
@@ -496,6 +481,11 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
     const used = useRouletteTicket();
     if (!used) return;
 
+    if (!isGuest && user) {
+      const { syncTicketsToDb } = useGameState.getState();
+      syncTicketsToDb(user.id);
+    }
+
     setIsSpinning(true);
     setShowResult(false);
     setWonPrize(null);
@@ -601,8 +591,10 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
         break;
       case 'powerup':
         if (prize.powerUpKey) {
-          const newPowerUps = { ...state.powerUps, [prize.powerUpKey]: state.powerUps[prize.powerUpKey] + 1 };
+          const newCount = state.powerUps[prize.powerUpKey] + 1;
+          const newPowerUps = { ...state.powerUps, [prize.powerUpKey]: newCount };
           useGameState.setState({ powerUps: newPowerUps });
+          setWonPowerUpCount(newCount);
           if (!isGuest && user) {
             import('@/lib/db').then((db) => db.updateUserPowerUps(user.id, newPowerUps));
           }
@@ -857,6 +849,8 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
               <View style={[styles.resultIconBg, { backgroundColor: wonPrize.bgColor }]}>
                 {wonPrize.type === 'coins' ? (
                   <StickmanCoin size={60} />
+                ) : wonPrize.type === 'accessory' && wonPrize.accessoryId ? (
+                  <AccessoryIcon id={wonPrize.accessoryId} />
                 ) : wonPrize.iconFamily === 'MaterialCommunityIcons' ? (
                   <MaterialCommunityIcons name={wonPrize.icon as any} size={48} color={wonPrize.color} />
                 ) : (
@@ -881,9 +875,13 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
                   entering={FadeInDown.delay(500).duration(400)}
                   style={styles.potionCountRow}
                 >
-                  <MaterialCommunityIcons name={wonPrize.icon as any} size={20} color={wonPrize.color} />
+                  {wonPrize.iconFamily === 'MaterialCommunityIcons' ? (
+                    <MaterialCommunityIcons name={wonPrize.icon as any} size={20} color={wonPrize.color} />
+                  ) : (
+                    <Ionicons name={wonPrize.icon as any} size={20} color={wonPrize.color} />
+                  )}
                   <Text style={[styles.potionCountText, { color: wonPrize.color }]}>
-                    You now have {useGameState.getState().powerUps[wonPrize.powerUpKey]}!
+                    You now have {wonPowerUpCount !== null ? wonPowerUpCount : ''}!
                   </Text>
                 </Animated.View>
               )}

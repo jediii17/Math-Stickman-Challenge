@@ -26,7 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const difficulties: { key: Difficulty; label: string; icon: string; color: string; desc: string; gradient: [string, string] }[] = [
   { key: 'easy', label: 'Easy', icon: 'star-outline', color: Colors.primary, desc: '1-digit +−×÷\n15s per question', gradient: ['#2ECC71', '#27AE60'] },
   { key: 'average', label: 'Average', icon: 'star-half-full', color: '#F1C40F', desc: '2-digit & fractions\n30s per question', gradient: ['#F1C40F', '#F39C12'] },
-  { key: 'difficult', label: 'Difficult', icon: 'star', color: '#E74C3C', desc: '3-digit & fractions\n60s per question', gradient: ['#E74C3C', '#C0392B'] },
+  { key: 'hard', label: 'Hard', icon: 'star', color: '#E74C3C', desc: '3-digit & fractions\n60s per question', gradient: ['#E74C3C', '#C0392B'] },
 ];
 
 /* ── Soft floating bubble ── */
@@ -76,7 +76,7 @@ export default function DifficultyScreen() {
 
   const isLocked = (d: Difficulty) => {
     if (d === 'average' && highScores.easy < 6) return true;
-    if (d === 'difficult' && highScores.average < 8) return true;
+    if (d === 'hard' && highScores.average < 8) return true;
     return false;
   };
 

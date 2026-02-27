@@ -11,7 +11,7 @@ import * as db from '@/lib/db';
 import StickmanCoin, { abbreviateCoins } from '@/components/StickmanCoin';
 
 // ─── Types ───
-type TabKey = 'coins' | 'classic' | 'survival_easy' | 'survival_average' | 'survival_difficult';
+type TabKey = 'coins' | 'classic' | 'survival_easy' | 'survival_average' | 'survival_hard';
 
 interface Tab {
   key: TabKey;
@@ -25,7 +25,7 @@ const TABS: Tab[] = [
   { key: 'classic', label: 'Classic', icon: 'map-marker-path', color: '#3498DB' },
   { key: 'survival_easy', label: 'Easy', icon: 'sword-cross', color: '#2ECC71' },
   { key: 'survival_average', label: 'Average', icon: 'sword-cross', color: '#F39C12' },
-  { key: 'survival_difficult', label: 'Hard', icon: 'skull-crossbones', color: '#E74C3C' },
+  { key: 'survival_hard', label: 'Hard', icon: 'skull-crossbones', color: '#E74C3C' },
 ];
 
 interface LeaderboardEntry {
@@ -140,8 +140,8 @@ export default function LeaderboardScreen() {
           data = await db.getSurvivalLeaderboard('average', 50);
           break;
         }
-        case 'survival_difficult': {
-          data = await db.getSurvivalLeaderboard('difficult', 50);
+        case 'survival_hard': {
+          data = await db.getSurvivalLeaderboard('hard', 50);
           break;
         }
       }

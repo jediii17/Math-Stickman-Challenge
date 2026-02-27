@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Line, Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -36,7 +37,7 @@ import { getClassicDifficulty } from '@/lib/math-engine';
 // width and screenHeight are now obtained via useWindowDimensions() inside each component
 
 // Configuration
-const EXTRA_LOCKED_LEVELS = 28; // show a few locked levels ahead
+const EXTRA_LOCKED_LEVELS = 6; // show a few locked levels ahead
 const NODE_SIZE = 60;
 const LEVEL_SPACING = 110; // vertical gap between levels
 const MAP_PADDING_BOTTOM = 120;
@@ -189,7 +190,17 @@ function TicketFloat({ x, y, count, collected }: { x: number; y: number; count: 
   );
 }
 
-function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
+interface LevelNodeProps {
+  level: number;
+  status: 'completed' | 'current' | 'locked';
+  x: number;
+  y: number;
+  onPress: () => void;
+  index: number;
+  isLast?: boolean;
+}
+
+function LevelNode({ level, status, x, y, onPress, index, isLast }: LevelNodeProps) {
   const diff = getClassicDifficulty(level);
   
   const getColors = (): [string, string] => {
@@ -221,8 +232,7 @@ function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
   }));
 
   return (
-    <Animated.View 
-      entering={FadeInDown.delay(index * 80).springify()}
+    <View 
       style={[
         styles.nodeContainer, 
         { left: x - NODE_SIZE / 2, top: y - NODE_SIZE / 2 },
@@ -249,6 +259,12 @@ function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
                <Ionicons name="star" size={16} color="#fff" style={{ marginTop: -4 }} />
                <Ionicons name="star" size={12} color="#fff" />
             </View>
+          ) : isLast ? (
+            <View style={{ flexDirection: 'row', gap: 3 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
+            </View>
           ) : status === 'locked' ? (
             <Ionicons name="lock-closed" size={24} color="#757575" />
           ) : (
@@ -257,17 +273,24 @@ function LevelNode({ level, status, x, y, onPress, index }: LevelNodeProps) {
         </LinearGradient>
         
         <View style={styles.nodeLabel}>
-           <Text style={[
-             styles.nodeLabelText, 
-             status === 'locked' && { color: '#9E9E9E' },
-             status === 'current' && { color: Colors.primary, fontFamily: 'Fredoka_700Bold' }
-           ]}>
-             Lv.{level}
-           </Text>
+          <View style={[styles.nodeLabelInner, isLast && { paddingHorizontal: 16 }]}>
+            <Text 
+              numberOfLines={1}
+              ellipsizeMode="clip"
+              style={[
+                styles.nodeLabelText, 
+                status === 'locked' && { color: '#9E9E9E' },
+                status === 'current' && { color: Colors.primary, fontFamily: 'Fredoka_700Bold' },
+                isLast && { minWidth: 90 }
+              ]}
+            >
+              {isLast ? "Next Level..." : `Lv.${level}`}
+            </Text>
+          </View>
         </View>
       </Pressable>
     </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -358,12 +381,13 @@ function AnnoyingHereButton({ onPress, bottomPadding, direction, stickmanY, scro
 
 export default function ClassicMapScreen() {
   const insets = useSafeAreaInsets();
-  const { classicLevel, rouletteTickets, lastCelebratedLevel } = useGameState();
+  const { classicLevel, rouletteTickets, claimedTicketLevels } = useGameState();
   const { justFinished } = useLocalSearchParams<{ justFinished?: string }>();
-  const { isGuest } = useAuth();
+  const { isGuest, user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const { width, height: screenHeight } = useWindowDimensions();
   const [showRoulette, setShowRoulette] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -377,7 +401,7 @@ export default function ClassicMapScreen() {
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showHereIndicator, setShowHereIndicator] = useState(false);
-  const [ticketCelebration, setTicketCelebration] = useState<{ count: number } | null>(null);
+  const [ticketCelebration, setTicketCelebration] = useState<{ count: number; level: number } | null>(null);
   // Roulette animations
   const roulettePulse = useSharedValue(1);
   const rouletteRotation = useSharedValue(0);
@@ -386,14 +410,13 @@ export default function ClassicMapScreen() {
 
   const checkAndCelebrateTicket = (level: number, delay: number = 800) => {
     if (isGuest) return;
-    const { lastCelebratedLevel } = useGameState.getState();
+    const { claimedTicketLevels } = useGameState.getState();
     const tickets = isTicketLevel(level);
     
-    if (tickets > 0 && lastCelebratedLevel !== level) {
-      useGameState.setState({ lastCelebratedLevel: level });
+    if (tickets > 0 && !claimedTicketLevels.includes(level)) {
       // Only SHOW the confetti — tickets are awarded when the user presses "Claim"
       const timer = setTimeout(() => {
-        setTicketCelebration({ count: tickets });
+        setTicketCelebration({ count: tickets, level });
         if (Platform.OS !== 'web') {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -404,8 +427,16 @@ export default function ClassicMapScreen() {
 
   const handleClaimTicket = () => {
     if (!ticketCelebration) return;
-    const { addRouletteTickets } = useGameState.getState();
+    const { addRouletteTickets, claimedTicketLevels, syncTicketsToDb } = useGameState.getState();
     addRouletteTickets(ticketCelebration.count);
+    // Permanently mark this level as claimed so revisiting never re-awards tickets
+    const updatedClaimedLevels = [...claimedTicketLevels, ticketCelebration.level];
+    useGameState.setState({ claimedTicketLevels: updatedClaimedLevels });
+    
+    if (!isGuest && user) {
+      syncTicketsToDb(user.id);
+    }
+
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -420,6 +451,13 @@ export default function ClassicMapScreen() {
     
     return checkAndCelebrateTicket(classicLevel);
   }, [classicLevel, justFinished]);
+
+  useEffect(() => {
+    // Small delay to allow react-navigation to transition smoothly,
+    // then we flag the massive tree of levels to render.
+    const t = setTimeout(() => setIsMapReady(true), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   // Start roulette button animations
   useEffect(() => {
@@ -614,12 +652,10 @@ export default function ClassicMapScreen() {
     checkAndCelebrateTicket(level, 300);
   };
 
-  // Set initial stickman position to current level
+  // Set initial stickman position and handle initial scroll
   useEffect(() => {
-    // If we just finished a level, start the stickman at the PREVIOUS level
-    // so the user can see him walk to the new level
+    // 1. Always set initial stickman position so he's there when map appears
     const initialLevel = (justFinished === 'true') ? Math.max(1, classicLevel - 1) : classicLevel;
-
     const currentIndex = levels.indexOf(initialLevel);
     if (currentIndex !== -1) {
       const { x, y } = points[currentIndex];
@@ -628,26 +664,33 @@ export default function ClassicMapScreen() {
       stickmanPosRef.current = { x, y };
     }
     
-    // Scroll to current level position
-    const scrollToIndex = levels.indexOf(classicLevel);
-    if (scrollToIndex !== -1) {
-      setTimeout(() => {
-        if (scrollRef.current) {
-          const { y } = points[scrollToIndex];
-          const scrollTarget = Math.max(0, y - screenHeight / 2);
-          scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
+    // 2. Initial Scroll - Only skip if map isn't ready yet (it will re-run when isMapReady becomes true)
+    if (isMapReady) {
+      const scrollToIndex = levels.indexOf(classicLevel);
+      if (scrollToIndex !== -1) {
+        // Small delay to ensure the ScrollView content has been measured by the native side
+        const scrollTimer = setTimeout(() => {
+          if (scrollRef.current) {
+            const { y } = points[scrollToIndex];
+            const scrollTarget = Math.max(0, y - screenHeight / 2);
+            scrollRef.current.scrollTo({ y: scrollTarget, animated: true });
+          }
+        }, 100);
+        
+        // If just finished, trigger the auto-walk after a short delay
+        if (justFinished === 'true') {
+          const walkTimer = setTimeout(() => {
+            autoWalkToLevel(classicLevel);
+          }, 800);
+          return () => {
+            clearTimeout(scrollTimer);
+            clearTimeout(walkTimer);
+          };
         }
-      }, 300);
+        return () => clearTimeout(scrollTimer);
+      }
     }
-
-    // If just finished, trigger the auto-walk after a short delay
-    if (justFinished === 'true') {
-      const walkTimer = setTimeout(() => {
-        autoWalkToLevel(classicLevel);
-      }, 1000);
-      return () => clearTimeout(walkTimer);
-    }
-  }, [classicLevel]);
+  }, [classicLevel, isMapReady, justFinished]);
 
   const stickmanAnimStyle = useAnimatedStyle(() => ({
     position: 'absolute' as const,
@@ -696,6 +739,9 @@ export default function ClassicMapScreen() {
     
     const startIndex = closestIndex;
     if (startIndex === targetIndex) {
+      // Already at target node — no walk needed, reset walking state and show modal
+      setIsWalking(false);
+      setPendingLevel(null);
       setSelectedLevel(level);
       return;
     }
@@ -828,6 +874,26 @@ export default function ClassicMapScreen() {
     setTimeout(() => setShowHereIndicator(false), 2500);
   };
 
+  if (!isMapReady) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#E0F7FA' }]}>
+        <AnimatedStickman size={160} hideArms={false} />
+        <Animated.Text 
+          entering={FadeInDown.delay(200).springify()} 
+          style={{ fontFamily: 'Fredoka_700Bold', fontSize: 26, color: '#00ACC1', marginTop: 30, textAlign: 'center' }}
+        >
+          Mapping out levels...
+        </Animated.Text>
+        <Animated.Text 
+          entering={FadeInDown.delay(400).springify()} 
+          style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 18, color: '#00838F', marginTop: 10, textAlign: 'center' }}
+        >
+          Drawing your amazing adventure! ✏️
+        </Animated.Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* We will render gradients inside the ScrollView so they scroll naturally */}
@@ -856,7 +922,7 @@ export default function ClassicMapScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16} // 60fps
       >
-        <View style={styles.mapArea}>
+        <View style={[styles.mapArea, { height: totalMapHeight }]}>
           {/* Seasonal Background Gradients */}
           {seasonChunks.map((chunk) => (
             <LinearGradient
@@ -885,7 +951,7 @@ export default function ClassicMapScreen() {
             </View>
           ))}
 
-          {/* Draw connecting paths */}
+          {/* Draw connecting paths - Optimized View-based lines (avoiding SVG texture limits) */}
           {points.map((p, i) => {
             if (i === points.length - 1) return null;
             const nextP = points[i + 1];
@@ -898,9 +964,8 @@ export default function ClassicMapScreen() {
             const isUnlocked = levels[i] < classicLevel;
             
             return (
-              <Animated.View 
+              <View 
                 key={`line-${i}`}
-                entering={FadeIn.delay(i * 80)}
                 style={[
                   styles.pathLine,
                   {
@@ -913,7 +978,7 @@ export default function ClassicMapScreen() {
                       { rotate: `${angle}deg` },
                       { translateX: dist / 2 }
                     ],
-                    backgroundColor: isUnlocked ? Colors.primary : '#D5D5D5',
+                    backgroundColor: isUnlocked ? '#FFA000' : 'rgba(255,255,255,0.4)',
                   }
                 ]}
               />
@@ -936,6 +1001,7 @@ export default function ClassicMapScreen() {
                 y={y}
                 index={index}
                 onPress={() => handleLevelSelect(lvl)}
+                isLast={index === levels.length - 1}
               />
             );
           })}
@@ -947,7 +1013,8 @@ export default function ClassicMapScreen() {
             
             // Hide tickets for levels the player hasn't reached yet or has already celebrated
             if (lvl < classicLevel) return null;
-            if (lvl === classicLevel && lastCelebratedLevel >= lvl) return null;
+            if (lvl === classicLevel && claimedTicketLevels.includes(lvl)) return null;
+            if (lvl < classicLevel && !claimedTicketLevels.includes(lvl)) return null; // past milestone not yet claimed (edge case)
             
             const { x, y } = points[index];
             return (
@@ -1106,7 +1173,12 @@ export default function ClassicMapScreen() {
               <View style={styles.modalButtons}>
                 <TouchableOpacity 
                   style={styles.cancelBtn} 
-                  onPress={() => setSelectedLevel(null)}
+                  onPress={() => {
+                    setSelectedLevel(null);
+                    // Reset walking state so the map is interactive again
+                    setIsWalking(false);
+                    setPendingLevel(null);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="arrow-back" size={16} color="#888" />
@@ -1286,9 +1358,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
+  moreDotsContainer: {
+    position: 'absolute',
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    marginBottom: 8,
+  },
+  moreText: {
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
+    width: 150,
+    textAlign: 'center',
+  },
   nodeLabel: {
     position: 'absolute',
     bottom: -24,
+    left: -60,
+    right: -60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nodeLabelInner: {
     backgroundColor: 'rgba(255,255,255,0.8)',
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -1298,6 +1398,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Fredoka_600SemiBold',
     color: Colors.textLight,
+    textAlign: 'center',
   },
   hereBtnContainer: {
     position: 'absolute',

@@ -7,20 +7,39 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function ensureSession() {
   try {
-    // getSession() naturally checks and refreshes the token in the background safely.
-    // DO NOT call refreshSession() manually here.
-    const { data, error } = await supabase.auth.getSession();
-    
-    if (error && error.message.includes('Refresh Token')) {
-      Alert.alert(
-        'Session Expired',
-        'Your login session has expired. Please restart the game to continue.',
-        [{ text: 'OK' }]
-      );
-      await supabase.auth.signOut({ scope: 'local' });
+    // Always force a token refresh when called, since this is only invoked
+    // after a query failure. getSession() returns cached tokens without
+    // validating them, so it can't detect JWT expiration.
+    console.log('[db.ts] Forcing token refresh...');
+    const { data, error } = await supabase.auth.refreshSession();
+
+    if (error) {
+      const msg = error.message || '';
+      console.warn('[db.ts] Token refresh failed:', msg);
+
+      if (
+        msg.includes('Refresh Token') ||
+        msg.includes('Invalid Refresh Token') ||
+        error.name === 'AuthSessionMissingError'
+      ) {
+        // Refresh token is dead — session is permanently expired
+        Alert.alert(
+          'Session Expired',
+          'Your login session has expired. Please log in again.',
+          [{ text: 'OK' }]
+        );
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      return;
+    }
+
+    if (data?.session) {
+      console.log('[db.ts] Token refresh successful, new token expires at:', new Date(data.session.expires_at! * 1000).toISOString());
+    } else {
+      console.warn('[db.ts] No active session to refresh');
     }
   } catch (e) {
-    console.warn('Session check failed:', e);
+    console.warn('[db.ts] Session refresh failed:', e);
   }
 }
 
@@ -73,7 +92,7 @@ export async function getProfile(userId: string) {
   return withRetry(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, coins, classic_level, last_username_change_at, session_key')
+      .select('id, username, coins, classic_level, last_username_change_at, session_key, roulette_tickets, claimed_ticket_levels')
       .eq('id', userId)
       .maybeSingle();
 
@@ -89,6 +108,8 @@ export async function getProfile(userId: string) {
       classic_level: number;
       last_username_change_at: string | null;
       session_key: string | null;
+      roulette_tickets: number;
+      claimed_ticket_levels: number[];
     };
   }).catch((e) => {
     console.error("[db.ts] getProfile failed after all retries:", e.message || e);
@@ -116,6 +137,17 @@ export async function updateCoins(userId: string, coins: number) {
   const { error } = await supabase
     .from('profiles')
     .update({ coins })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+export async function updateTicketsData(userId: string, tickets: number, claimedLevels: number[]) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      roulette_tickets: tickets,
+      claimed_ticket_levels: claimedLevels
+    })
     .eq('id', userId);
   if (error) throw error;
 }
@@ -372,13 +404,16 @@ export async function getUserHighScores(userId: string) {
     .eq('user_id', userId)
     .eq('game_mode', 'survival');
 
-  const highScores = { easy: 0, average: 0, difficult: 0 };
+  const highScores = { easy: 0, average: 0, hard: 0 };
 
   if (!error && data) {
     data.forEach(row => {
-      const diff = row.difficulty as 'easy' | 'average' | 'difficult';
-      if (diff && highScores[diff] !== undefined) {
-        highScores[diff] = row.score;
+      // Map both 'hard' and legacy 'difficult' to the 'hard' field
+      const diff = row.difficulty;
+      if (diff === 'easy') highScores.easy = row.score;
+      else if (diff === 'average') highScores.average = row.score;
+      else if (diff === 'hard' || diff === 'difficult') {
+        highScores.hard = Math.max(highScores.hard, row.score);
       }
     });
   }

@@ -672,7 +672,7 @@ export default function GameScreen() {
     switch (diff) {
       case 'easy': return 'Easy';
       case 'average': return 'Average';
-      case 'difficult': return 'Difficult';
+      case 'hard': return 'Hard';
     }
   };
 
@@ -680,7 +680,7 @@ export default function GameScreen() {
     switch (diff) {
       case 'easy': return Colors.primary;
       case 'average': return Colors.secondary;
-      case 'difficult': return Colors.tertiary;
+      case 'hard': return Colors.tertiary;
     }
   };
 
@@ -728,7 +728,7 @@ export default function GameScreen() {
         <View style={styles.topInfo}>
           <View style={styles.topBadgeRow}>
             <View style={[styles.badge, { backgroundColor: getDiffColor() }]}>
-              <Text style={[styles.badgeText, diff === 'difficult' && { color: Colors.text }]}>{getDiffLabel()}</Text>
+              <Text style={[styles.badgeText, diff === 'hard' && { color: Colors.text }]}>{getDiffLabel()}</Text>
             </View>
             <View style={[styles.badge, { backgroundColor: mode === 'survival' ? '#E74C3C' : Colors.blue }]}>
               <Text style={styles.badgeText}>{mode === 'survival' ? '☠️' : `Lv.${classicLevel}`}</Text>
