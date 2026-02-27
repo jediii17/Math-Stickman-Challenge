@@ -78,23 +78,32 @@ function generatePrizes(refreshTime: number): RoulettePrize[] {
   const pickedPowerups = shuffledPowerups.slice(0, 2);
 
   return [
-    { id: 'coins-20',  label: '20 Coins',  icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFD700', bgColor: '#FFF8DC', chance: 30,   type: 'coins',     value: 20 },
-    { id: 'coins-50',  label: '50 Coins',  icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFD700', bgColor: '#FFFDE7', chance: 24.9, type: 'coins',     value: 50 },
-    { id: 'powerup-1', label: pickedPowerups[0].label, icon: pickedPowerups[0].icon, iconFamily: 'Ionicons', color: pickedPowerups[0].color, bgColor: pickedPowerups[0].bgColor, chance: 9.9,  type: 'powerup', value: 1, powerUpKey: pickedPowerups[0].key },
-    { id: 'coins-100', label: '100 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFA000', bgColor: '#FFF3E0', chance: 15,   type: 'coins',     value: 100 },
-    { id: 'coins-200', label: '200 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FF8F00', bgColor: '#FFF8E1', chance: 10,   type: 'coins',     value: 200 },
-    { id: 'powerup-2', label: pickedPowerups[1].label, icon: pickedPowerups[1].icon, iconFamily: 'Ionicons', color: pickedPowerups[1].color, bgColor: pickedPowerups[1].bgColor, chance: 10,   type: 'powerup', value: 1, powerUpKey: pickedPowerups[1].key },
-    { id: 'coins-500', label: '500 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#E65100', bgColor: '#FBE9E7', chance: 0.1,  type: 'coins',     value: 500 },
-    { id: 'accessory', label: pickedAccessory.label, icon: pickedAccessory.icon, iconFamily: 'MaterialCommunityIcons', color: pickedAccessory.color, bgColor: pickedAccessory.bgColor, chance: 0.1,  type: 'accessory', value: 1, accessoryId: pickedAccessory.id },
+    { id: 'coins-20',  label: '20 Coins',  icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFD700', bgColor: '#FFF8DC', chance: 30,    type: 'coins',     value: 20 },
+    { id: 'coins-50',  label: '50 Coins',  icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFD700', bgColor: '#FFFDE7', chance: 24.95, type: 'coins',     value: 50 },
+    { id: 'powerup-1', label: pickedPowerups[0].label, icon: pickedPowerups[0].icon, iconFamily: 'Ionicons', color: pickedPowerups[0].color, bgColor: pickedPowerups[0].bgColor, chance: 9.9,   type: 'powerup', value: 1, powerUpKey: pickedPowerups[0].key },
+    { id: 'coins-100', label: '100 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FFA000', bgColor: '#FFF3E0', chance: 15,    type: 'coins',     value: 100 },
+    { id: 'coins-200', label: '200 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#FF8F00', bgColor: '#FFF8E1', chance: 10,    type: 'coins',     value: 200 },
+    { id: 'powerup-2', label: pickedPowerups[1].label, icon: pickedPowerups[1].icon, iconFamily: 'Ionicons', color: pickedPowerups[1].color, bgColor: pickedPowerups[1].bgColor, chance: 10,    type: 'powerup', value: 1, powerUpKey: pickedPowerups[1].key },
+    { id: 'coins-500', label: '500 Coins', icon: 'gold', iconFamily: 'MaterialCommunityIcons', color: '#E65100', bgColor: '#FBE9E7', chance: 0.1,   type: 'coins',     value: 500 },
+    { id: 'accessory', label: pickedAccessory.label, icon: pickedAccessory.icon, iconFamily: 'MaterialCommunityIcons', color: pickedAccessory.color, bgColor: pickedAccessory.bgColor, chance: 0.05,  type: 'accessory', value: 1, accessoryId: pickedAccessory.id },
   ];
 }
 
 const NUM_SEGMENTS = 8;
 const SEGMENT_ANGLE = 360 / NUM_SEGMENTS;
 
-// Equal chance — every segment has the same odds (what you see is what you get)
+// Weighted chance — segments have different odds based on the 'chance' property
 function pickPrize(prizes: RoulettePrize[]): number {
-  return Math.floor(Math.random() * prizes.length);
+  const totalChance = prizes.reduce((sum, p) => sum + p.chance, 0);
+  let random = Math.random() * totalChance;
+  
+  for (let i = 0; i < prizes.length; i++) {
+    if (random < prizes[i].chance) {
+      return i;
+    }
+    random -= prizes[i].chance;
+  }
+  return prizes.length - 1;
 }
 
 // SVG arc path for a segment

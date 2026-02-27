@@ -73,7 +73,7 @@ export async function getProfile(userId: string) {
   return withRetry(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, coins, classic_level, last_username_change_at')
+      .select('id, username, coins, classic_level, last_username_change_at, session_key')
       .eq('id', userId)
       .maybeSingle();
 
@@ -88,6 +88,7 @@ export async function getProfile(userId: string) {
       coins: number; 
       classic_level: number;
       last_username_change_at: string | null;
+      session_key: string | null;
     };
   }).catch((e) => {
     console.error("[db.ts] getProfile failed after all retries:", e.message || e);
@@ -162,6 +163,21 @@ export async function updateUsername(userId: string, newUsername: string) {
 
   if (error) {
     if (error.message.includes('unique')) throw new Error('Username already taken');
+    throw error;
+  }
+}
+
+export async function updateSessionKey(userId: string, sessionKey: string | null) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      session_key: sessionKey,
+      last_seen_at: sessionKey ? new Date().toISOString() : null
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[db.ts] updateSessionKey error:', error.message);
     throw error;
   }
 }

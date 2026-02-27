@@ -46,6 +46,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isGuest, setIsGuest] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const appState = useRef(AppState.currentState);
+  const currentSessionKey = useRef<string | null>(null);
+
+  const logout = useCallback(async () => {
+    try {
+      // Clear session key in DB on logout
+      if (user) {
+        await db.updateSessionKey(user.id, null);
+      }
+      // Use scope: 'local' to clear the session immediately without
+      // needing a valid (non-expired) token for server-side revocation.
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('Signout network/token error ignored:', e);
+    } finally {
+      // ALWAYS clear the local React state, even if the token was already dead
+      setUser(null);
+      currentSessionKey.current = null;
+      setIsGuest(true);
+      // Clear equipped accessories so stickman resets to default after logout
+      useGameState.getState().resetForGuest();
+    }
+  }, [user]);
 
   // --- Session resilience: refresh on app foreground ---
   useEffect(() => {
@@ -66,9 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 [{ text: 'OK' }]
               );
             }
-            await supabase.auth.signOut({ scope: 'local' });
-            setUser(null);
-            setIsGuest(true);
+            await logout();
             return;
           }
 
@@ -76,6 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Reload the user profile to ensure fresh data
             const profile = await db.getProfile(data.session.user.id);
             if (profile) {
+              // Check session key for single device login
+              if (currentSessionKey.current && profile.session_key && profile.session_key !== currentSessionKey.current) {
+                Alert.alert(
+                  'Logged Out',
+                  'Your account was logged in on another device.',
+                  [{ text: 'OK' }]
+                );
+                await logout();
+                return;
+              }
               setUser(profile);
               setIsGuest(false);
             }
@@ -92,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     // 1. Explicitly check for an existing session on app load to guarantee we don't miss it
@@ -102,6 +132,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.session?.user) {
           const profile = await db.getProfile(data.session.user.id);
           if (profile) {
+            // On initial load, we adopt the existing session key from DB if we don't have one
+            if (!currentSessionKey.current && profile.session_key) {
+              currentSessionKey.current = profile.session_key;
+            }
             setUser(profile);
             setIsGuest(false);
           }
@@ -143,6 +177,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (error) return error.message;
 
+      // Generate new session key for this login
+      const sessionKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await db.updateSessionKey(data.user.id, sessionKey);
+      currentSessionKey.current = sessionKey;
+
       const profile = await db.getProfile(data.user.id);
       
       if (profile) {
@@ -169,8 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (username.length > 20) return { error: 'Username must be 20 characters or less' };
       if (password.length < 6) return { error: 'Password must be at least 6 characters' };
 
-      // Only allow letters, numbers, underscores, and hyphens — NO spaces or special chars.
-      // This prevents Supabase email validation errors since we build username@mathgame.local.
       const usernameRegex = /^[a-zA-Z0-9_-]+$/;
       if (!usernameRegex.test(username)) {
         return { error: 'Username can only contain letters, numbers, underscores, and hyphens (no spaces)' };
@@ -186,7 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.message.includes('already registered')) {
           return { error: 'Username already taken' };
         }
-        // Catch any email validation errors and show a friendly message
         if (error.message.toLowerCase().includes('email')) {
           return { error: 'Invalid username format. Use only letters, numbers, underscores, or hyphens.' };
         }
@@ -194,37 +230,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        // Generate recovery phrase (12 random bytes as hex string separated by dashes)
         const randomBytes = await Crypto.getRandomBytesAsync(12);
         const recoveryPhrase = Array.from(randomBytes)
           .map(b => b.toString(16).padStart(2, '0'))
           .join('')
           .match(/.{4}/g)?.join('-') || 'math-game-key';
         
-        // Hash it for secure storage
         const recoveryPhraseHash = await Crypto.digestStringAsync(
           Crypto.CryptoDigestAlgorithm.SHA256, 
           recoveryPhrase.toLowerCase()
         );
 
-        console.log("Generating recovery phrase and hitting db.createProfile()...");
         await db.createProfile(data.user.id, username, recoveryPhraseHash);
         
-        console.log("Profile created! Hitting db.getProfile()...");
+        // Generate and set session key for new registration
+        const sessionKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        await db.updateSessionKey(data.user.id, sessionKey);
+        currentSessionKey.current = sessionKey;
+
         const profile = await db.getProfile(data.user.id);
         if (profile) {
-          console.log("Profile retrieved successfully post-register.");
           setUser(profile);
           setIsGuest(false);
         } else {
-          // Profile fetch failed but registration succeeded — proceed with minimal profile
-          console.warn("Profile fetch post-register returned null, using minimal profile.");
           setUser({ id: data.user.id, username: username.trim(), coins: 0 });
           setIsGuest(false);
         }
         return { error: null, recoveryPhrase };
       }
-      console.warn("Register succeeded but data.user was null.");
       return { error: null };
     } catch (e: any) {
       console.error("Register try/catch caught exception:", e);
@@ -235,27 +268,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      // Use scope: 'local' to clear the session immediately without
-      // needing a valid (non-expired) token for server-side revocation.
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (e) {
-      console.warn('Signout network/token error ignored:', e);
-    } finally {
-      // ALWAYS clear the local React state, even if the token was already dead
-      setUser(null);
-      setIsGuest(true);
-      // Clear equipped accessories so stickman resets to default after logout
-      useGameState.getState().resetForGuest();
-    }
-  }, []);
-
   const continueAsGuest = useCallback(() => {
     setUser(null);
     setIsGuest(true);
     setIsLoading(false);
-    // Ensure guest starts with no accessories equipped
     useGameState.getState().resetForGuest();
   }, []);
 
@@ -271,10 +287,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUsername = useCallback(async (newUsername: string): Promise<string | null> => {
     if (!user) return 'Not authenticated';
     try {
-      // 1. Update the profile in the DB (includes cooldown check)
       await db.updateUsername(user.id, newUsername);
 
-      // 2. Sync with Supabase Auth credentials
       const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
       if (serviceRoleKey) {
         const { createClient } = await import('@supabase/supabase-js');
@@ -284,16 +298,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         const newEmail = `${newUsername.toLowerCase()}@mathgame.local`;
-        const { error: authError } = await adminClient.auth.admin.updateUserById(user.id, {
+        await adminClient.auth.admin.updateUserById(user.id, {
           email: newEmail,
           user_metadata: { username: newUsername }
         });
-
-        if (authError) {
-          console.warn('Failed to sync username to Auth:', authError.message);
-          // We don't necessarily want to fail the whole operation if DB part succeeded, 
-          // but logging it is important.
-        }
       }
 
       await refreshUser();
@@ -306,7 +314,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updatePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<string | null> => {
     if (!user) return 'Not authenticated';
     try {
-      // 1. Verify current password by attempting to sign in
       const email = `${user.username.toLowerCase()}@mathgame.local`;
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -314,7 +321,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (signInError) return 'Current password is incorrect';
 
-      // 2. Update to new password
       const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
       if (serviceRoleKey) {
         const { createClient } = await import('@supabase/supabase-js');
@@ -342,142 +348,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const verifyRecoveryPhrase = useCallback(async (username: string, recoveryPhrase: string): Promise<string | null> => {
     try {
       const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-      if (!serviceRoleKey) {
-        return 'Admin key not configured in environment.';
-      }
+      if (!serviceRoleKey) return 'Admin key not configured.';
 
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-      
-      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      const adminClient = createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
 
-      console.log("Attempting login for:", username);
       const email = `${username.toLowerCase()}@mathgame.local`;
-      const { data: userList, error: listError } = await adminClient.auth.admin.listUsers();
-
-      if (listError) {
-        return 'Failed to look up user account.';
-      }
-
+      const { data: userList } = await adminClient.auth.admin.listUsers();
       const targetUser = userList.users.find((u: any) => u.email?.toLowerCase() === email);
-      if (!targetUser) {
-        return 'Username not found.';
-      }
+      if (!targetUser) return 'Username not found.';
 
-      // Bypass RLS: use the adminClient to fetch the profile data directly
-      const { data: profileData, error: profileError } = await adminClient
+      const { data: profileData } = await adminClient
         .from('profiles')
         .select('recovery_phrase_hash')
         .eq('id', targetUser.id)
         .single();
 
-      if (profileError || !profileData?.recovery_phrase_hash) {
-        return 'This account does not have a recovery phrase set up.';
-      }
+      if (!profileData?.recovery_phrase_hash) return 'No recovery phrase set up.';
       
-      const storedHash = profileData.recovery_phrase_hash;
-
       const inputHash = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         recoveryPhrase.trim().toLowerCase()
       );
 
-      if (storedHash !== inputHash) {
-        return 'Incorrect recovery phrase. Please check your spelling and try again.';
-      }
-
+      if (profileData.recovery_phrase_hash !== inputHash) return 'Incorrect recovery phrase.';
       return null;
     } catch (e: any) {
-      console.error("Verification error:", e);
-      return e.message || 'An unexpected error occurred.';
+      return e.message || 'An error occurred.';
     }
   }, []);
 
   const resetPassword = useCallback(async (username: string, recoveryPhrase: string, newPassword: string): Promise<string | null> => {
     try {
-      // Create an admin client directly on the client side since we are bypassing the server for this feature
-      // Note: In a real production app, exposing the service_role key to the client is extremely dangerous.
-      // We are only doing this because the backend server is not easily reachable via Expo Go with --tunnel.
       const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (!serviceRoleKey) {
-        return 'Admin key not configured in environment (EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY).';
-      }
+      if (!serviceRoleKey) return 'Admin key not configured.';
 
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-      
-      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+      const adminClient = createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
       });
 
-      console.log("Attempting login for:", username);
       const email = `${username.toLowerCase()}@mathgame.local`;
-
-      // 1. Find the user by email
-      const { data: userList, error: listError } = await adminClient.auth.admin.listUsers();
-
-      if (listError) {
-        console.error("Error listing users:", listError);
-        return 'Failed to look up user account.';
-      }
-
+      const { data: userList } = await adminClient.auth.admin.listUsers();
       const targetUser = userList.users.find((u: any) => u.email?.toLowerCase() === email);
-      
-      if (!targetUser) {
-        return 'Username not found.';
-      }
+      if (!targetUser) return 'Username not found.';
 
-      // 2. Verify Recovery Phrase
-      // Bypass RLS: use the adminClient to fetch the profile data directly
-      const { data: profileData, error: profileError } = await adminClient
+      const { data: profileData } = await adminClient
         .from('profiles')
         .select('recovery_phrase_hash')
         .eq('id', targetUser.id)
         .single();
 
-      if (profileError || !profileData?.recovery_phrase_hash) {
-        return 'This account does not have a recovery phrase set up. Please contact an administrator.';
-      }
-      
-      const storedHash = profileData.recovery_phrase_hash;
+      if (!profileData?.recovery_phrase_hash) return 'No recovery phrase set up.';
 
       const inputHash = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         recoveryPhrase.trim().toLowerCase()
       );
 
-      if (storedHash !== inputHash) {
-        return 'Incorrect recovery phrase. Please check your spelling and try again.';
-      }
+      if (profileData.recovery_phrase_hash !== inputHash) return 'Incorrect recovery phrase.';
 
-      // 3. Update their password
-      const { error: updateError } = await adminClient.auth.admin.updateUserById(
-        targetUser.id,
-        { password: newPassword }
-      );
-
-      if (updateError) {
-        console.error("Error updating password:", updateError);
-        return 'Failed to update password across the server.';
-      }
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUser.id, { password: newPassword });
+      if (updateError) return 'Failed to update password.';
 
       return null;
     } catch (e: any) {
-      console.error("Reset error:", e);
-      return e.message || 'An unexpected error occurred. Please try again.';
+      return e.message || 'An error occurred.';
     }
   }, []);
 
   useEffect(() => {
-    // React Native often drops long-running background timers (like Supabase's 1-hour refresh).
-    // Polling getSession() every 5 minutes forces the SDK to evaluate the token's health
-    // and naturally trigger its own auto-refresh if it's close to expiring.
     const heartbeat = setInterval(async () => {
       if (!isGuest && user) {
         try {
@@ -488,18 +430,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               'Your login session has expired. Please restart the game to continue.',
               [{ text: 'OK' }]
             );
-            await supabase.auth.signOut({ scope: 'local' });
-            setUser(null);
-            setIsGuest(true);
+            await logout();
+          } else if (!error) {
+            // Heartbeat session key check
+            const { data: profile } = await supabase.from('profiles').select('session_key').eq('id', user.id).maybeSingle();
+            if (profile && currentSessionKey.current && profile.session_key && profile.session_key !== currentSessionKey.current) {
+              Alert.alert(
+                'Logged Out',
+                'Your account was logged in on another device.',
+                [{ text: 'OK' }]
+              );
+              await logout();
+            }
           }
         } catch (e) {
           console.warn('Heartbeat session check failed:', e);
         }
       }
-    }, 5 * 60 * 1000); // Run every 5 minutes
+    }, 5 * 60 * 1000); 
 
     return () => clearInterval(heartbeat);
-  }, [isGuest, user]);
+  }, [isGuest, user, logout]);
 
   return (
     <AuthContext.Provider
