@@ -75,7 +75,7 @@ export function getSlotForAccessory(id: string): AccessoryType | null {
   if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
   // 'lower' items: shirt-5 (skirt), lower-*
   if (id === 'shirt-5' || id.startsWith('lower-')) return 'lower';
-  // 'upper' items: remaining shirts (shirt-2, shirt-3, shirt-4) and new upper-* items
+  // 'upper' items: shirt-2, shirt-3, shirt-4, shirt-b*, shirt-g*, upper-*
   if (id.startsWith('shirt-') || id.startsWith('upper-')) return 'upper';
   if (id.startsWith('balloons-')) return 'balloons';
   return null;

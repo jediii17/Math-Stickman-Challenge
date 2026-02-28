@@ -253,7 +253,8 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
   if (type === 'hair') {
     unequipQuery = unequipQuery.or('accessory_id.like.hat-%,accessory_id.like.hair-%');
   } else if (type === 'face') {
-    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.eq.face-hero');
+    // Covers: glasses-*, face-hero, face-b*, face-g*
+    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.eq.face-hero,accessory_id.like.face-b%,accessory_id.like.face-g%');
   } else if (type === 'cheeks') {
     unequipQuery = unequipQuery.in('accessory_id', ['face-blush', 'face-star', 'face-freckles']);
   } else if (type === 'mouth') {
@@ -261,7 +262,12 @@ export async function syncEquippedStatus(userId: string, accessoryId: string | n
   } else if (type === 'back') {
     unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
   } else if (type === 'upper') {
-    unequipQuery = unequipQuery.or('accessory_id.like.shirt-%,accessory_id.like.upper-%').neq('accessory_id', 'shirt-1').neq('accessory_id', 'shirt-5');
+    // Covers: shirt-2, shirt-3, shirt-4, shirt-b*, shirt-g*, upper-b*, upper-g*, etc.
+    // Excludes: shirt-1 (back/cape) and shirt-5 (lower/skirt)
+    unequipQuery = unequipQuery
+      .or('accessory_id.like.shirt-%,accessory_id.like.upper-%')
+      .neq('accessory_id', 'shirt-1')
+      .neq('accessory_id', 'shirt-5');
   } else if (type === 'lower') {
     unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
   } else if (type === 'shoes') {
@@ -564,7 +570,7 @@ export interface ShopItem {
 // --- In-memory shop items cache (stale-while-revalidate) ---
 let _shopItemsCache: ShopItem[] | null = null;
 let _shopItemsCacheTime = 0;
-const SHOP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const SHOP_CACHE_TTL = 0; // Always fetch fresh so new shop items appear immediately
 
 export async function getShopItems(): Promise<ShopItem[]> {
   // Return cached data instantly if still fresh

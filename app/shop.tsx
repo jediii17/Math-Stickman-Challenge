@@ -26,7 +26,7 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { key: 'hair', label: 'Head', icon: 'head-outline', color: '#9B59B6', types: ['hair'] },
+  { key: 'hair', label: 'Head', icon: 'person-circle-outline', color: '#9B59B6', types: ['hair'] },
   { key: 'face', label: 'Face', icon: 'glasses-outline', color: '#3498DB', types: ['face', 'cheeks', 'mouth'] },
   { key: 'upper', label: 'Upper', icon: 'shirt-outline', color: '#E67E22', types: ['upper'] },
   { key: 'lower', label: 'Lower', icon: 'walk-outline', color: '#2ECC71', types: ['lower'] },
@@ -116,7 +116,7 @@ export default function ShopScreen() {
     setTrialItem(null); // Clear trial when switching categories
   };
 
-  const renderItem = ({ item }: { item: ShopItem }) => {
+  const renderItem = React.useCallback(({ item }: { item: ShopItem }) => {
     const isOwned = ownedAccessories.includes(item.id);
     const isEquipped = Object.values(equippedAccessories).includes(item.id);
     const isTrying = trialItem?.id === item.id;
@@ -180,9 +180,9 @@ export default function ShopScreen() {
         )}
       </View>
     );
-  };
+  }, [ownedAccessories, equippedAccessories, trialItem, coins, isGuest, user]);
 
-  const renderMagicItem = ({ item }: { item: ShopItem }) => {
+  const renderMagicItem = React.useCallback(({ item }: { item: ShopItem }) => {
     const quantity = powerUps[item.id as keyof PowerUps] || 0;
 
     return (
@@ -222,7 +222,7 @@ export default function ShopScreen() {
         </Pressable>
       </View>
     );
-  };
+  }, [powerUps, coins, isGuest, user]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -352,6 +352,10 @@ export default function ShopScreen() {
             contentContainerStyle={styles.itemList}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={styles.columnWrapper}
+            initialNumToRender={6}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
             ListEmptyComponent={
               isLoading ? <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} /> : null
             }
@@ -365,6 +369,10 @@ export default function ShopScreen() {
             contentContainerStyle={styles.itemList}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={styles.columnWrapper}
+            initialNumToRender={6}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
             ListEmptyComponent={
               isLoading ? <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} /> : null
             }
