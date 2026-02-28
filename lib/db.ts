@@ -7,15 +7,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function ensureSession() {
   try {
-    // Always force a token refresh when called, since this is only invoked
-    // after a query failure. getSession() returns cached tokens without
-    // validating them, so it can't detect JWT expiration.
-    console.log('[db.ts] Forcing token refresh...');
-    const { data, error } = await supabase.auth.refreshSession();
+    // Use getSession() instead of forcing a full manual refreshSession() override.
+    // Supabase will automatically and safely invoke token rotation under the hood
+    // if the token is truly expired, without interrupting backend locks.
+    console.log('[db.ts] Checking session state under the hood...');
+    const { data, error } = await supabase.auth.getSession();
 
     if (error) {
       const msg = error.message || '';
-      console.warn('[db.ts] Token refresh failed:', msg);
+      console.warn('[db.ts] Token session query failed:', msg);
 
       if (
         msg.includes('Refresh Token') ||
@@ -34,12 +34,12 @@ async function ensureSession() {
     }
 
     if (data?.session) {
-      console.log('[db.ts] Token refresh successful, new token expires at:', new Date(data.session.expires_at! * 1000).toISOString());
+      console.log('[db.ts] Session valid, new token expires at:', new Date(data.session.expires_at! * 1000).toISOString());
     } else {
-      console.warn('[db.ts] No active session to refresh');
+      console.warn('[db.ts] No active session found');
     }
   } catch (e) {
-    console.warn('[db.ts] Session refresh failed:', e);
+    console.warn('[db.ts] Session check failed:', e);
   }
 }
 

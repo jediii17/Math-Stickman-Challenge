@@ -80,15 +80,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.warn('Foreground session check failed. Clearing local session...');
+            console.warn('Foreground session check failed:', error.message);
+            // Only log out if it's explicitly a dead session, ignore mere network offline errors
             if (error.message?.includes('Refresh Token') || error.message?.includes('expired') || error.name === 'AuthSessionMissingError') {
               Alert.alert(
                 'Session Expired',
                 'Your login session has expired. Please restart the game to continue.',
                 [{ text: 'OK' }]
               );
+              await logout();
             }
-            await logout();
             return;
           }
 
