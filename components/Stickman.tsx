@@ -204,6 +204,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const hasUpper = !!equipped.upper;
   const hasLower = !!equipped.lower;
   const hasBack = !!equipped.back;
+  const hasTail = !!equipped.tail;
   const hasBoots = equipped.shoes && equipped.shoes.startsWith('shoes-');
   const getClothesColor = () =>{
     if (equipped.upper === 'shirt-2') return "#4CAF50";
@@ -428,6 +429,37 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         <G><Path d={`M${cx - headR * 1.0},${headCY - headR * 0.4} Q${cx - headR * 1.0},${headCY - headR * 1.3} ${cx},${headCY - headR * 1.3} Q${cx + headR * 1.0},${headCY - headR * 1.3} ${cx + headR * 1.0},${headCY - headR * 0.4} Z`} fill="#FF9800" stroke="#F57C00" strokeWidth={1} />{/* Left ear */}<Path d={`M${cx - headR * 0.8},${headCY - headR * 1.1} L${cx - headR * 0.9},${headCY - headR * 1.8} L${cx - headR * 0.3},${headCY - headR * 1.2} Z`} fill="#FF9800" stroke="#F57C00" strokeWidth={1} /><Path d={`M${cx - headR * 0.7},${headCY - headR * 1.2} L${cx - headR * 0.85},${headCY - headR * 1.6} L${cx - headR * 0.4},${headCY - headR * 1.25} Z`} fill="#FFE0B2" />{/* Right ear */}<Path d={`M${cx + headR * 0.8},${headCY - headR * 1.1} L${cx + headR * 0.9},${headCY - headR * 1.8} L${cx + headR * 0.3},${headCY - headR * 1.2} Z`} fill="#FF9800" stroke="#F57C00" strokeWidth={1} /><Path d={`M${cx + headR * 0.7},${headCY - headR * 1.2} L${cx + headR * 0.85},${headCY - headR * 1.6} L${cx + headR * 0.4},${headCY - headR * 1.25} Z`} fill="#FFE0B2" />{/* Whisker dots */}<Circle cx={cx - headR * 0.3} cy={headCY - headR * 0.6} r={1} fill="#5D4037" /><Circle cx={cx + headR * 0.3} cy={headCY - headR * 0.6} r={1} fill="#5D4037" /></G>
       );
     }
+    if (equipped.hair === 'hat-dragon') {
+      // Full Dragon Helmet (Green with orange spikes) - Expanded for full coverage
+      return (
+        <G>
+          {/* Main helmet shape - enlarged to 1.5x width and 1.8x depth */}
+          <Path 
+            d={`M${cx - headR * 1.5},${headCY + headR * 0.8} 
+               Q${cx - headR * 1.7},${headCY - headR * 1.8} ${cx},${headCY - headR * 2.2} 
+               Q${cx + headR * 1.7},${headCY - headR * 1.8} ${cx + headR * 1.5},${headCY + headR * 0.8} 
+               Q${cx},${headCY + headR * 1.8} ${cx - headR * 1.5},${headCY + headR * 0.8} Z`} 
+            fill="#4CAF50" 
+            stroke="#2E7D32" 
+            strokeWidth={2} 
+          />
+          {/* Orange spikes - adjusted for larger helmet */}
+          <Path d={`M${cx - headR * 0.4},${headCY - headR * 2.1} L${cx},${headCY - headR * 2.8} L${cx + headR * 0.4},${headCY - headR * 2.1} Z`} fill="#FF9800" />
+          <Path d={`M${cx - headR * 1.1},${headCY - headR * 1.5} L${cx - headR * 1.6},${headCY - headR * 2.2} L${cx - headR * 0.6},${headCY - headR * 1.8} Z`} fill="#FF9800" />
+          <Path d={`M${cx + headR * 1.1},${headCY - headR * 1.5} L${cx + headR * 1.6},${headCY - headR * 2.2} L${cx + headR * 0.5},${headCY - headR * 1.8} Z`} fill="#FF9800" />
+          {/* Dragon eyes on helmet */}
+          <Circle cx={cx - headR * 0.6} cy={headCY - headR * 0.8} r={headR * 0.3} fill="#FFF" stroke="#2E7D32" strokeWidth={0.5} />
+          <Circle cx={cx + headR * 0.6} cy={headCY - headR * 0.8} r={headR * 0.3} fill="#FFF" stroke="#2E7D32" strokeWidth={0.5} />
+          <Circle cx={cx - headR * 0.6} cy={headCY - headR * 0.8} r={headR * 0.15} fill="#000" />
+          <Circle cx={cx + headR * 0.6} cy={headCY - headR * 0.8} r={headR * 0.15} fill="#000" />
+          {/* Snout/Nostrils */}
+          <Path d={`M${cx - headR * 0.4},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.6} ${cx + headR * 0.4},${headCY + headR * 0.3}`} fill="none" stroke="#2E7D32" strokeWidth={1} />
+          <Circle cx={cx - headR * 0.15} cy={headCY + headR * 0.35} r={1.5} fill="#2E7D32" />
+          <Circle cx={cx + headR * 0.15} cy={headCY + headR * 0.35} r={1.5} fill="#2E7D32" />
+        </G>
+      );
+    }
+
     // --- New Boy Hairstyles (hair-b6 to hair-b10) ---
     if (equipped.hair === 'hair-b6') {
       // Spiky Blue
@@ -502,7 +534,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   };
   const renderFaceAccessories = () =>{
     // If the helmet is on, don't render any face accessories
-    if (equipped.hair === 'hat-robot' || equipped.hair === 'hat-b2' || equipped.hair === 'hat-b3' || equipped.hair === 'hat-b5') return null;
+    if (equipped.hair === 'hat-robot' || equipped.hair === 'hat-b2' || equipped.hair === 'hat-b3' || equipped.hair === 'hat-b5' || equipped.hair === 'hat-dragon') return null;
     const lensR = headR * 0.25;
     const eyeOffsetX = headR * 0.4;
     return (
@@ -586,6 +618,31 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           <G>{/* Sparkle dots */}<Circle cx={cx - eyeOffsetX * 1.0} cy={headCY - headR * 0.3} r={lensR * 0.2} fill="#E040FB" /><Circle cx={cx - eyeOffsetX * 0.5} cy={headCY - headR * 0.5} r={lensR * 0.15} fill="#FFD700" /><Circle cx={cx + eyeOffsetX * 0.3} cy={headCY - headR * 0.4} r={lensR * 0.18} fill="#00E5FF" /><Circle cx={cx + eyeOffsetX * 1.0} cy={headCY - headR * 0.25} r={lensR * 0.2} fill="#FF80AB" /><Circle cx={cx} cy={headCY - headR * 0.6} r={lensR * 0.22} fill="#FFEB3B" />{/* Swirls on cheeks */}<Path d={`M${cx - eyeOffsetX * 1.2},${headCY + headR * 0.15} Q${cx - eyeOffsetX * 1.5},${headCY + headR * 0.0} ${cx - eyeOffsetX * 1.3},${headCY + headR * 0.35} Q${cx - eyeOffsetX * 1.0},${headCY + headR * 0.45} ${cx - eyeOffsetX * 0.8},${headCY + headR * 0.3}`} fill="none" stroke="#E040FB" strokeWidth={1} /><Path d={`M${cx + eyeOffsetX * 1.2},${headCY + headR * 0.15} Q${cx + eyeOffsetX * 1.5},${headCY + headR * 0.0} ${cx + eyeOffsetX * 1.3},${headCY + headR * 0.35} Q${cx + eyeOffsetX * 1.0},${headCY + headR * 0.45} ${cx + eyeOffsetX * 0.8},${headCY + headR * 0.3}`} fill="none" stroke="#E040FB" strokeWidth={1} /></G>
         )}</G>
     );
+  };
+  const renderTail = () => {
+    if (!hasTail) return null;
+    if (equipped.tail === 'back-b5') {
+      // Stego Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 10},${bodyBot + 5} ${cx - 35},${bodyBot + 15} Q${cx - 45},${bodyBot + 35} ${cx - 5},${bodyBot + 15} Z`} fill="#4CAF50" stroke="#1B5E20" strokeWidth={1.5} />
+          <Path d={`M${cx - 15},${bodyBot + 8} L${cx - 20},${bodyBot - 2} L${cx - 25},${bodyBot + 11} Z`} fill="#FF9800" />
+          <Path d={`M${cx - 25},${bodyBot + 13} L${cx - 30},${bodyBot + 3} L${cx - 35},${bodyBot + 16} Z`} fill="#FF9800" />
+        </G>
+      );
+    }
+    if (equipped.tail === 'back-g9') {
+      // Unicorn Tail & Sparkles
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 10} Q${cx + 15},${bodyBot} ${cx + 10},${bodyBot + 40} Q${cx + 40},${bodyBot + 50} ${cx + 30},${bodyBot + 20} Z`} fill="#E1BEE7" stroke="#9C27B0" />
+          <Circle cx={cx + 35} cy={bodyBot + 10} r={2} fill="#FFEB3B" />
+          <Circle cx={cx + 20} cy={bodyBot + 45} r={1.5} fill="#00E5FF" />
+          <Path d={`M${cx + 15},${bodyBot + 15} Q${cx + 25},${bodyBot + 25} ${cx + 15},${bodyBot + 35}`} fill="none" stroke="#F48FB1" strokeWidth={2} />
+        </G>
+      );
+    }
+    return null;
   };
   const renderBehindClothes = () =>{
     if (!hasBack) return null;
@@ -687,14 +744,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
     }
     // --- Newer Extra Boy Backs ---
     if (equipped.back === 'back-b5') {
-      // Stego Tail
-      return (
-        <G>
-          <Path d={`M${cx},${bodyBot - 5} Q${cx - 10},${bodyBot + 5} ${cx - 35},${bodyBot + 15} Q${cx - 45},${bodyBot + 35} ${cx - 5},${bodyBot + 15} Z`} fill="#4CAF50" stroke="#1B5E20" strokeWidth={1.5} />
-          <Path d={`M${cx - 15},${bodyBot + 8} L${cx - 20},${bodyBot - 2} L${cx - 25},${bodyBot + 11} Z`} fill="#FF9800" />
-          <Path d={`M${cx - 25},${bodyBot + 13} L${cx - 30},${bodyBot + 3} L${cx - 35},${bodyBot + 16} Z`} fill="#FF9800" />
-        </G>
-      );
+      return null; // Handled by renderTail
     }
     if (equipped.back === 'back-b6') {
       // Mecha-Arms
@@ -785,15 +835,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
       );
     }
     if (equipped.back === 'back-g9') {
-      // Unicorn Tail & Sparkles
-      return (
-        <G>
-          <Path d={`M${cx},${bodyBot - 10} Q${cx + 15},${bodyBot} ${cx + 10},${bodyBot + 40} Q${cx + 40},${bodyBot + 50} ${cx + 30},${bodyBot + 20} Z`} fill="#E1BEE7" stroke="#9C27B0" />
-          <Circle cx={cx + 35} cy={bodyBot + 10} r={2} fill="#FFEB3B" />
-          <Circle cx={cx + 20} cy={bodyBot + 45} r={1.5} fill="#00E5FF" />
-          <Path d={`M${cx + 15},${bodyBot + 15} Q${cx + 25},${bodyBot + 25} ${cx + 15},${bodyBot + 35}`} fill="none" stroke="#F48FB1" strokeWidth={2} />
-        </G>
-      );
+      return null; // Handled by renderTail
     }
     return null;
   };
@@ -985,6 +1027,14 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         <G>{/* Kimono-style sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 22},${laEndY - 2} L${cx - 16},${laEndY + 4} L${cx - 8},${armY + 7}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 22},${raEndY - 2} L${cx + 16},${raEndY + 4} L${cx + 8},${armY + 7}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4DD0E1" stroke="#00ACC1" />{/* Collar */}<Path d={`M${cx - 4},${armY - 5} Q${cx},${armY - 4} ${cx + 4},${armY - 5}`} fill="none" stroke="#00838F" strokeWidth={1.5} />{/* Butterfly top wings */}<Path d={`M${cx},${armY + 4} Q${cx - 6},${armY - 3} ${cx - 9},${armY + 2} Q${cx - 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} /><Path d={`M${cx},${armY + 4} Q${cx + 6},${armY - 3} ${cx + 9},${armY + 2} Q${cx + 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} />{/* Butterfly bottom wings */}<Path d={`M${cx},${armY + 4} Q${cx - 7},${armY + 6} ${cx - 8},${armY + 10} Q${cx - 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} /><Path d={`M${cx},${armY + 4} Q${cx + 7},${armY + 6} ${cx + 8},${armY + 10} Q${cx + 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} />{/* Wing dots */}<Circle cx={cx - 6} cy={armY + 2} r={1.2} fill="#FFEB3B" /><Circle cx={cx + 6} cy={armY + 2} r={1.2} fill="#FFEB3B" />{/* Butterfly body */}<Ellipse cx={cx} cy={armY + 5.5} rx={1} ry={3.5} fill="#6D4C41" />{/* Antennae */}<Path d={`M${cx - 1},${armY + 3} Q${cx - 4},${armY - 1} ${cx - 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Path d={`M${cx + 1},${armY + 3} Q${cx + 4},${armY - 1} ${cx + 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Circle cx={cx - 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /><Circle cx={cx + 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /></G>
       );
     }
+    if (equipped.upper === 'upper-dragon') {
+      // Dragon Warrior Shirt (Green with scales)
+      const shirtWidth = 12;
+      return (
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#4CAF50" stroke="#2E7D32" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#4CAF50" stroke="#2E7D32" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4CAF50" stroke="#2E7D32" />{/* Scale pattern */}<Path d={`M${cx - 6},${armY + 3} Q${cx - 3},${armY + 6} ${cx},${armY + 3} Q${cx + 3},${armY + 6} ${cx + 6},${armY + 3}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} /><Path d={`M${cx - 8},${armY + 9} Q${cx - 4},${armY + 12} ${cx},${armY + 9} Q${cx + 4},${armY + 12} ${cx + 8},${armY + 9}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} />{/* Center detail */}<Path d={`M${cx - 2},${armY - 2} L${cx},${armY + 2} L${cx + 2},${armY - 2}`} fill="none" stroke="#FF9800" strokeWidth={1.5} /></G>
+      );
+    }
+
     return null;
   };
   const renderLower = () =>{
@@ -1148,6 +1198,25 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
           <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 16},${bodyBot + 15} L${cx + 2},${bodyBot + 15} L${cx},${bodyBot + 8} L${cx - 2},${bodyBot + 15} L${cx - 16},${bodyBot + 15} Z`} fill="#4CAF50" stroke="#2E7D32" />
           <Path d={`M${cx - 16},${bodyBot + 5} L${cx - 20},${bodyBot + 8} L${cx - 16},${bodyBot + 11}`} fill="#8BC34A" />
           <Path d={`M${cx + 16},${bodyBot + 5} L${cx + 20},${bodyBot + 8} L${cx + 16},${bodyBot + 11}`} fill="#8BC34A" />
+        </G>
+      );
+    }
+    if (equipped.lower === 'lower-dragon') {
+      // Dragon Warrior Pants (Green with side details)
+      const pWidth = 14;
+      return (
+        <G>
+          <Path
+            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth - 2},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 2},${bodyBot + legLen} Z`}
+            fill="#4CAF50"
+            stroke="#2E7D32"
+            strokeWidth={1.5}
+          />
+          {/* Side spikes/scales */}
+          <Path d={`M${cx - pWidth + 2},${bodyBot + 10} L${cx - pWidth - 2},${bodyBot + 13} L${cx - pWidth + 1},${bodyBot + 16}`} fill="#FF9800" />
+          <Path d={`M${cx + pWidth - 2},${bodyBot + 10} L${cx + pWidth + 2},${bodyBot + 13} L${cx + pWidth - 1},${bodyBot + 16}`} fill="#FF9800" />
+          {/* Belt */}
+          <Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#2E7D32" />
         </G>
       );
     }
@@ -1876,7 +1945,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
                 opacity={0.7}
               />
             );
-          })}{/* -- Behind Clothing (Cape) -- */}{renderBehindClothes()}{/* -- Left Leg -- */}<G><Line x1={cx} y1={bodyBot} x2={llEndX} y2={llEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + llEndX) / 2} cy={(bodyBot + llEndY) / 2} r={jointR * 0.7} fill={bodyCol} /><Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />{equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}</G>{/* -- Right Leg -- */}<G><Line x1={cx} y1={bodyBot} x2={rlEndX} y2={rlEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + rlEndX) / 2} cy={(bodyBot + rlEndY) / 2} r={jointR * 0.7} fill={bodyCol} /><Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />{equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}</G>{/* -- Left Arm (raised to hold balloons) -- */}{!hideArms && (
+          })}{/* -- Behind Clothing (Cape) -- */}{renderBehindClothes()}{renderTail()}{/* -- Left Leg -- */}<G><Line x1={cx} y1={bodyBot} x2={llEndX} y2={llEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + llEndX) / 2} cy={(bodyBot + llEndY) / 2} r={jointR * 0.7} fill={bodyCol} /><Circle cx={llEndX} cy={llEndY} r={jointR * 0.8} fill={bodyCol} />{equipped.shoes && renderLeftBoot(equipped.shoes, llEndX, llEndY, size * 0.06, size * 0.04)}</G>{/* -- Right Leg -- */}<G><Line x1={cx} y1={bodyBot} x2={rlEndX} y2={rlEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + rlEndX) / 2} cy={(bodyBot + rlEndY) / 2} r={jointR * 0.7} fill={bodyCol} /><Circle cx={rlEndX} cy={rlEndY} r={jointR * 0.8} fill={bodyCol} />{equipped.shoes && renderRightBoot(equipped.shoes, rlEndX, rlEndY, size * 0.06, size * 0.04)}</G>{/* -- Left Arm (raised to hold balloons) -- */}{!hideArms && (
             <G><Line x1={cx} y1={armY} x2={laEndX} y2={laEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + laEndX) / 2} cy={(armY + laEndY) / 2} r={jointR * 0.6} fill={bodyCol} /><Circle cx={laEndX} cy={laEndY} r={jointR * 0.8} fill={bodyCol} /></G>
           )}{/* -- Right Arm -- */}{!hideArms && (
             <G><Line x1={cx} y1={armY} x2={raEndX} y2={raEndY} stroke={bodyCol} strokeWidth={sw} strokeLinecap="round" /><Circle cx={(cx + raEndX) / 2} cy={(armY + raEndY) / 2} r={jointR * 0.6} fill={bodyCol} /><Circle cx={raEndX} cy={raEndY} r={jointR * 0.8} fill={bodyCol} /></G>

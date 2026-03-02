@@ -1243,6 +1243,17 @@ const AccessoryIcon = React.memo(({ id, color = Colors.primary }: { id: string, 
       </Svg>
     );
   }
+
+  if (id === 'lower-dragon') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.8)">
+          <Path d={`M-10,0 L10,0 L12,15 L2,15 L0,5 L-2,15 L-12,15 Z`} fill="#4CAF50" stroke="#2E7D32" strokeWidth={1} />
+          <Path d="M-6,4 L-4,6 M4,4 L6,6" stroke="#FB8C00" strokeWidth={1} />
+        </G>
+      </Svg>
+    );
+  }
   
   if (id === 'shoes-1') {
     return (
@@ -1760,6 +1771,17 @@ const AccessoryIcon = React.memo(({ id, color = Colors.primary }: { id: string, 
     );
   }
 
+  if (id === 'upper-dragon') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.7)">
+          <Path d={`M-11,-8 L-11,10 Q0,14 11,10 L11,-8 Z`} fill="#4CAF50" stroke="#2E7D32" strokeWidth={1} />
+          <Path d="M-5,-4 L0,-2 L5,-4 M-5,0 L0,2 L5,0" fill="none" stroke="#FB8C00" strokeWidth={0.5} opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+
   // --- Girl Shirts (shirt-g1 to shirt-g5) ---
   if (id === 'shirt-g1') {
     // Strawberry Tee: red shirt with cute strawberry print
@@ -1983,6 +2005,26 @@ const AccessoryIcon = React.memo(({ id, color = Colors.primary }: { id: string, 
           <Path d="M-10,3 Q-10,-12 0,-13 Q10,-12 10,3 L8,5 Q0,8 -8,5 Z" fill="#1565C0" stroke="#0D47A1" strokeWidth={1.5} />
           <Path d="M-8,0 Q0,-3 8,0 L7,4 Q0,6 -7,4 Z" fill="rgba(33,150,243,0.3)" stroke="#1976D2" strokeWidth={1} />
           <Line x1={0} y1={-13} x2={0} y2={8} stroke="#FFD600" strokeWidth={3} />
+        </G>
+      </Svg>
+    );
+  }
+
+  if (id === 'hat-dragon') {
+    return (
+      <Svg width={size} height={size} viewBox="-16 -16 32 32">
+        <G>
+          {/* Main helmet shape - enlarged and more enclosing */}
+          <Path d="M-14,8 Q-16,-18 0,-20 Q16,-18 14,8 Q0,15 -14,8 Z" fill="#4CAF50" stroke="#2E7D32" strokeWidth={1.5} />
+          {/* Spikes */}
+          <Path d="M-4,-18 L0,-24 L4,-18" fill="#FB8C00" stroke="#E65100" strokeWidth={0.5} />
+          <Path d="M-12,-10 L-16,-16 L-8,-14" fill="#FB8C00" stroke="#E65100" strokeWidth={0.5} />
+          <Path d="M12,-10 L16,-16 L8,-14" fill="#FB8C00" stroke="#E65100" strokeWidth={0.5} />
+          {/* Eyes */}
+          <Circle cx={-6} cy={-6} r={2.5} fill="#FFF" stroke="#2E7D32" strokeWidth={0.5} />
+          <Circle cx={6} cy={-6} r={2.5} fill="#FFF" stroke="#2E7D32" strokeWidth={0.5} />
+          <Circle cx={-6} cy={-6} r={1.2} fill="#000" />
+          <Circle cx={6} cy={-6} r={1.2} fill="#000" />
         </G>
       </Svg>
     );

@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as db from '@/lib/db';
 
-export type AccessoryType = 'hair' | 'face' | 'cheeks' | 'mouth' | 'upper' | 'lower' | 'shoes' | 'back' | 'balloons';
+export type AccessoryType = 'hair' | 'face' | 'cheeks' | 'mouth' | 'upper' | 'lower' | 'shoes' | 'back' | 'tail' | 'balloons';
 
 export interface Accessory {
   id: string;
@@ -72,6 +72,9 @@ export function getSlotForAccessory(id: string): AccessoryType | null {
   
   if (id.startsWith('shoes-')) return 'shoes';
   // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand
+  // Note: we separate dragon wings (back-b2) from stego tails (back-b5) or unicorn tales (back-g9)
+  if (['back-b5', 'back-g9'].includes(id)) return 'tail';
+  
   if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
   // 'lower' items: shirt-5 (skirt), lower-*
   if (id === 'shirt-5' || id.startsWith('lower-')) return 'lower';
@@ -102,6 +105,7 @@ export const useGameState = create<GameState>()(
         lower: null,
         shoes: null,
         back: null,
+        tail: null,
         balloons: null,
       },
       powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
@@ -207,6 +211,7 @@ export const useGameState = create<GameState>()(
               lower: null,
               shoes: null,
               back: null,
+              tail: null,
               balloons: null,
             };
 
@@ -320,7 +325,7 @@ export const useGameState = create<GameState>()(
           lastCoinSpinTime: null,
           claimedTicketLevels: [],
           ownedAccessories: [...DEFAULT_ACCESSORIES],
-          equippedAccessories: { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, back: null, balloons: null },
+          equippedAccessories: { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, back: null, tail: null, balloons: null },
           powerUps: { potion: 0, dust: 0, powder: 0, firefly: 0 },
         }),
     }),

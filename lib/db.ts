@@ -217,10 +217,12 @@ export async function updateSessionKey(userId: string, sessionKey: string | null
 // --- Accessories ---
 
 export async function addAccessory(userId: string, accessoryId: string) {
-  const { error } = await supabase
-    .from('user_accessories')
-    .upsert({ user_id: userId, accessory_id: accessoryId }, { onConflict: 'user_id,accessory_id' });
-  if (error) throw error;
+  return withRetry(async () => {
+    const { error } = await supabase
+      .from('user_accessories')
+      .upsert({ user_id: userId, accessory_id: accessoryId }, { onConflict: 'user_id,accessory_id' });
+    if (error) throw error;
+  });
 }
 
 export async function getUserAccessories(userId: string) {
@@ -244,54 +246,69 @@ export async function setEquipped(userId: string, accessoryId: string, equipped:
 }
 
 export async function syncEquippedStatus(userId: string, accessoryId: string | null, type: string) {
-  // 1. Unequip all items of the same category
-  let unequipQuery = supabase
-    .from('user_accessories')
-    .update({ equipped: false })
-    .eq('user_id', userId);
-
-  if (type === 'hair') {
-    unequipQuery = unequipQuery.or('accessory_id.like.hat-%,accessory_id.like.hair-%');
-  } else if (type === 'face') {
-    // Covers: glasses-*, face-hero, face-b*, face-g*
-    unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.eq.face-hero,accessory_id.like.face-b%,accessory_id.like.face-g%');
-  } else if (type === 'cheeks') {
-    unequipQuery = unequipQuery.in('accessory_id', ['face-blush', 'face-star', 'face-freckles']);
-  } else if (type === 'mouth') {
-    unequipQuery = unequipQuery.in('accessory_id', ['face-bandaid', 'face-cat']);
-  } else if (type === 'back') {
-    unequipQuery = unequipQuery.or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand');
-  } else if (type === 'upper') {
-    // Covers: shirt-2, shirt-3, shirt-4, shirt-b*, shirt-g*, upper-b*, upper-g*, etc.
-    // Excludes: shirt-1 (back/cape) and shirt-5 (lower/skirt)
-    unequipQuery = unequipQuery
-      .or('accessory_id.like.shirt-%,accessory_id.like.upper-%')
-      .neq('accessory_id', 'shirt-1')
-      .neq('accessory_id', 'shirt-5');
-  } else if (type === 'lower') {
-    unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
-  } else if (type === 'shoes') {
-    unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
-  }
-
-  const { error: unequipError } = await unequipQuery;
-  if (unequipError) {
-    console.error('Error unequipping items:', unequipError);
-    throw unequipError;
-  }
-
-  // 2. Equip the new item if it's not null
-  if (accessoryId) {
-    const { error: equipError } = await supabase
+  return withRetry(async () => {
+    // 1. Unequip all items of the same category
+    let unequipQuery = supabase
       .from('user_accessories')
-      .update({ equipped: true })
-      .eq('user_id', userId)
-      .eq('accessory_id', accessoryId);
-    if (equipError) {
-      console.error('Error equipping item:', equipError);
-      throw equipError;
+      .update({ equipped: false })
+      .eq('user_id', userId);
+
+    if (type === 'hair') {
+      unequipQuery = unequipQuery.or('accessory_id.like.hat-%,accessory_id.like.hair-%');
+    } else if (type === 'face') {
+      // Covers: glasses-*, face-hero, face-b*, face-g*
+      unequipQuery = unequipQuery.or('accessory_id.like.glasses-%,accessory_id.eq.face-hero,accessory_id.like.face-b%,accessory_id.like.face-g%');
+    } else if (type === 'cheeks') {
+      unequipQuery = unequipQuery.in('accessory_id', ['face-blush', 'face-star', 'face-freckles']);
+    } else if (type === 'mouth') {
+      unequipQuery = unequipQuery.in('accessory_id', ['face-bandaid', 'face-cat']);
+    } else if (type === 'back') {
+      // Back items (wings, capes). Exclude tails (back-b5, back-g9)
+      unequipQuery = unequipQuery
+        .or('accessory_id.eq.shirt-1,accessory_id.like.back-%,accessory_id.eq.fairy-wings,accessory_id.eq.fairy-wand')
+        .not('accessory_id', 'in', '("back-b5","back-g9")');
+    } else if (type === 'tail') {
+      // Tail items
+      unequipQuery = unequipQuery.in('accessory_id', ['back-b5', 'back-g9']);
+    } else if (type === 'balloons') {
+      // Balloons slot
+      unequipQuery = unequipQuery.like('accessory_id', 'balloons-%');
+    } else if (type === 'upper') {
+      // Covers: shirt-2, shirt-3, shirt-4, shirt-b*, shirt-g*, upper-b*, upper-g*, etc.
+      // Excludes: shirt-1 (back/cape) and shirt-5 (lower/skirt)
+      unequipQuery = unequipQuery
+        .or('accessory_id.like.shirt-%,accessory_id.like.upper-%')
+        .neq('accessory_id', 'shirt-1')
+        .neq('accessory_id', 'shirt-5');
+    } else if (type === 'lower') {
+      unequipQuery = unequipQuery.or('accessory_id.eq.shirt-5,accessory_id.like.lower-%');
+    } else if (type === 'shoes') {
+      unequipQuery = unequipQuery.like('accessory_id', 'shoes-%');
+    } else {
+      // If none of the categories above matched, something is wrong or type is 'none'.
+      // Just skip unequipping to avoid nuking all their accessories.
+      return;
     }
-  }
+
+    const { error: unequipError } = await unequipQuery;
+    if (unequipError) {
+      console.error('Error unequipping items:', unequipError);
+      throw unequipError;
+    }
+
+    // 2. Equip the new item if it's not null
+    if (accessoryId) {
+      const { error: equipError } = await supabase
+        .from('user_accessories')
+        .update({ equipped: true })
+        .eq('user_id', userId)
+        .eq('accessory_id', accessoryId);
+      if (equipError) {
+        console.error('Error equipping item:', equipError);
+        throw equipError;
+      }
+    }
+  });
 }
 
 // --- Power Ups ---

@@ -1,117 +1,158 @@
 const fs = require('fs');
+const path = require('path');
 
-const stickman = fs.readFileSync('components/Stickman.tsx', 'utf8');
-let animated = fs.readFileSync('components/AnimatedStickman.tsx', 'utf8');
+const stickmanPath = path.join(__dirname, 'components/Stickman.tsx');
+const animatedPath = path.join(__dirname, 'components/AnimatedStickman.tsx');
 
-// 1. Extract accessory rendering methods from Stickman.tsx
-const extractMethod = (methodName) => {
-    const startIdx = stickman.indexOf(`const ${methodName} =`);
-    if (startIdx === -1) return null;
-    let braceCount = 0;
-    let endIdx = -1;
-    let started = false;
-    for (let i = startIdx; i < stickman.length; i++) {
-        if (stickman[i] === '{') { started = true; braceCount++; }
-        else if (stickman[i] === '}') { braceCount--; }
-        if (started && braceCount === 0) { endIdx = i + 1; break; }
+const stickmanContent = fs.readFileSync(stickmanPath, 'utf8');
+const animatedContent = fs.readFileSync(animatedPath, 'utf8');
+
+function extractMethod(name) {
+  const startMarker = `  const ${name} =`;
+  const startIdx = stickmanContent.indexOf(startMarker);
+  if (startIdx === -1) {
+    console.error(`Could not find method ${name}`);
+    return '';
+  }
+
+  let braceCount = 0;
+  let started = false;
+  let endIdx = -1;
+
+  for (let i = startIdx; i < stickmanContent.length; i++) {
+    if (stickmanContent[i] === '{') {
+      braceCount++;
+      started = true;
+    } else if (stickmanContent[i] === '}') {
+      braceCount--;
     }
-    return stickman.substring(startIdx, endIdx);
-};
 
-const renderUpper = extractMethod('renderUpper');
-const renderLower = extractMethod('renderLower');
-const renderBehindClothes = extractMethod('renderBehindClothes');
-const renderLeftBoot = extractMethod('renderLeftBoot');
-const renderRightBoot = extractMethod('renderRightBoot');
-const renderHat = extractMethod('renderHat');
-const renderGlasses = extractMethod('renderGlasses');
-const renderFrontBackAccessories = extractMethod('renderFrontBackAccessories');
+    if (started && braceCount === 0) {
+      const nextChar = stickmanContent[i + 1];
+      if (nextChar === ';' || nextChar === '\n' || nextChar === '\r') {
+        endIdx = i + (nextChar === ';' ? 2 : 1);
+      } else {
+        endIdx = i + 1;
+      }
+      break;
+    }
+  }
 
-// Make boot functions accept arguments to work in AnimatedStickman
-const fixFunctionArgs = (code, isLeft) => {
-    let replaced = code.replace(/const render(Left|Right)Boot = \(\) => {/, "const render$1Boot = (bootType: string, x: number, y: number, bootW: number, bootH: number) => {\n    if (!bootType) return null;\n");
-    replaced = replaced.replace(/equipped\.shoes/g, "bootType");
-    return replaced;
-};
-
-// 2. We will inject these functions into AnimatedStickman.tsx
-// First, find the place to inject them (around line 120)
-// Replace existing getClothesColor, renderLeftBoot, renderRightBoot block
-
-const injectStart = animated.indexOf('const getClothesColor = () => {');
-const injectEnd = animated.indexOf('const bodyCol = \'#2D3436\';');
-
-if (injectStart !== -1 && injectEnd !== -1) {
-    const injection = `
-  const getClothesColor = () => {
-    if (equipped.upper === 'shirt-2') return "#4CAF50";
-    if (equipped.upper === 'shirt-3') return "#9C27B0";
-    if (equipped.upper === 'shirt-4') return "#F8BBD0";
-    if (equipped.lower === 'shirt-5') return "#F06292";
-    if (equipped.lower === 'lower-3') return "#673AB7";
-    return bodyCol;
-  };
-    
-  ${renderUpper}
-  ${renderLower}
-  ${renderBehindClothes.replace(/const renderBehindClothes = \(\) => {/, 'const renderBehindClothes = () => {\n    if (!hasBack) return null;\n')}
-  ${renderFrontBackAccessories}
-  ${renderHat}
-  ${renderGlasses}
-  ${fixFunctionArgs(renderLeftBoot, true)}
-  ${fixFunctionArgs(renderRightBoot, false)}
-
-`;
-    animated = animated.substring(0, injectStart) + injection + animated.substring(injectEnd);
+  if (endIdx === -1) return '';
+  return stickmanContent.substring(startIdx, endIdx).trim();
 }
 
-// 3. Update the constants like hasHat, hasBoots to support the new IDs
-animated = animated.replace(/const hasGlasses = .*/, `const hasGlasses = equipped.face === 'glasses-1' || equipped.face === 'glasses-2' || equipped.face === 'glasses-3' || (equipped.face && equipped.face.startsWith('face-'));`);
-animated = animated.replace(/const hasBoots = .*/, `const hasBoots = equipped.shoes && equipped.shoes.startsWith('shoes-');`);
-animated = animated.replace(/const hasHat = .*/, `const hasHat = equipped.hair === 'hat-robot' || equipped.hair === 'hat-1' || equipped.hair === 'hat-2' || equipped.hair === 'hat-3' || equipped.hair === 'hat-4' || (equipped.hair && equipped.hair.startsWith('hair-'));`);
+const methodsToExtract = [
+  'getClothesColor',
+  'renderBackHair',
+  'renderTail',
+  'renderHat',
+  'renderFaceAccessories',
+  'renderBehindClothes',
+  'renderFrontBackAccessories',
+  'renderUpper',
+  'renderLower',
+  'renderLeftBoot',
+  'renderRightBoot'
+];
 
-// 4. Update the JSX references. We will replace the inline rendering in AnimatedStickman with calls to these functions.
-// Back stuff: Behind Clothing Layer
-const behindClothingMatch = animated.indexOf('{hasBack && (');
-if (behindClothingMatch !== -1) {
-    const endBehind = animated.indexOf('</Svg>', behindClothingMatch);
-    animated = animated.substring(0, behindClothingMatch) + '{renderBehindClothes()}\n        ' + animated.substring(endBehind);
+let extractedMethods = methodsToExtract.map(m => {
+  let code = extractMethod(m);
+  if (m === 'renderLeftBoot' || m === 'renderRightBoot') {
+    code = code.replace('(bootType: string,', '(bootType: string | null,');
+  }
+  return code;
+}).join('\n\n  ');
+
+const allInjectedMethods = extractedMethods;
+
+let updatedAnimated = animatedContent;
+
+const constantsToUpdate = [
+  {
+    name: 'hasHat',
+    regex: /const hasHat = [^;]+;/,
+    replacement: "const hasHat = !!(equipped.hair && (equipped.hair.startsWith('hat-') || equipped.hair.startsWith('hair-')));"
+  },
+  {
+    name: 'hasGlasses',
+    regex: /const hasGlasses = [^;]+;/,
+    replacement: "const hasGlasses = !!(equipped.face && (equipped.face.startsWith('glasses-') || equipped.face.startsWith('face-')));"
+  },
+  {
+    name: 'hasTail',
+    regex: /const hasTail = [^;]+;/,
+    replacement: "const hasTail = !!equipped.tail;"
+  },
+  {
+    name: 'hasUpper',
+    regex: /const hasUpper = [^;]+;/,
+    replacement: "const hasUpper = !!equipped.upper;"
+  },
+  {
+    name: 'hasLower',
+    regex: /const hasLower = [^;]+;/,
+    replacement: "const hasLower = !!equipped.lower;"
+  }
+];
+
+constantsToUpdate.forEach(c => {
+  if (updatedAnimated.match(c.regex)) {
+    updatedAnimated = updatedAnimated.replace(c.regex, c.replacement);
+  } else {
+    // If not found, inject it after equipped definition
+    updatedAnimated = updatedAnimated.replace(
+      "const equipped = useGameState((state) => state.equippedAccessories);",
+      `const equipped = useGameState((state) => state.equippedAccessories);\n  ${c.replacement}`
+    );
+  }
+});
+
+const startBlock = "// --- START ACCESSORY METHODS ---";
+const endBlock = "// --- END ACCESSORY METHODS ---";
+
+let finalContent;
+if (updatedAnimated.includes(startBlock)) {
+  const parts = updatedAnimated.split(startBlock);
+  const endParts = parts[1].split(endBlock);
+  finalContent = parts[0] + startBlock + '\n  ' + allInjectedMethods + '\n  ' + endBlock + endParts[1];
+} else {
+  const injectionPoint = "const getClothesColor = () =>";
+  const injectionEnd = "const bodyCol = '#2D3436';";
+
+  if (updatedAnimated.includes(injectionPoint)) {
+    const startIdx = updatedAnimated.indexOf(injectionPoint);
+    const endIdx = updatedAnimated.indexOf(injectionEnd);
+    finalContent = updatedAnimated.substring(0, startIdx) +
+      startBlock + '\n  ' +
+      allInjectedMethods + '\n  ' +
+      endBlock + '\n  ' +
+      updatedAnimated.substring(endIdx);
+  } else {
+    process.exit(1);
+  }
 }
 
-// Front clothing stuff: Torso layer
-const frontClothingStart = animated.indexOf('{/* Lower Body Clothing */}');
-if (frontClothingStart !== -1) {
-    const frontClothingEnd = animated.indexOf('</Svg>', frontClothingStart);
-    animated = animated.substring(0, frontClothingStart) + `
-        {renderLower()}
-        {renderUpper()}
-        {renderFrontBackAccessories()}
-      ` + animated.substring(frontClothingEnd);
+// Safer replacements in the JSX
+finalContent = finalContent.replace(/{renderBalloons\(\)}/g, '');
+
+if (!finalContent.includes('{renderTail()}')) {
+  finalContent = finalContent.replace('{renderBehindClothes()}', '{renderBehindClothes()}{renderTail()}');
+}
+// Specific marker for back hair: target the head circle circle
+if (!finalContent.includes('{renderBackHair()}')) {
+  finalContent = finalContent.replace('{/* Head Circle */}<Circle', '{/* Head Circle */}{renderBackHair()}<Circle');
 }
 
-// Legs
-animated = animated.replace(/{renderLeftBoot\(cx - legLen \* 0\.5, bodyBot \+ legLen, size \* 0\.06, size \* 0\.04\)}/g, 
-  `{renderLeftBoot(equipped.shoes, cx - legLen * 0.5, bodyBot + legLen, size * 0.06, size * 0.04)}`);
-animated = animated.replace(/{renderRightBoot\(cx \+ legLen \* 0\.5, bodyBot \+ legLen, size \* 0\.06, size \* 0\.04\)}/g, 
-  `{renderRightBoot(equipped.shoes, cx + legLen * 0.5, bodyBot + legLen, size * 0.06, size * 0.04)}`);
+// Fix clipping for dragon helmet (viewBox and height expansion)
+finalContent = finalContent.replace(
+  'style={[{ width: size, height: size }, styles.container]}',
+  'style={[{ width: size, height: size * 1.3 }, styles.container]}'
+);
+finalContent = finalContent.replace(
+  /width=\{size\} height=\{size\} viewBox=\{`0 0 \$\{size\} \$\{size\}`\}/g,
+  'width={size} height={size * 1.3} viewBox={`0 ${-size * 0.2} ${size} ${size * 1.3}`}'
+);
 
-// Head stuff
-const hatStart = animated.indexOf('{/* Accessories */}');
-if (hatStart !== -1) {
-    const hatEnd = animated.indexOf('</Svg>', hatStart);
-    animated = animated.substring(0, hatStart) + `
-            {equipped.hair !== 'hat-robot' && renderGlasses()}
-            {renderHat()}
-         ` + animated.substring(hatEnd);
-}
-
-// Wrap head elements to hide faces when 'hat-robot' is on
-const headEyesStart = animated.indexOf(' {/* Eyes */}');
-if (headEyesStart !== -1) {
-    // Hide native face elements if robot helmet is on
-    const replaceTarget = animated.substring(headEyesStart, animated.indexOf('{/* Accessories', headEyesStart));
-    animated = animated.replace(replaceTarget, `{equipped.hair !== 'hat-robot' && (<G>${replaceTarget}</G>)}`);
-}
-
-fs.writeFileSync('components/AnimatedStickman.tsx', animated, 'utf8');
-console.log('Successfully patched AnimatedStickman.tsx');
+fs.writeFileSync(animatedPath, finalContent);
+console.log("Patched AnimatedStickman.tsx successfully!");

@@ -580,46 +580,24 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
     const state = useGameState.getState();
     let awardAmount = 0;
     
+    // Prepare prize metadata for handleClaim
     switch (prize.type) {
       case 'coins':
         awardAmount = prize.value;
-        state.addCoins(prize.value);
-        if (!isGuest && user) {
-          const newCoins = useGameState.getState().coins;
-          import('@/lib/db').then((db) => db.updateCoins(user.id, newCoins));
-        }
         break;
       case 'powerup':
         if (prize.powerUpKey) {
           const newCount = state.powerUps[prize.powerUpKey] + 1;
-          const newPowerUps = { ...state.powerUps, [prize.powerUpKey]: newCount };
-          useGameState.setState({ powerUps: newPowerUps });
           setWonPowerUpCount(newCount);
-          if (!isGuest && user) {
-            import('@/lib/db').then((db) => db.updateUserPowerUps(user.id, newPowerUps));
-          }
         }
         break;
       case 'accessory':
         alreadyOwnedRef.current = false;
         if (prize.accessoryId) {
           const alreadyOwned = state.ownedAccessories.includes(prize.accessoryId);
-          if (!alreadyOwned) {
-            // New accessory — award it
-            useGameState.setState({
-              ownedAccessories: [...state.ownedAccessories, prize.accessoryId],
-            });
-            if (!isGuest && user) {
-              import('@/lib/db').then((db) => db.addAccessory(user.id, prize.accessoryId!));
-            }
-          } else {
+          if (alreadyOwned) {
             alreadyOwnedRef.current = true;
             awardAmount = 1000;
-            state.addCoins(1000);
-            if (!isGuest && user) {
-              const newCoins = useGameState.getState().coins;
-              import('@/lib/db').then((db) => db.updateCoins(user.id, newCoins));
-            }
           }
         }
         break;
@@ -628,9 +606,58 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
   };
 
   const handleClaim = () => {
+    if (!wonPrize) return;
+    
+    const state = useGameState.getState();
+    const prize = wonPrize;
+
+    // 1. Perform actual awarding logic here
+    switch (prize.type) {
+      case 'coins':
+        state.addCoins(prize.value);
+        if (!isGuest && user) {
+          const newCoins = state.coins + prize.value; // Get projected new coins
+          import('@/lib/db').then((db) => db.updateCoins(user.id, newCoins));
+        }
+        break;
+      case 'powerup':
+        if (prize.powerUpKey) {
+          const newPowerUps = { 
+            ...state.powerUps, 
+            [prize.powerUpKey]: state.powerUps[prize.powerUpKey] + 1 
+          };
+          useGameState.setState({ powerUps: newPowerUps });
+          if (!isGuest && user) {
+            import('@/lib/db').then((db) => db.updateUserPowerUps(user.id, newPowerUps));
+          }
+        }
+        break;
+      case 'accessory':
+        if (prize.accessoryId) {
+          if (alreadyOwnedRef.current) {
+            // Award compensation coins
+            state.addCoins(1000);
+            if (!isGuest && user) {
+              const newCoins = state.coins + 1000;
+              import('@/lib/db').then((db) => db.updateCoins(user.id, newCoins));
+            }
+          } else {
+            // Award new accessory
+            useGameState.setState({
+              ownedAccessories: [...state.ownedAccessories, prize.accessoryId],
+            });
+            if (!isGuest && user) {
+              import('@/lib/db').then((db) => db.addAccessory(user.id, prize.accessoryId!));
+            }
+          }
+        }
+        break;
+    }
+
+    // 2. Trigger UI effects
     setShowResult(false);
     if (wonAmountRef.current > 0) {
-      // Trigger the counting animation
+      // Trigger the counting animation in the wheel header
       animateCoinCount(visualCoins, visualCoins + wonAmountRef.current);
       wonAmountRef.current = 0;
     }
