@@ -73,7 +73,7 @@ export function getSlotForAccessory(id: string): AccessoryType | null {
   if (id.startsWith('shoes-')) return 'shoes';
   // 'back' items: shirt-1 (cape), back-*, fairy-wings, fairy-wand
   // Note: we separate dragon wings (back-b2) from stego tails (back-b5) or unicorn tales (back-g9)
-  if (['back-b5', 'back-g9'].includes(id)) return 'tail';
+  if (['back-b5', 'back-g9'].includes(id) || id.startsWith('tail-')) return 'tail';
   
   if (id === 'shirt-1' || id.startsWith('back-') || id === 'fairy-wings' || id === 'fairy-wand') return 'back';
   // 'lower' items: shirt-5 (skirt), lower-*

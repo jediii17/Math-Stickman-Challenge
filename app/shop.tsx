@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +16,7 @@ import StickmanCoin from '@/components/StickmanCoin';
 import AccessoryIcon from '@/components/AccessoryIcon';
 
 // ─── Category definitions ───
-type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back' | 'balloons';
+type CategoryKey = 'hair' | 'face' | 'upper' | 'lower' | 'shoes' | 'back' | 'tail' | 'balloons';
 
 interface Category {
   key: CategoryKey;
@@ -32,6 +34,7 @@ const CATEGORIES: Category[] = [
   { key: 'lower', label: 'Lower', icon: 'walk-outline', color: '#2ECC71', types: ['lower'] },
   { key: 'shoes', label: 'Shoes', icon: 'footsteps-outline', color: '#E74C3C', types: ['shoes'] },
   { key: 'back', label: 'Back', icon: 'briefcase-outline', color: '#1ABC9C', types: ['back'] },
+  { key: 'tail', label: 'Tails', icon: 'cat', iconFamily: 'MaterialCommunityIcons', color: '#FF9800', types: ['tail'] },
   { key: 'balloons', label: 'Balloons', icon: 'balloon-outline', color: '#FF4081', types: ['balloons'] },
 ];
 
@@ -41,6 +44,9 @@ export default function ShopScreen() {
   const [trialItem, setTrialItem] = React.useState<{ id: string; type: AccessoryType } | null>(null);
   const [dbItems, setDbItems] = React.useState<ShopItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+
+
 
   useEffect(() => {
     fetchItems();
@@ -74,9 +80,21 @@ export default function ShopScreen() {
     ? { [getSlotForAccessory(trialItem.id) || trialItem.type]: trialItem.id }
     : undefined;
 
-  // Filter items by active category
+  // Filter and sort items by active category
   const categoryDef = CATEGORIES.find(c => c.key === activeCategory)!;
-  const filteredItems = dbItems.filter(item => !item.is_magic && categoryDef.types.includes(item.type as AccessoryType));
+  const filteredItems = dbItems
+    .filter(item => {
+      if (item.is_magic) return false;
+      const slot = getSlotForAccessory(item.id) || (item.type as AccessoryType);
+      return categoryDef.types.includes(slot);
+    })
+    .sort((a, b) => {
+      const aOwned = ownedAccessories.includes(a.id);
+      const bOwned = ownedAccessories.includes(b.id);
+      if (aOwned && !bOwned) return -1;
+      if (!aOwned && bOwned) return 1;
+      return 0;
+    });
   const magicItemsList = dbItems.filter(item => item.is_magic);
 
   const handleTryItem = (item: ShopItem) => {
@@ -259,7 +277,13 @@ export default function ShopScreen() {
         <>
           {/* Preview area with trial badge */}
           <View style={[styles.previewArea, { maxHeight: previewMaxHeight }, trialItem && styles.previewAreaTrial]}>
-            <Stickman wrongCount={0} size={shopStickmanSize} previewOverrides={previewOverrides} isShop={true} forceShowBalloons={activeCategory === 'balloons'} />
+            <Stickman 
+              wrongCount={0} 
+              size={shopStickmanSize} 
+              previewOverrides={previewOverrides} 
+              isShop={true} 
+              forceShowBalloons={activeCategory === 'balloons'} 
+            />
             {trialItem && (
               <View style={styles.trialBadge}>
                 <Ionicons name="eye" size={12} color={Colors.primary} />
@@ -272,7 +296,11 @@ export default function ShopScreen() {
           <View style={styles.categoryBar}>
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.key;
-              const count = dbItems.filter((i: ShopItem) => !i.is_magic && cat.types.includes(i.type as AccessoryType)).length;
+              const count = dbItems.filter((i: ShopItem) => {
+                if (i.is_magic) return false;
+                const slot = getSlotForAccessory(i.id) || i.type;
+                return cat.types.includes(slot as AccessoryType);
+              }).length;
               return (
                 <Pressable
                   key={cat.key}

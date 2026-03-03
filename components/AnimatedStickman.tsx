@@ -101,9 +101,21 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
   const h = size;
   const bodyLen = bodyBot - bodyTop;
   const laEndX = cx - armLen;
-  const laEndY = armY + armLen * 0.5;
+  const laEndY = armY - armLen * 0.1;
   const raEndX = cx + armLen;
-  const raEndY = armY + armLen * 0.5;
+  const raEndY = armY - armLen * 0.1;
+  // Sleeve midpoints along each arm's actual bezier curve
+  // Left arm: Q(cx,armY) ctrl(cx-armLen*0.8, armY-armLen*0.5) end(cx-armLen*1.2, armY-armLen*0.2) → goes UP-LEFT
+  // Right arm: Q(cx,armY) ctrl(cx+armLen, armY+armLen*0.5) end(cx+armLen*1.3, armY-armLen*0.2) → goes DOWN-RIGHT then UP
+  const lSleeveX = cx - armLen * 0.44;   // Left arm at ~30% along bezier
+  const lSleeveY = armY - armLen * 0.23;
+  const rSleeveX = cx + armLen * 0.54;   // Right arm at ~30% along bezier
+  const rSleeveY = armY + armLen * 0.19;
+  // Longer sleeve endpoints (~50% along each arm bezier)
+  const lLongSleeveX = cx - armLen * 0.7;
+  const lLongSleeveY = armY - armLen * 0.35;
+  const rLongSleeveX = cx + armLen * 0.82;
+  const rLongSleeveY = armY + armLen * 0.25;
   const sw = size * 0.04;
   const hasHat = !!(equipped.hair && (equipped.hair.startsWith('hat-') || equipped.hair.startsWith('hair-')));
   const hasGlasses = !!(equipped.face && (equipped.face.startsWith('glasses-') || equipped.face.startsWith('face-')));
@@ -196,6 +208,84 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
           <Circle cx={cx + 35} cy={bodyBot + 10} r={2} fill="#FFEB3B" />
           <Circle cx={cx + 20} cy={bodyBot + 45} r={1.5} fill="#00E5FF" />
           <Path d={`M${cx + 15},${bodyBot + 15} Q${cx + 25},${bodyBot + 25} ${cx + 15},${bodyBot + 35}`} fill="none" stroke="#F48FB1" strokeWidth={2} />
+        </G>
+      );
+    }
+    // --- 8 New Cute Tail Designs ---
+    if (equipped.tail === 'tail-fox') {
+      // Fluffy Fox Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 30},${bodyBot} ${cx - 50},${bodyBot + 20} Q${cx - 30},${bodyBot + 40} ${cx - 5},${bodyBot + 10} Z`} fill="#FF5722" stroke="#E64A19" strokeWidth={1.5} />
+          <Path d={`M${cx - 40},${bodyBot + 15} Q${cx - 50},${bodyBot + 20} ${cx - 45},${bodyBot + 25} L${cx - 35},${bodyBot + 30} Q${cx - 30},${bodyBot + 25} ${cx - 40},${bodyBot + 15} Z`} fill="#FFF" />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-bunny') {
+      // Cute Bunny Tail
+      return (
+        <G>
+          <Circle cx={cx - 5} cy={bodyBot} r={8} fill="#FFF" stroke="#E0E0E0" strokeWidth={1} />
+          <Circle cx={cx - 3} cy={bodyBot - 2} r={3} fill="#FFF" opacity={0.6} />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-devil') {
+      // Devil Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 20},${bodyBot + 5} ${cx - 20},${bodyBot + 30} Q${cx - 20},${bodyBot + 45} ${cx - 35},${bodyBot + 40}`} fill="none" stroke="#F44336" strokeWidth={2} strokeLinecap="round" />
+          <Path d={`M${cx - 35},${bodyBot + 40} L${cx - 45},${bodyBot + 35} L${cx - 42},${bodyBot + 48} Z`} fill="#F44336" />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-cat') {
+      // sleek S-curve cat tail with white tip
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 15},${bodyBot + 10} ${cx - 10},${bodyBot + 25} Q${cx - 5},${bodyBot + 40} ${cx + 10},${bodyBot + 35} Q${cx + 25},${bodyBot + 30} ${cx + 15},${bodyBot + 10}`} fill="none" stroke="#212121" strokeWidth={5} strokeLinecap="round" />
+          <Path d={`M${cx + 15},${bodyBot + 10} Q${cx + 20},${bodyBot + 5} ${cx + 18},${bodyBot + 15} L${cx + 12},${bodyBot + 20} Q${cx + 10},${bodyBot + 10} ${cx + 15},${bodyBot + 10} Z`} fill="white" />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-lion') {
+      // Shaggy Lion Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 25},${bodyBot + 15} ${cx - 35},${bodyBot + 40}`} fill="none" stroke="#FFD54F" strokeWidth={3} strokeLinecap="round" />
+          <Path 
+            d={`M${cx - 35},${bodyBot + 40} Q${cx - 45},${bodyBot + 35} ${cx - 50},${bodyBot + 45} L${cx - 40},${bodyBot + 42} L${cx - 45},${bodyBot + 55} L${cx - 35},${bodyBot + 48} L${cx - 25},${bodyBot + 55} L${cx - 30},${bodyBot + 42} Q${cx - 25},${bodyBot + 35} ${cx - 35},${bodyBot + 40} Z`} 
+            fill="#795548" 
+            stroke="#5D4037" 
+            strokeWidth={1} 
+          />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-squirrel') {
+      // Bushy Squirrel Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 40},${bodyBot - 30} ${cx - 55},${bodyBot + 10} Q${cx - 40},${bodyBot + 45} ${cx - 5},${bodyBot + 10} Z`} fill="#8D6E63" stroke="#5D4037" strokeWidth={2} />
+          <Path d={`M${cx - 15},${bodyBot} Q${cx - 35},${bodyBot - 10} ${cx - 40},${bodyBot + 5}`} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={2} strokeLinecap="round" />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-shark') {
+      // Shark Fin Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 10} Q${cx - 15},${bodyBot} ${cx - 40},${bodyBot + 5} Q${cx - 35},${bodyBot + 25} ${cx - 5},${bodyBot + 15} Z`} fill="#90A4AE" stroke="#455A64" strokeWidth={2} />
+          <Path d={`M${cx - 40},${bodyBot + 5} L${cx - 50},${bodyBot - 5} L${cx - 50},${bodyBot + 15} Z`} fill="#90A4AE" stroke="#455A64" strokeWidth={1.5} />
+        </G>
+      );
+    }
+    if (equipped.tail === 'tail-dog') {
+      // Shaggy Puppy Tail
+      return (
+        <G>
+          <Path d={`M${cx},${bodyBot - 5} Q${cx - 15},${bodyBot + 5} ${cx - 25},${bodyBot + 20} L${cx - 15},${bodyBot + 15} L${cx - 20},${bodyBot + 25} L${cx - 10},${bodyBot + 20} L${cx - 15},${bodyBot + 30} L${cx - 5},${bodyBot + 25} Q${cx},${bodyBot + 15} ${cx},${bodyBot - 5}`} fill="#A1887F" stroke="#795548" strokeWidth={1} />
+          <Path d={`M${cx - 5},${bodyBot} Q${cx - 10},${bodyBot + 5} ${cx - 15},${bodyBot + 10}`} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={2} strokeLinecap="round" />
         </G>
       );
     }
@@ -389,6 +479,42 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
           <Path d={`M${cx - headR * 0.4},${headCY + headR * 0.3} Q${cx},${headCY + headR * 0.6} ${cx + headR * 0.4},${headCY + headR * 0.3}`} fill="none" stroke="#2E7D32" strokeWidth={1} />
           <Circle cx={cx - headR * 0.15} cy={headCY + headR * 0.35} r={1.5} fill="#2E7D32" />
           <Circle cx={cx + headR * 0.15} cy={headCY + headR * 0.35} r={1.5} fill="#2E7D32" />
+        </G>
+      );
+    }
+
+    if (equipped.hair === 'hat-melody') {
+      // Pink Bunny Hat (My Melody)
+      return (
+        <G>
+          {/* Main Pink Hood */}
+          <Path 
+            d={`M${cx - headR * 1.4},${headCY + headR * 1.0} 
+               Q${cx - headR * 1.5},${headCY - headR * 2.2} ${cx},${headCY - headR * 2.4} 
+               Q${cx + headR * 1.5},${headCY - headR * 2.2} ${cx + headR * 1.4},${headCY + headR * 1.0} 
+               Q${cx},${headCY + headR * 1.2} ${cx - headR * 1.4},${headCY + headR * 1.0} Z`} 
+            fill="#F06292" 
+          />
+          {/* White Face Inset */}
+          <Ellipse cx={cx} cy={headCY + headR * 0.2} rx={headR * 1.0} ry={headR * 0.9} fill="white" />
+          {/* Eyes & Nose & Cheeks */}
+          <Circle cx={cx - headR * 0.35} cy={headCY + headR * 0.2} r={headR * 0.1} fill="#4E342E" />
+          <Circle cx={cx + headR * 0.35} cy={headCY + headR * 0.2} r={headR * 0.1} fill="#4E342E" />
+          <Circle cx={cx} cy={headCY + headR * 0.45} r={headR * 0.12} fill="#FFEB3B" />
+          <Ellipse cx={cx - headR * 0.65} cy={headCY + headR * 0.45} rx={headR * 0.18} ry={headR * 0.1} fill="#FFCDD2" />
+          <Ellipse cx={cx + headR * 0.65} cy={headCY + headR * 0.45} rx={headR * 0.18} ry={headR * 0.1} fill="#FFCDD2" />
+          {/* Ears (Pointing down like the photo) */}
+          <Path d={`M${cx - headR * 1.3},${headCY - headR * 1.0} Q${cx - headR * 2.2},${headCY - headR * 0.8} ${cx - headR * 2.5},${headCY + headR * 1.5} Q${cx - headR * 2.5},${headCY + headR * 2.5} ${cx - headR * 1.8},${headCY + headR * 2.5} Q${cx - headR * 1.2},${headCY + headR * 2.5} ${cx - headR * 1.2},${headCY + headR * 1.0}`} fill="#F06292" />
+          <Path d={`M${cx + headR * 1.3},${headCY - headR * 1.0} Q${cx + headR * 2.2},${headCY - headR * 0.8} ${cx + headR * 2.5},${headCY + headR * 1.5} Q${cx + headR * 2.5},${headCY + headR * 2.5} ${cx + headR * 1.8},${headCY + headR * 2.5} Q${cx + headR * 1.2},${headCY + headR * 2.5} ${cx + headR * 1.2},${headCY + headR * 1.0}`} fill="#F06292" />
+          {/* Red Bow */}
+          <G transform={`translate(${cx - headR * 0.8}, ${headCY - headR * 1.8}) rotate(-15)`}>
+             <Circle cx={0} cy={0} r={headR * 0.35} fill="#E91E63" />
+             <Circle cx={headR * 0.7} cy={0} r={headR * 0.35} fill="#E91E63" />
+             <Circle cx={headR * 0.35} cy={0} r={headR * 0.22} fill="#E91E63" />
+             {/* Polka dots */}
+             <Circle cx={0} cy={0} r={headR * 0.08} fill="white" />
+             <Circle cx={headR * 0.7} cy={0} r={headR * 0.08} fill="white" />
+          </G>
         </G>
       );
     }
@@ -767,7 +893,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Boy Shirt
       const shirtWidth = 12;
       return (
-        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#4CAF50" stroke="#388E3C" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#4CAF50" stroke="#388E3C" />{/* T-Shirt */}<Path
+        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#4CAF50" stroke="#388E3C" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#4CAF50" stroke="#388E3C" />{/* T-Shirt */}<Path
             d={`M${cx - shirtWidth},${armY - 5}
                 L${cx - shirtWidth - 1},${bodyBot}
                 Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot}
@@ -781,8 +907,8 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
     if (equipped.upper === 'shirt-3') {
       // Girl Dress Top
       const topWidth = 12;
-      const sleeveEndPathL = `M${cx - topWidth},${armY - 4} L${cx - armLen * 1.0},${laEndY - 2} L${cx - armLen * 0.95},${laEndY + 4} L${cx - topWidth + 2},${armY + 8}`;
-      const sleeveEndPathR = `M${cx + topWidth},${armY - 4} L${cx + armLen * 1.0},${raEndY - 2} L${cx + armLen * 0.95},${raEndY + 4} L${cx + topWidth - 2},${armY + 8}`;
+      const sleeveEndPathL = `M${cx - topWidth},${armY - 4} L${lLongSleeveX - 3},${lLongSleeveY - 4} L${lLongSleeveX + 2},${lLongSleeveY + 4} L${cx - topWidth + 2},${armY + 8}`;
+      const sleeveEndPathR = `M${cx + topWidth},${armY - 4} L${rLongSleeveX + 3},${rLongSleeveY - 4} L${rLongSleeveX - 2},${rLongSleeveY + 4} L${cx + topWidth - 2},${armY + 8}`;
       return (
         <G>{/* Long Sleeves */}<Path d={sleeveEndPathL} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} /><Path d={sleeveEndPathR} fill="#9C27B0" stroke="#7B1FA2" strokeWidth={1} />{/* Top */}<Path
             d={`M${cx - topWidth},${armY - 5}
@@ -799,7 +925,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Light Pink Tee
       const shirtWidth = 12;
       return (
-        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 18},${armY + 4} L${cx - 14},${armY + 10} L${cx - 8},${armY + 7}`} fill="#F8BBD0" stroke="#F06292" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 18},${armY + 4} L${cx + 14},${armY + 10} L${cx + 8},${armY + 7}`} fill="#F8BBD0" stroke="#F06292" />{/* Tee Body */}<Path
+        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#F8BBD0" stroke="#F06292" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#F8BBD0" stroke="#F06292" />{/* Tee Body */}<Path
             d={`M${cx - shirtWidth},${armY - 5}
                 L${cx - shirtWidth - 1},${bodyBot}
                 Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot}
@@ -814,7 +940,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Space Explorer
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves with blue stripes */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 20},${laEndY - 4} L${cx - 16},${laEndY + 2} L${cx - 8},${armY + 7}`} fill="#ECEFF1" stroke="#CFD8DC" /><Line x1={cx - 18} y1={armY + 2} x2={cx - 10} y2={armY - 4} stroke="#2196F3" strokeWidth={2} /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 20},${raEndY - 4} L${cx + 16},${raEndY + 2} L${cx + 8},${armY + 7}`} fill="#ECEFF1" stroke="#CFD8DC" /><Line x1={cx + 18} y1={armY + 2} x2={cx + 10} y2={armY - 4} stroke="#2196F3" strokeWidth={2} />{/* Space Suit Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#ECEFF1" stroke="#CFD8DC" /><Circle cx={cx} cy={armY + 5} r={4} fill="#2196F3" /><Circle cx={cx - 1} cy={armY + 4} r={1} fill="#FFF" /><Line x1={cx - 8} y1={armY + 12} x2={cx + 8} y2={armY + 12} stroke="#B0BEC5" strokeWidth={1} strokeDasharray="2,2" /></G>
+        <G>{/* Sleeves with blue stripes */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#ECEFF1" stroke="#CFD8DC" /><Line x1={lSleeveX - 1} y1={lSleeveY} x2={cx - shirtWidth + 2} y2={armY} stroke="#2196F3" strokeWidth={2} /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#ECEFF1" stroke="#CFD8DC" /><Line x1={rSleeveX + 1} y1={rSleeveY} x2={cx + shirtWidth - 2} y2={armY} stroke="#2196F3" strokeWidth={2} />{/* Space Suit Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#ECEFF1" stroke="#CFD8DC" /><Circle cx={cx} cy={armY + 5} r={4} fill="#2196F3" /><Circle cx={cx - 1} cy={armY + 4} r={1} fill="#FFF" /><Line x1={cx - 8} y1={armY + 12} x2={cx + 8} y2={armY + 12} stroke="#B0BEC5" strokeWidth={1} strokeDasharray="2,2" /></G>
       );
     }
     if (equipped.upper === 'upper-b2') {
@@ -850,7 +976,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Rainbow Unicorn Top
       const shirtWidth = 12;
       return (
-        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 16},${laEndY - 2} L${cx - 12},${laEndY + 3} L${cx - 8},${armY + 7}`} fill="#B39DDB" stroke="#9575CD" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 16},${raEndY - 2} L${cx + 12},${raEndY + 3} L${cx + 8},${armY + 7}`} fill="#B39DDB" stroke="#9575CD" />{/* Striped Tee */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#E1BEE7" stroke="#CE93D8" /><Line x1={cx - shirtWidth - 0.5} y1={armY + 2} x2={cx + shirtWidth + 0.5} y2={armY + 2} stroke="#FFCDD2" strokeWidth={3} /><Line x1={cx - shirtWidth - 1} y1={armY + 8} x2={cx + shirtWidth + 1} y2={armY + 8} stroke="#FFF9C4" strokeWidth={3} /><Line x1={cx - shirtWidth - 1} y1={armY + 14} x2={cx + shirtWidth + 1} y2={armY + 14} stroke="#C8E6C9" strokeWidth={3} />{/* Star in middle */}<Path d={`M${cx},${armY} L${cx + 2},${armY + 4} L${cx + 6},${armY + 4} L${cx + 3},${armY + 7} L${cx + 4},${armY + 11} L${cx},${armY + 9} L${cx - 4},${armY + 11} L${cx - 3},${armY + 7} L${cx - 6},${armY + 4} L${cx - 2},${armY + 4} Z`} fill="#FFF" transform="scale(0.6) translate(100, 30)" /></G>
+        <G>{/* Short Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 2} L${lSleeveX + 2},${lSleeveY + 3} L${cx - shirtWidth + 4},${armY + 4}`} fill="#B39DDB" stroke="#9575CD" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 2} L${rSleeveX - 2},${rSleeveY + 3} L${cx + shirtWidth - 4},${armY + 4}`} fill="#B39DDB" stroke="#9575CD" />{/* Striped Tee */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#E1BEE7" stroke="#CE93D8" /><Line x1={cx - shirtWidth - 0.5} y1={armY + 2} x2={cx + shirtWidth + 0.5} y2={armY + 2} stroke="#FFCDD2" strokeWidth={3} /><Line x1={cx - shirtWidth - 1} y1={armY + 8} x2={cx + shirtWidth + 1} y2={armY + 8} stroke="#FFF9C4" strokeWidth={3} /><Line x1={cx - shirtWidth - 1} y1={armY + 14} x2={cx + shirtWidth + 1} y2={armY + 14} stroke="#C8E6C9" strokeWidth={3} />{/* Star in middle */}<Path d={`M${cx},${armY} L${cx + 2},${armY + 4} L${cx + 6},${armY + 4} L${cx + 3},${armY + 7} L${cx + 4},${armY + 11} L${cx},${armY + 9} L${cx - 4},${armY + 11} L${cx - 3},${armY + 7} L${cx - 6},${armY + 4} L${cx - 2},${armY + 4} Z`} fill="#FFF" transform="scale(0.6) translate(100, 30)" /></G>
       );
     }
     if (equipped.upper === 'upper-g3') {
@@ -864,7 +990,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Little Chef Coat
       const shirtWidth = 13;
       return (
-        <G>{/* Short flared sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 22},${laEndY} L${cx - 16},${laEndY + 4} L${cx - 8},${armY + 7}`} fill="#FFF" stroke="#E0E0E0" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 22},${raEndY} L${cx + 16},${raEndY + 4} L${cx + 8},${armY + 7}`} fill="#FFF" stroke="#E0E0E0" />{/* Coat Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 2},${bodyBot + 6} Q${cx},${bodyBot + 8} ${cx + shirtWidth + 2},${bodyBot + 6} L${cx + shirtWidth},${armY - 5} Z`} fill="#FFF" stroke="#E0E0E0" />{/* Fold / Buttons */}<Line x1={cx - 3} y1={armY - 5} x2={cx - 3} y2={bodyBot + 7} stroke="#E0E0E0" strokeWidth={1} /><Circle cx={cx + 2} cy={armY + 3} r={1.5} fill="#F06292" /><Circle cx={cx - 6} cy={armY + 3} r={1.5} fill="#F06292" /><Circle cx={cx + 2} cy={armY + 10} r={1.5} fill="#F06292" /><Circle cx={cx - 6} cy={armY + 10} r={1.5} fill="#F06292" /></G>
+        <G>{/* Short flared sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 4},${lSleeveY - 2} L${lSleeveX + 2},${lSleeveY + 6} L${cx - shirtWidth + 5},${armY + 5}`} fill="#FFF" stroke="#E0E0E0" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 4},${rSleeveY - 2} L${rSleeveX - 2},${rSleeveY + 6} L${cx + shirtWidth - 5},${armY + 5}`} fill="#FFF" stroke="#E0E0E0" />{/* Coat Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 2},${bodyBot + 6} Q${cx},${bodyBot + 8} ${cx + shirtWidth + 2},${bodyBot + 6} L${cx + shirtWidth},${armY - 5} Z`} fill="#FFF" stroke="#E0E0E0" />{/* Fold / Buttons */}<Line x1={cx - 3} y1={armY - 5} x2={cx - 3} y2={bodyBot + 7} stroke="#E0E0E0" strokeWidth={1} /><Circle cx={cx + 2} cy={armY + 3} r={1.5} fill="#F06292" /><Circle cx={cx - 6} cy={armY + 3} r={1.5} fill="#F06292" /><Circle cx={cx + 2} cy={armY + 10} r={1.5} fill="#F06292" /><Circle cx={cx - 6} cy={armY + 10} r={1.5} fill="#F06292" /></G>
       );
     }
     // --- New Boy Shirts (shirt-b1 to shirt-b5) ---
@@ -872,35 +998,35 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Galaxy Tee
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#1565C0" stroke="#0D47A1" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#1565C0" stroke="#0D47A1" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#1A237E" stroke="#0D47A1" />{/* Stars */}<Circle cx={cx - 4} cy={armY + 4} r={1.5} fill="#FFD700" /><Circle cx={cx + 3} cy={armY + 1} r={1.8} fill="#FFD700" /><Circle cx={cx + 6} cy={armY + 10} r={1.2} fill="#FFF" /><Circle cx={cx - 7} cy={armY + 12} r={1} fill="#FFF" />{/* Rocket */}<Path d={`M${cx + 1},${armY - 2} Q${cx + 3},${armY - 6} ${cx + 5},${armY - 2} L${cx + 5},${armY + 2} L${cx + 1},${armY + 2} Z`} fill="#FF5722" stroke="#D84315" strokeWidth={0.5} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#1565C0" stroke="#0D47A1" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#1565C0" stroke="#0D47A1" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#1A237E" stroke="#0D47A1" />{/* Stars */}<Circle cx={cx - 4} cy={armY + 4} r={1.5} fill="#FFD700" /><Circle cx={cx + 3} cy={armY + 1} r={1.8} fill="#FFD700" /><Circle cx={cx + 6} cy={armY + 10} r={1.2} fill="#FFF" /><Circle cx={cx - 7} cy={armY + 12} r={1} fill="#FFF" />{/* Rocket */}<Path d={`M${cx + 1},${armY - 2} Q${cx + 3},${armY - 6} ${cx + 5},${armY - 2} L${cx + 5},${armY + 2} L${cx + 1},${armY + 2} Z`} fill="#FF5722" stroke="#D84315" strokeWidth={0.5} /></G>
       );
     }
     if (equipped.upper === 'shirt-b2') {
       // Dino Roar Tee
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#388E3C" stroke="#2E7D32" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#388E3C" stroke="#2E7D32" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#43A047" stroke="#2E7D32" />{/* Dino body */}<Ellipse cx={cx} cy={armY + 6} rx={6} ry={5} fill="#A5D6A7" stroke="#66BB6A" strokeWidth={0.5} />{/* Dino head */}<Ellipse cx={cx + 5} cy={armY + 1} rx={4} ry={3.5} fill="#A5D6A7" stroke="#66BB6A" strokeWidth={0.5} />{/* Dino eye */}<Circle cx={cx + 6.5} cy={armY} r={1} fill="#1B5E20" />{/* Dino spikes */}<Path d={`M${cx - 2},${armY + 3} L${cx - 3},${armY - 2} L${cx - 1},${armY + 2}`} fill="#FFF176" stroke="#F9A825" strokeWidth={0.3} /><Path d={`M${cx},${armY + 2} L${cx},${armY - 3} L${cx + 2},${armY + 2}`} fill="#FFF176" stroke="#F9A825" strokeWidth={0.3} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#388E3C" stroke="#2E7D32" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#388E3C" stroke="#2E7D32" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#43A047" stroke="#2E7D32" />{/* Dino body */}<Ellipse cx={cx} cy={armY + 6} rx={6} ry={5} fill="#A5D6A7" stroke="#66BB6A" strokeWidth={0.5} />{/* Dino head */}<Ellipse cx={cx + 5} cy={armY + 1} rx={4} ry={3.5} fill="#A5D6A7" stroke="#66BB6A" strokeWidth={0.5} />{/* Dino eye */}<Circle cx={cx + 6.5} cy={armY} r={1} fill="#1B5E20" />{/* Dino spikes */}<Path d={`M${cx - 2},${armY + 3} L${cx - 3},${armY - 2} L${cx - 1},${armY + 2}`} fill="#FFF176" stroke="#F9A825" strokeWidth={0.3} /><Path d={`M${cx},${armY + 2} L${cx},${armY - 3} L${cx + 2},${armY + 2}`} fill="#FFF176" stroke="#F9A825" strokeWidth={0.3} /></G>
       );
     }
     if (equipped.upper === 'shirt-b3') {
       // Fire Player Jersey
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#C62828" stroke="#B71C1C" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#C62828" stroke="#B71C1C" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#D32F2F" stroke="#B71C1C" />{/* White collar */}<Path d={`M${cx - 5},${armY - 5} Q${cx},${armY - 8} ${cx + 5},${armY - 5} L${cx + 4},${armY - 3} Q${cx},${armY - 5} ${cx - 4},${armY - 3} Z`} fill="#FFF" />{/* Flame */}<Path d={`M${cx},${armY + 12} Q${cx - 4},${armY + 5} ${cx - 1},${armY + 1} Q${cx},${armY + 5} ${cx + 1},${armY - 1} Q${cx + 4},${armY + 5} ${cx + 3},${armY + 2} Q${cx + 5},${armY + 5} ${cx + 4},${armY + 12} Z`} fill="#FF9800" stroke="#FF6F00" strokeWidth={0.5} /><Path d={`M${cx},${armY + 12} Q${cx - 1},${armY + 7} ${cx},${armY + 4} Q${cx + 1},${armY + 7} ${cx},${armY + 12} Z`} fill="#FFCC02" />{/* White stripes */}<Line x1={cx - shirtWidth + 2} y1={armY - 4} x2={cx - shirtWidth - 1} y2={bodyBot} stroke="#FFF" strokeWidth={1.5} /><Line x1={cx + shirtWidth - 2} y1={armY - 4} x2={cx + shirtWidth + 1} y2={bodyBot} stroke="#FFF" strokeWidth={1.5} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#C62828" stroke="#B71C1C" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#C62828" stroke="#B71C1C" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#D32F2F" stroke="#B71C1C" />{/* White collar */}<Path d={`M${cx - 5},${armY - 5} Q${cx},${armY - 8} ${cx + 5},${armY - 5} L${cx + 4},${armY - 3} Q${cx},${armY - 5} ${cx - 4},${armY - 3} Z`} fill="#FFF" />{/* Flame */}<Path d={`M${cx},${armY + 12} Q${cx - 4},${armY + 5} ${cx - 1},${armY + 1} Q${cx},${armY + 5} ${cx + 1},${armY - 1} Q${cx + 4},${armY + 5} ${cx + 3},${armY + 2} Q${cx + 5},${armY + 5} ${cx + 4},${armY + 12} Z`} fill="#FF9800" stroke="#FF6F00" strokeWidth={0.5} /><Path d={`M${cx},${armY + 12} Q${cx - 1},${armY + 7} ${cx},${armY + 4} Q${cx + 1},${armY + 7} ${cx},${armY + 12} Z`} fill="#FFCC02" />{/* White stripes */}<Line x1={cx - shirtWidth + 2} y1={armY - 4} x2={cx - shirtWidth - 1} y2={bodyBot} stroke="#FFF" strokeWidth={1.5} /><Line x1={cx + shirtWidth - 2} y1={armY - 4} x2={cx + shirtWidth + 1} y2={bodyBot} stroke="#FFF" strokeWidth={1.5} /></G>
       );
     }
     if (equipped.upper === 'shirt-b4') {
       // Cool Hoodie
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - 20},${laEndY - 4} L${cx - 16},${laEndY + 2} L${cx - 8},${armY + 7}`} fill="#1565C0" stroke="#0D47A1" /><Path d={`M${cx + shirtWidth},${armY - 5} L${cx + 20},${raEndY - 4} L${cx + 16},${raEndY + 2} L${cx + 8},${armY + 7}`} fill="#1565C0" stroke="#0D47A1" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#1976D2" stroke="#0D47A1" />{/* Hood */}<Path d={`M${cx - 6},${armY - 5} Q${cx - 9},${armY - 14} ${cx},${armY - 14} Q${cx + 9},${armY - 14} ${cx + 6},${armY - 5}`} fill="#1565C0" stroke="#0D47A1" strokeWidth={1} />{/* Center zip */}<Line x1={cx} y1={armY - 5} x2={cx} y2={bodyBot} stroke="#90CAF9" strokeWidth={1} strokeDasharray="2,2" />{/* Front pocket */}<Rect x={cx - 6} y={armY + 8} width={12} height={6} rx={2} fill="#1565C0" stroke="#0D47A1" strokeWidth={0.5} />{/* Smiley on pocket */}<Circle cx={cx} cy={armY + 11} r={2.5} fill="#FFEE58" stroke="#F9A825" strokeWidth={0.3} /><Circle cx={cx - 0.8} cy={armY + 10.3} r={0.5} fill="#333" /><Circle cx={cx + 0.8} cy={armY + 10.3} r={0.5} fill="#333" /><Path d={`M${cx - 1},${armY + 12} Q${cx},${armY + 13} ${cx + 1},${armY + 12}`} fill="none" stroke="#333" strokeWidth={0.5} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 5} L${lLongSleeveX - 3},${lLongSleeveY - 4} L${lLongSleeveX + 2},${lLongSleeveY + 4} L${cx - shirtWidth + 4},${armY + 5}`} fill="#1565C0" stroke="#0D47A1" /><Path d={`M${cx + shirtWidth},${armY - 5} L${rLongSleeveX + 3},${rLongSleeveY - 4} L${rLongSleeveX - 2},${rLongSleeveY + 4} L${cx + shirtWidth - 4},${armY + 5}`} fill="#1565C0" stroke="#0D47A1" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#1976D2" stroke="#0D47A1" />{/* Hood */}<Path d={`M${cx - 6},${armY - 5} Q${cx - 9},${armY - 14} ${cx},${armY - 14} Q${cx + 9},${armY - 14} ${cx + 6},${armY - 5}`} fill="#1565C0" stroke="#0D47A1" strokeWidth={1} />{/* Center zip */}<Line x1={cx} y1={armY - 5} x2={cx} y2={bodyBot} stroke="#90CAF9" strokeWidth={1} strokeDasharray="2,2" />{/* Front pocket */}<Rect x={cx - 6} y={armY + 8} width={12} height={6} rx={2} fill="#1565C0" stroke="#0D47A1" strokeWidth={0.5} />{/* Smiley on pocket */}<Circle cx={cx} cy={armY + 11} r={2.5} fill="#FFEE58" stroke="#F9A825" strokeWidth={0.3} /><Circle cx={cx - 0.8} cy={armY + 10.3} r={0.5} fill="#333" /><Circle cx={cx + 0.8} cy={armY + 10.3} r={0.5} fill="#333" /><Path d={`M${cx - 1},${armY + 12} Q${cx},${armY + 13} ${cx + 1},${armY + 12}`} fill="none" stroke="#333" strokeWidth={0.5} /></G>
       );
     }
     if (equipped.upper === 'shirt-b5') {
       // Space Hero Tee
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#455A64" stroke="#37474F" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#455A64" stroke="#37474F" />{/* Arm stripes */}<Line x1={cx - 18} y1={armY + 6} x2={cx - 10} y2={armY + 2} stroke="#00E5FF" strokeWidth={2} /><Line x1={cx + 18} y1={armY + 6} x2={cx + 10} y2={armY + 2} stroke="#00E5FF" strokeWidth={2} />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#546E7A" stroke="#37474F" />{/* Lightning bolt */}<Path d={`M${cx + 2},${armY - 3} L${cx - 2},${armY + 4} L${cx + 1},${armY + 4} L${cx - 2},${armY + 12} L${cx + 3},${armY + 4} L${cx},${armY + 4} Z`} fill="#FFD600" stroke="#FF8F00" strokeWidth={0.5} />{/* Star badge */}<Path d={`M${cx - 8},${armY + 1} L${cx - 7},${armY + 3} L${cx - 5},${armY + 3} L${cx - 6.5},${armY + 4.5} L${cx - 6},${armY + 6.5} L${cx - 8},${armY + 5.5} L${cx - 10},${armY + 6.5} L${cx - 9.5},${armY + 4.5} L${cx - 11},${armY + 3} L${cx - 9},${armY + 3} Z`} fill="#00E5FF" stroke="#0097A7" strokeWidth={0.3} />{/* Bottom hem stripe */}<Path d={`M${cx - shirtWidth - 1},${bodyBot - 1} Q${cx},${bodyBot + 4} ${cx + shirtWidth + 1},${bodyBot - 1}`} fill="none" stroke="#00E5FF" strokeWidth={1} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#455A64" stroke="#37474F" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#455A64" stroke="#37474F" />{/* Arm stripes */}<Line x1={cx - 18} y1={armY + 6} x2={cx - 10} y2={armY + 2} stroke="#00E5FF" strokeWidth={2} /><Line x1={cx + 18} y1={armY + 6} x2={cx + 10} y2={armY + 2} stroke="#00E5FF" strokeWidth={2} />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#546E7A" stroke="#37474F" />{/* Lightning bolt */}<Path d={`M${cx + 2},${armY - 3} L${cx - 2},${armY + 4} L${cx + 1},${armY + 4} L${cx - 2},${armY + 12} L${cx + 3},${armY + 4} L${cx},${armY + 4} Z`} fill="#FFD600" stroke="#FF8F00" strokeWidth={0.5} />{/* Star badge */}<Path d={`M${cx - 8},${armY + 1} L${cx - 7},${armY + 3} L${cx - 5},${armY + 3} L${cx - 6.5},${armY + 4.5} L${cx - 6},${armY + 6.5} L${cx - 8},${armY + 5.5} L${cx - 10},${armY + 6.5} L${cx - 9.5},${armY + 4.5} L${cx - 11},${armY + 3} L${cx - 9},${armY + 3} Z`} fill="#00E5FF" stroke="#0097A7" strokeWidth={0.3} />{/* Bottom hem stripe */}<Path d={`M${cx - shirtWidth - 1},${bodyBot - 1} Q${cx},${bodyBot + 4} ${cx + shirtWidth + 1},${bodyBot - 1}`} fill="none" stroke="#00E5FF" strokeWidth={1} /></G>
       );
     }
     // --- New Girl Shirts (shirt-g1 to shirt-g5) ---
@@ -929,21 +1055,21 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Candy Sweater
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 20},${laEndY - 4} L${cx - 16},${laEndY + 2} L${cx - 8},${armY + 7}`} fill="#E91E63" stroke="#C2185B" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 20},${raEndY - 4} L${cx + 16},${raEndY + 2} L${cx + 8},${armY + 7}`} fill="#E91E63" stroke="#C2185B" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#F06292" stroke="#C2185B" />{/* Ribbed collar */}<Rect x={cx - 6} y={armY - 7} width={12} height={4} rx={1} fill="#C2185B" />{/* Stripe pattern */}<Line x1={cx - shirtWidth - 1} y1={armY + 3} x2={cx + shirtWidth + 1} y2={armY + 3} stroke="#FFCDD2" strokeWidth={2} /><Line x1={cx - shirtWidth - 1} y1={armY + 9} x2={cx + shirtWidth + 1} y2={armY + 9} stroke="#FFCDD2" strokeWidth={2} />{/* Lollipop */}<Circle cx={cx - 4} cy={armY + 5} r={3} fill="#FFCC02" stroke="#FF8F00" strokeWidth={0.5} /><Path d={`M${cx - 4},${armY + 8} Q${cx - 4},${armY + 13} ${cx - 3},${armY + 14}`} fill="none" stroke="#795548" strokeWidth={1} />{/* Lollipop 2 */}<Circle cx={cx + 5} cy={armY + 1} r={2.5} fill="#69F0AE" stroke="#00C853" strokeWidth={0.5} /><Path d={`M${cx + 5},${armY + 3.5} Q${cx + 5},${armY + 6} ${cx + 6},${armY + 7}`} fill="none" stroke="#795548" strokeWidth={1} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lLongSleeveX - 2},${lLongSleeveY - 4} L${lLongSleeveX + 2},${lLongSleeveY + 4} L${cx - shirtWidth + 4},${armY + 5}`} fill="#E91E63" stroke="#C2185B" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rLongSleeveX + 2},${rLongSleeveY - 4} L${rLongSleeveX - 2},${rLongSleeveY + 4} L${cx + shirtWidth - 4},${armY + 5}`} fill="#E91E63" stroke="#C2185B" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#F06292" stroke="#C2185B" />{/* Ribbed collar */}<Rect x={cx - 6} y={armY - 7} width={12} height={4} rx={1} fill="#C2185B" />{/* Stripe pattern */}<Line x1={cx - shirtWidth - 1} y1={armY + 3} x2={cx + shirtWidth + 1} y2={armY + 3} stroke="#FFCDD2" strokeWidth={2} /><Line x1={cx - shirtWidth - 1} y1={armY + 9} x2={cx + shirtWidth + 1} y2={armY + 9} stroke="#FFCDD2" strokeWidth={2} />{/* Lollipop */}<Circle cx={cx - 4} cy={armY + 5} r={3} fill="#FFCC02" stroke="#FF8F00" strokeWidth={0.5} /><Path d={`M${cx - 4},${armY + 8} Q${cx - 4},${armY + 13} ${cx - 3},${armY + 14}`} fill="none" stroke="#795548" strokeWidth={1} />{/* Lollipop 2 */}<Circle cx={cx + 5} cy={armY + 1} r={2.5} fill="#69F0AE" stroke="#00C853" strokeWidth={0.5} /><Path d={`M${cx + 5},${armY + 3.5} Q${cx + 5},${armY + 6} ${cx + 6},${armY + 7}`} fill="none" stroke="#795548" strokeWidth={1} /></G>
       );
     }
     if (equipped.upper === 'shirt-g5') {
       // Butterfly Tee
       const shirtWidth = 12;
       return (
-        <G>{/* Kimono-style sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 22},${laEndY - 2} L${cx - 16},${laEndY + 4} L${cx - 8},${armY + 7}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 22},${raEndY - 2} L${cx + 16},${raEndY + 4} L${cx + 8},${armY + 7}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4DD0E1" stroke="#00ACC1" />{/* Collar */}<Path d={`M${cx - 4},${armY - 5} Q${cx},${armY - 4} ${cx + 4},${armY - 5}`} fill="none" stroke="#00838F" strokeWidth={1.5} />{/* Butterfly top wings */}<Path d={`M${cx},${armY + 4} Q${cx - 6},${armY - 3} ${cx - 9},${armY + 2} Q${cx - 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} /><Path d={`M${cx},${armY + 4} Q${cx + 6},${armY - 3} ${cx + 9},${armY + 2} Q${cx + 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} />{/* Butterfly bottom wings */}<Path d={`M${cx},${armY + 4} Q${cx - 7},${armY + 6} ${cx - 8},${armY + 10} Q${cx - 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} /><Path d={`M${cx},${armY + 4} Q${cx + 7},${armY + 6} ${cx + 8},${armY + 10} Q${cx + 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} />{/* Wing dots */}<Circle cx={cx - 6} cy={armY + 2} r={1.2} fill="#FFEB3B" /><Circle cx={cx + 6} cy={armY + 2} r={1.2} fill="#FFEB3B" />{/* Butterfly body */}<Ellipse cx={cx} cy={armY + 5.5} rx={1} ry={3.5} fill="#6D4C41" />{/* Antennae */}<Path d={`M${cx - 1},${armY + 3} Q${cx - 4},${armY - 1} ${cx - 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Path d={`M${cx + 1},${armY + 3} Q${cx + 4},${armY - 1} ${cx + 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Circle cx={cx - 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /><Circle cx={cx + 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /></G>
+        <G>{/* Kimono-style sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lLongSleeveX - 4},${lLongSleeveY - 2} L${lLongSleeveX + 2},${lLongSleeveY + 6} L${cx - shirtWidth + 5},${armY + 5}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} /><Path d={`M${cx + shirtWidth},${armY - 4} L${rLongSleeveX + 4},${rLongSleeveY - 2} L${rLongSleeveX - 2},${rLongSleeveY + 6} L${cx + shirtWidth - 5},${armY + 5}`} fill="#80DEEA" stroke="#00ACC1" strokeWidth={0.8} />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4DD0E1" stroke="#00ACC1" />{/* Collar */}<Path d={`M${cx - 4},${armY - 5} Q${cx},${armY - 4} ${cx + 4},${armY - 5}`} fill="none" stroke="#00838F" strokeWidth={1.5} />{/* Butterfly top wings */}<Path d={`M${cx},${armY + 4} Q${cx - 6},${armY - 3} ${cx - 9},${armY + 2} Q${cx - 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} /><Path d={`M${cx},${armY + 4} Q${cx + 6},${armY - 3} ${cx + 9},${armY + 2} Q${cx + 7},${armY + 7} ${cx},${armY + 4} Z`} fill="#FF80AB" stroke="#F50057" strokeWidth={0.5} opacity={0.9} />{/* Butterfly bottom wings */}<Path d={`M${cx},${armY + 4} Q${cx - 7},${armY + 6} ${cx - 8},${armY + 10} Q${cx - 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} /><Path d={`M${cx},${armY + 4} Q${cx + 7},${armY + 6} ${cx + 8},${armY + 10} Q${cx + 4},${armY + 11} ${cx},${armY + 7} Z`} fill="#FFB3C1" stroke="#F50057" strokeWidth={0.5} opacity={0.8} />{/* Wing dots */}<Circle cx={cx - 6} cy={armY + 2} r={1.2} fill="#FFEB3B" /><Circle cx={cx + 6} cy={armY + 2} r={1.2} fill="#FFEB3B" />{/* Butterfly body */}<Ellipse cx={cx} cy={armY + 5.5} rx={1} ry={3.5} fill="#6D4C41" />{/* Antennae */}<Path d={`M${cx - 1},${armY + 3} Q${cx - 4},${armY - 1} ${cx - 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Path d={`M${cx + 1},${armY + 3} Q${cx + 4},${armY - 1} ${cx + 3.5},${armY - 3}`} fill="none" stroke="#6D4C41" strokeWidth={0.5} /><Circle cx={cx - 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /><Circle cx={cx + 3.5} cy={armY - 3} r={0.8} fill="#9C27B0" /></G>
       );
     }
     if (equipped.upper === 'upper-dragon') {
       // Dragon Warrior Shirt (Green with scales)
       const shirtWidth = 12;
       return (
-        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${cx - 19},${armY + 5} L${cx - 15},${armY + 11} L${cx - 8},${armY + 7}`} fill="#4CAF50" stroke="#2E7D32" /><Path d={`M${cx + shirtWidth},${armY - 4} L${cx + 19},${armY + 5} L${cx + 15},${armY + 11} L${cx + 8},${armY + 7}`} fill="#4CAF50" stroke="#2E7D32" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4CAF50" stroke="#2E7D32" />{/* Scale pattern */}<Path d={`M${cx - 6},${armY + 3} Q${cx - 3},${armY + 6} ${cx},${armY + 3} Q${cx + 3},${armY + 6} ${cx + 6},${armY + 3}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} /><Path d={`M${cx - 8},${armY + 9} Q${cx - 4},${armY + 12} ${cx},${armY + 9} Q${cx + 4},${armY + 12} ${cx + 8},${armY + 9}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} />{/* Center detail */}<Path d={`M${cx - 2},${armY - 2} L${cx},${armY + 2} L${cx + 2},${armY - 2}`} fill="none" stroke="#FF9800" strokeWidth={1.5} /></G>
+        <G>{/* Sleeves */}<Path d={`M${cx - shirtWidth},${armY - 4} L${lSleeveX - 2},${lSleeveY - 4} L${lSleeveX + 2},${lSleeveY + 4} L${cx - shirtWidth + 4},${armY + 4}`} fill="#4CAF50" stroke="#2E7D32" /><Path d={`M${cx + shirtWidth},${armY - 4} L${rSleeveX + 2},${rSleeveY - 4} L${rSleeveX - 2},${rSleeveY + 4} L${cx + shirtWidth - 4},${armY + 4}`} fill="#4CAF50" stroke="#2E7D32" />{/* Body */}<Path d={`M${cx - shirtWidth},${armY - 5} L${cx - shirtWidth - 1},${bodyBot} Q${cx},${bodyBot + 5} ${cx + shirtWidth + 1},${bodyBot} L${cx + shirtWidth},${armY - 5} Z`} fill="#4CAF50" stroke="#2E7D32" />{/* Scale pattern */}<Path d={`M${cx - 6},${armY + 3} Q${cx - 3},${armY + 6} ${cx},${armY + 3} Q${cx + 3},${armY + 6} ${cx + 6},${armY + 3}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} /><Path d={`M${cx - 8},${armY + 9} Q${cx - 4},${armY + 12} ${cx},${armY + 9} Q${cx + 4},${armY + 12} ${cx + 8},${armY + 9}`} fill="none" stroke="#81C784" strokeWidth={1.5} opacity={0.6} />{/* Center detail */}<Path d={`M${cx - 2},${armY - 2} L${cx},${armY + 2} L${cx + 2},${armY - 2}`} fill="none" stroke="#FF9800" strokeWidth={1.5} /></G>
       );
     }
 
@@ -1041,23 +1167,23 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       const pWidth = 14;
       return (
         <G><Path
-            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth - 2},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 2},${bodyBot + legLen} Z`}
+            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`}
             fill="#795548" stroke="#5D4037" strokeWidth={1}
-          />{/* Cargo Pockets */}<Rect x={cx - pWidth} y={bodyBot + legLen * 0.4} width={8} height={10} fill="#8D6E63" stroke="#5D4037" rx={1} /><Rect x={cx + pWidth - 8} y={bodyBot + legLen * 0.4} width={8} height={10} fill="#8D6E63" stroke="#5D4037" rx={1} /></G>
+          />{/* Cargo Pockets */}<Rect x={cx - legLen * 0.55 - 2} y={bodyBot + legLen * 0.4} width={8} height={10} fill="#8D6E63" stroke="#5D4037" rx={1} /><Rect x={cx + legLen * 0.55 - 6} y={bodyBot + legLen * 0.4} width={8} height={10} fill="#8D6E63" stroke="#5D4037" rx={1} /></G>
       );
     }
     if (equipped.lower === 'lower-b2') {
       // Hero Tights (with briefs outside)
       const pWidth = 12;
       return (
-        <G>{/* Blue Tights */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth - 2},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 2},${bodyBot + legLen} Z`} fill="#1E88E5" />{/* Red Briefs */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 14},${bodyBot + 15} L${cx + 2},${bodyBot + 12} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + 12} L${cx - 14},${bodyBot + 15} Z`} fill="#E53935" stroke="#B71C1C" />{/* Yellow Belt */}<Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#FDD835" /></G>
+        <G>{/* Blue Tights */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#1E88E5" />{/* Red Briefs */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 14},${bodyBot + 15} L${cx + 2},${bodyBot + 12} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + 12} L${cx - 14},${bodyBot + 15} Z`} fill="#E53935" stroke="#B71C1C" />{/* Yellow Belt */}<Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#FDD835" /></G>
       );
     }
     if (equipped.lower === 'lower-b3') {
       // Robot Legs
       const armorW = 12;
       return (
-        <G>{/* Metal Thighs */}<Rect x={cx - armorW} y={bodyBot} width={10} height={legLen * 0.5} fill="#B0BEC5" stroke="#78909C" rx={2} /><Rect x={cx + armorW - 10} y={bodyBot} width={10} height={legLen * 0.5} fill="#B0BEC5" stroke="#78909C" rx={2} />{/* Knee Joints */}<Circle cx={cx - armorW + 5} cy={bodyBot + legLen * 0.5} r={3} fill="#00BCD4" /><Circle cx={cx + armorW - 5} cy={bodyBot + legLen * 0.5} r={3} fill="#00BCD4" />{/* Metal Calves */}<Rect x={cx - armorW + 1} y={bodyBot + legLen * 0.5 + 2} width={8} height={legLen * 0.5 - 2} fill="#90A4AE" stroke="#607D8B" rx={1} /><Rect x={cx + armorW - 9} y={bodyBot + legLen * 0.5 + 2} width={8} height={legLen * 0.5 - 2} fill="#90A4AE" stroke="#607D8B" rx={1} /></G>
+        <G>{/* Metal Thighs */}<Rect x={cx - legLen * 0.35} y={bodyBot} width={legLen * 0.3} height={legLen * 0.5} fill="#B0BEC5" stroke="#78909C" rx={2} /><Rect x={cx + legLen * 0.05} y={bodyBot} width={legLen * 0.3} height={legLen * 0.5} fill="#B0BEC5" stroke="#78909C" rx={2} />{/* Knee Joints */}<Circle cx={cx - legLen * 0.2} cy={bodyBot + legLen * 0.5} r={3} fill="#00BCD4" /><Circle cx={cx + legLen * 0.2} cy={bodyBot + legLen * 0.5} r={3} fill="#00BCD4" />{/* Metal Calves */}<Rect x={cx - legLen * 0.55} y={bodyBot + legLen * 0.5 + 2} width={legLen * 0.3} height={legLen * 0.5 - 2} fill="#90A4AE" stroke="#607D8B" rx={1} /><Rect x={cx + legLen * 0.25} y={bodyBot + legLen * 0.5 + 2} width={legLen * 0.3} height={legLen * 0.5 - 2} fill="#90A4AE" stroke="#607D8B" rx={1} /></G>
       );
     }
     if (equipped.lower === 'lower-b4') {
@@ -1065,9 +1191,9 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       const pWidth = 14;
       return (
         <G><Path
-            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth},${bodyBot + legLen * 0.6} L${cx + pWidth - 4},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 4},${bodyBot + legLen} L${cx - pWidth},${bodyBot + legLen * 0.6} Z`}
+            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen * 0.6} L${cx + legLen * 0.5},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.5},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen * 0.6} Z`}
             fill="#212121" stroke="#000000"
-          />{/* Red Wraps on calfs */}<Line x1={cx - pWidth + 4} y1={bodyBot + legLen * 0.7} x2={cx - 2} y2={bodyBot + legLen * 0.8} stroke="#E53935" strokeWidth={2} /><Line x1={cx - pWidth + 4} y1={bodyBot + legLen * 0.8} x2={cx - 2} y2={bodyBot + legLen * 0.9} stroke="#E53935" strokeWidth={2} /><Line x1={cx + pWidth - 4} y1={bodyBot + legLen * 0.7} x2={cx + 2} y2={bodyBot + legLen * 0.8} stroke="#E53935" strokeWidth={2} /><Line x1={cx + pWidth - 4} y1={bodyBot + legLen * 0.8} x2={cx + 2} y2={bodyBot + legLen * 0.9} stroke="#E53935" strokeWidth={2} />{/* Red Belt */}<Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#E53935" /></G>
+          />{/* Red Wraps on calfs */}<Line x1={cx - legLen * 0.5} y1={bodyBot + legLen * 0.7} x2={cx - legLen * 0.15} y2={bodyBot + legLen * 0.8} stroke="#E53935" strokeWidth={2} /><Line x1={cx - legLen * 0.5} y1={bodyBot + legLen * 0.8} x2={cx - legLen * 0.15} y2={bodyBot + legLen * 0.9} stroke="#E53935" strokeWidth={2} /><Line x1={cx + legLen * 0.5} y1={bodyBot + legLen * 0.7} x2={cx + legLen * 0.15} y2={bodyBot + legLen * 0.8} stroke="#E53935" strokeWidth={2} /><Line x1={cx + legLen * 0.5} y1={bodyBot + legLen * 0.8} x2={cx + legLen * 0.15} y2={bodyBot + legLen * 0.9} stroke="#E53935" strokeWidth={2} />{/* Red Belt */}<Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#E53935" /></G>
       );
     }
     // --- New Creative Girl Pants/Skirts ---
@@ -1082,7 +1208,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Rainbow Leggings
       const pWidth = 11;
       return (
-        <G>{/* Base shape */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth - 2},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 2},${bodyBot + legLen} Z`} fill="#E1BEE7" />{/* Rainbow Stripes across both legs */}<Line x1={cx - pWidth} y1={bodyBot + 5} x2={cx + pWidth} y2={bodyBot + 5} stroke="#FFCDD2" strokeWidth={3} /><Line x1={cx - pWidth + 0.5} y1={bodyBot + 11} x2={cx + pWidth - 0.5} y2={bodyBot + 11} stroke="#FFE082" strokeWidth={3} /><Line x1={cx - pWidth + 1} y1={bodyBot + 17} x2={cx + pWidth - 1} y2={bodyBot + 17} stroke="#C8E6C9" strokeWidth={3} /><Line x1={cx - pWidth + 1.5} y1={bodyBot + 23} x2={cx + pWidth - 1.5} y2={bodyBot + 23} stroke="#BBDEFB" strokeWidth={3} /><Line x1={cx - pWidth + 2} y1={bodyBot + 29} x2={cx + pWidth - 2} y2={bodyBot + 29} stroke="#E1BEE7" strokeWidth={3} /></G>
+        <G>{/* Base shape */}<Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#E1BEE7" />{/* Rainbow Stripes across both legs */}<Line x1={cx - pWidth} y1={bodyBot + 5} x2={cx + pWidth} y2={bodyBot + 5} stroke="#FFCDD2" strokeWidth={3} /><Line x1={cx - pWidth + 0.5} y1={bodyBot + 11} x2={cx + pWidth - 0.5} y2={bodyBot + 11} stroke="#FFE082" strokeWidth={3} /><Line x1={cx - pWidth + 1} y1={bodyBot + 17} x2={cx + pWidth - 1} y2={bodyBot + 17} stroke="#C8E6C9" strokeWidth={3} /><Line x1={cx - pWidth + 1.5} y1={bodyBot + 23} x2={cx + pWidth - 1.5} y2={bodyBot + 23} stroke="#BBDEFB" strokeWidth={3} /><Line x1={cx - pWidth + 2} y1={bodyBot + 29} x2={cx + pWidth - 2} y2={bodyBot + 29} stroke="#E1BEE7" strokeWidth={3} /></G>
       );
     }
     if (equipped.lower === 'lower-g3') {
@@ -1120,14 +1246,14 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       return (
         <G>
           <Path
-            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + pWidth - 2},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - pWidth + 2},${bodyBot + legLen} Z`}
+            d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`}
             fill="#4CAF50"
             stroke="#2E7D32"
             strokeWidth={1.5}
           />
           {/* Side spikes/scales */}
-          <Path d={`M${cx - pWidth + 2},${bodyBot + 10} L${cx - pWidth - 2},${bodyBot + 13} L${cx - pWidth + 1},${bodyBot + 16}`} fill="#FF9800" />
-          <Path d={`M${cx + pWidth - 2},${bodyBot + 10} L${cx + pWidth + 2},${bodyBot + 13} L${cx + pWidth - 1},${bodyBot + 16}`} fill="#FF9800" />
+          <Path d={`M${cx - legLen * 0.4},${bodyBot + 10} L${cx - legLen * 0.5},${bodyBot + 13} L${cx - legLen * 0.38},${bodyBot + 16}`} fill="#FF9800" />
+          <Path d={`M${cx + legLen * 0.4},${bodyBot + 10} L${cx + legLen * 0.5},${bodyBot + 13} L${cx + legLen * 0.38},${bodyBot + 16}`} fill="#FF9800" />
           {/* Belt */}
           <Rect x={cx - 12} y={bodyBot} width={24} height={4} fill="#2E7D32" />
         </G>
@@ -1137,7 +1263,7 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Space Explorer Pants
       return (
         <G>
-          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 13},${bodyBot + legLen} L${cx + 3},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 3},${bodyBot + legLen} L${cx - 13},${bodyBot + legLen} Z`} fill="#B0BEC5" stroke="#78909C" />
+          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#B0BEC5" stroke="#78909C" />
           <Rect x={cx - 10} y={bodyBot + 15} width={6} height={4} fill="#4FC3F7" rx={1} />
           <Rect x={cx + 4} y={bodyBot + 15} width={6} height={4} fill="#4FC3F7" rx={1} />
         </G>
@@ -1147,9 +1273,9 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Firefighter Trousers
       return (
         <G>
-          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 13},${bodyBot + legLen} L${cx + 3},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 3},${bodyBot + legLen} L${cx - 13},${bodyBot + legLen} Z`} fill="#F44336" stroke="#B71C1C" />
-          <Line x1={cx - 13} y1={bodyBot + legLen - 6} x2={cx - 3} y2={bodyBot + legLen - 6} stroke="#FFEB3B" strokeWidth={2} />
-          <Line x1={cx + 3} y1={bodyBot + legLen - 6} x2={cx + 13} y2={bodyBot + legLen - 6} stroke="#FFEB3B" strokeWidth={2} />
+          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#F44336" stroke="#B71C1C" />
+          <Line x1={cx - legLen * 0.55} y1={bodyBot + legLen - 6} x2={cx - legLen * 0.15} y2={bodyBot + legLen - 6} stroke="#FFEB3B" strokeWidth={2} />
+          <Line x1={cx + legLen * 0.15} y1={bodyBot + legLen - 6} x2={cx + legLen * 0.55} y2={bodyBot + legLen - 6} stroke="#FFEB3B" strokeWidth={2} />
         </G>
       );
     }
@@ -1166,9 +1292,9 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Super Speed Tights
       return (
         <G>
-          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 11},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - 11},${bodyBot + legLen} Z`} fill="#FFEB3B" stroke="#FBC02D" />
-          <Path d={`M${cx - 6},${bodyBot + 15} L${cx - 8},${bodyBot + 20} L${cx - 4},${bodyBot + 20} L${cx - 6},${bodyBot + 25}`} fill="none" stroke="#F44336" strokeWidth={1} />
-          <Path d={`M${cx + 6},${bodyBot + 15} L${cx + 4},${bodyBot + 20} L${cx + 8},${bodyBot + 20} L${cx + 6},${bodyBot + 25}`} fill="none" stroke="#F44336" strokeWidth={1} />
+          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#FFEB3B" stroke="#FBC02D" />
+          <Path d={`M${cx - legLen * 0.3},${bodyBot + 15} L${cx - legLen * 0.35},${bodyBot + 20} L${cx - legLen * 0.25},${bodyBot + 20} L${cx - legLen * 0.3},${bodyBot + 25}`} fill="none" stroke="#F44336" strokeWidth={1} />
+          <Path d={`M${cx + legLen * 0.3},${bodyBot + 15} L${cx + legLen * 0.25},${bodyBot + 20} L${cx + legLen * 0.35},${bodyBot + 20} L${cx + legLen * 0.3},${bodyBot + 25}`} fill="none" stroke="#F44336" strokeWidth={1} />
         </G>
       );
     }
@@ -1186,9 +1312,9 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Butterfly Leggings
       return (
         <G>
-          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 11},${bodyBot + legLen} L${cx + 2},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 2},${bodyBot + legLen} L${cx - 11},${bodyBot + legLen} Z`} fill="#9C27B0" stroke="#7B1FA2" />
-          <Path d={`M${cx - 11},${bodyBot + 15} Q${cx - 18},${bodyBot + 10} ${cx - 11},${bodyBot + 20}`} fill="#E1BEE7" />
-          <Path d={`M${cx + 11},${bodyBot + 15} Q${cx + 18},${bodyBot + 10} ${cx + 11},${bodyBot + 20}`} fill="#E1BEE7" />
+          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#9C27B0" stroke="#7B1FA2" />
+          <Path d={`M${cx - legLen * 0.45},${bodyBot + 15} Q${cx - legLen * 0.7},${bodyBot + 10} ${cx - legLen * 0.45},${bodyBot + 20}`} fill="#E1BEE7" />
+          <Path d={`M${cx + legLen * 0.45},${bodyBot + 15} Q${cx + legLen * 0.7},${bodyBot + 10} ${cx + legLen * 0.45},${bodyBot + 20}`} fill="#E1BEE7" />
         </G>
       );
     }
@@ -1205,10 +1331,10 @@ export default function AnimatedStickman({ size = 200, hideArms = false }: Anima
       // Sparkle Stars Pants
       return (
         <G>
-          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + 13},${bodyBot + legLen} L${cx + 3},${bodyBot + legLen} L${cx},${bodyBot + 10} L${cx - 3},${bodyBot + legLen} L${cx - 13},${bodyBot + legLen} Z`} fill="#00BCD4" stroke="#00838F" />
-          <Circle cx={cx - 7} cy={bodyBot + 15} r={1.5} fill="#FFF" />
-          <Circle cx={cx + 7} cy={bodyBot + 22} r={1} fill="#FFF" />
-          <Circle cx={cx - 3} cy={bodyBot + 28} r={1.2} fill="#FFF" />
+          <Path d={`M${cx - 12},${bodyBot} L${cx + 12},${bodyBot} L${cx + legLen * 0.55},${bodyBot + legLen} L${cx + legLen * 0.15},${bodyBot + legLen} L${cx},${bodyBot + legLen * 0.35} L${cx - legLen * 0.15},${bodyBot + legLen} L${cx - legLen * 0.55},${bodyBot + legLen} Z`} fill="#00BCD4" stroke="#00838F" />
+          <Circle cx={cx - legLen * 0.3} cy={bodyBot + 15} r={1.5} fill="#FFF" />
+          <Circle cx={cx + legLen * 0.3} cy={bodyBot + 22} r={1} fill="#FFF" />
+          <Circle cx={cx - legLen * 0.15} cy={bodyBot + 28} r={1.2} fill="#FFF" />
         </G>
       );
     }

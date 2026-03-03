@@ -151,6 +151,36 @@ const AccessoryIcon = React.memo(({ id, color = Colors.primary }: { id: string, 
     );
   }
 
+  if (id === 'hat-melody') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 60) scale(1.6)">
+          {/* Main Pink Hood */}
+          <Path d="M-18,10 Q-18,-15 0,-15 Q18,-15 18,10 L18,15 L-18,15 Z" fill="#F06292" />
+          {/* White Face Inset */}
+          <Ellipse cx={0} cy={5} rx={14} ry={11} fill="white" />
+          {/* Eyes & Nose & Cheeks */}
+          <Circle cx={-5} cy={5} r={1.2} fill="#4E342E" />
+          <Circle cx={5} cy={5} r={1.2} fill="#4E342E" />
+          <Circle cx={0} cy={8} r={1.5} fill="#FFEB3B" />
+          <Ellipse cx={-9} cy={8} rx={2.5} ry={1.5} fill="#FFCDD2" />
+          <Ellipse cx={9} cy={8} rx={2.5} ry={1.5} fill="#FFCDD2" />
+          {/* Ears */}
+          <Path d="M-18,-5 Q-25,-5 -28,15 Q-28,25 -22,25 Q-16,25 -16,10" fill="#F06292" />
+          <Path d="M18,-5 Q25,-5 28,15 Q28,25 22,25 Q16,25 16,10" fill="#F06292" />
+          {/* Red Bow */}
+          <G transform="translate(-10, -18) rotate(-15)">
+             <Circle cx={0} cy={0} r={4} fill="#E91E63" />
+             <Circle cx={8} cy={0} r={4} fill="#E91E63" />
+             <Circle cx={4} cy={0} r={2.5} fill="#E91E63" />
+             <Circle cx={0} cy={0} r={0.8} fill="white" />
+             <Circle cx={8} cy={0} r={0.8} fill="white" />
+          </G>
+        </G>
+      </Svg>
+    );
+  }
+
   if (id === 'glasses-1') {
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -1144,6 +1174,99 @@ const AccessoryIcon = React.memo(({ id, color = Colors.primary }: { id: string, 
           <Path d={`M0,0 Q15,10 10,50 Q40,60 30,30 Z`} fill="#E1BEE7" stroke="#9C27B0" />
           <Circle cx={35} cy={20} r={3} fill="#FFEB3B" />
           <Circle cx={20} cy={55} r={2} fill="#00E5FF" />
+        </G>
+      </Svg>
+    );
+  }
+
+  // --- 8 New Cute Tail Designs ---
+  if (id === 'tail-fox') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(55, 45) scale(1.4)">
+          <Path d={`M0,0 Q-30,5 -50,25 Q-30,45 -5,15 Z`} fill="#FF5722" stroke="#E64A19" strokeWidth={1.5} />
+          <Path d={`M-40,20 Q-50,25 -45,30 L-35,35 Q-30,30 -40,20 Z`} fill="#FFF" />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-bunny') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(55, 55) scale(1.8)">
+          <Circle cx={0} cy={0} r={10} fill="#FFF" stroke="#E0E0E0" strokeWidth={1} />
+          <Circle cx={2} cy={-2} r={4} fill="#FFF" opacity={0.6} />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-devil') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(60, 45) scale(1.4)">
+          <Path d={`M0,0 Q-20,10 -20,35 Q-20,50 -35,45`} fill="none" stroke="#F44336" strokeWidth={3} strokeLinecap="round" />
+          <Path d={`M-35,45 L-45,40 L-42,53 Z`} fill="#F44336" />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-cat') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(60, 40) scale(1.3)">
+          {/* Main sleek S-curve tail */}
+          <Path d={`M0,0 Q-15,15 -10,30 Q-5,45 10,40 Q25,35 15,15`} fill="none" stroke="#212121" strokeWidth={6} strokeLinecap="round" />
+          {/* White tip for cuteness */}
+          <Path d={`M15,15 Q20,10 18,20 L12,25 Q10,15 15,15 Z`} fill="white" />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-lion') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(65, 45) scale(1.4)">
+          {/* Slender curved tail body */}
+          <Path d={`M0,0 Q-25,15 -35,40`} fill="none" stroke="#FFD54F" strokeWidth={3} strokeLinecap="round" />
+          {/* Fluffy shaggy tuft at the end */}
+          <Path 
+            d={`M-35,40 Q-45,35 -50,45 L-40,42 L-45,55 L-35,48 L-25,55 L-30,42 Q-25,35 -35,40 Z`} 
+            fill="#795548" 
+            stroke="#5D4037" 
+            strokeWidth={1} 
+          />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-squirrel') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(50, 50) scale(1.1)">
+          <Path d={`M0,0 Q-40,-30 -55,10 Q-40,45 -5,10 Z`} fill="#8D6E63" stroke="#5D4037" strokeWidth={2} />
+          <Path d={`M-15,5 Q-35,-5 -40,10`} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={2} strokeLinecap="round" />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-shark') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(55, 50) scale(1.3)">
+          <Path d={`M0,0 Q-15,10 -40,15 Q-35,35 -5,25 Z`} fill="#90A4AE" stroke="#455A64" strokeWidth={2} />
+          <Path d={`M-40,15 L-50,5 L-50,25 Z`} fill="#90A4AE" stroke="#455A64" strokeWidth={1.5} />
+        </G>
+      </Svg>
+    );
+  }
+  if (id === 'tail-dog') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <G transform="translate(60, 50) scale(1.5)">
+          {/* Shaggy golden retriever style tail */}
+          <Path d={`M0,0 Q-15,5 -25,20 L-15,15 L-20,25 L-10,20 L-15,30 L-5,25 Q0,15 0,0`} fill="#A1887F" stroke="#795548" strokeWidth={1} />
+          {/* Light shading for fur texture */}
+          <Path d={`M-5,5 Q-10,10 -15,15`} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={2} strokeLinecap="round" />
         </G>
       </Svg>
     );
