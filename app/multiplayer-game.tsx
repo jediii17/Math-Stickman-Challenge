@@ -6,6 +6,8 @@ import {
   Pressable,
   Platform,
   useWindowDimensions,
+  Alert,
+  BackHandler,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, {
@@ -15,6 +17,7 @@ import Animated, {
   withSpring,
   withTiming,
   FadeIn,
+  FadeOut,
   ZoomIn,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,20 +25,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import NumberPad from '@/components/NumberPad';
+import ScribbleArea from '@/components/ScribbleArea';
+import ArenaStage from '@/components/ArenaStage';
 import Stickman from '@/components/Stickman';
 import Timer from '@/components/Timer';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMultiplayer, BroadcastProblem } from '@/hooks/useMultiplayer';
+import { AccessoryType, getSlotForAccessory, useGameState } from '@/hooks/useGameState';
+import { supabase } from '@/lib/supabase';
+import * as dbLib from '@/lib/db';
 import { useComputerOpponent } from '@/hooks/useComputerOpponent';
 import {
   generateProblem,
   getTimeLimit,
   simplifyFractionStr,
+  calculateQuestionCoins,
   type Difficulty,
   type MathProblem,
 } from '@/lib/math-engine';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 export default function MultiplayerGameScreen() {
   const params = useLocalSearchParams<{
@@ -54,13 +63,8 @@ export default function MultiplayerGameScreen() {
   const isComputer = params.isComputer === 'true';
 
   const { user } = useAuth();
-  const multiplayer = useMultiplayer(user?.id ?? null, user?.username ?? null);
-  const computer = useComputerOpponent(diff);
-
   const {
     currentRoom,
-    reportLifeLost,
-    reportCorrectAnswer,
     leaveRoom,
     subscribeToRoom,
     joinGameChannel,
@@ -69,10 +73,37 @@ export default function MultiplayerGameScreen() {
     broadcastGameStart,
     receivedProblem,
     gameStarted,
-  } = multiplayer;
+    submitAnswer,
+    advanceQuestion,
+    resetAnswerTracking,
+    opponentAnsweredCurrentQ,
+    bothAnsweredSignal,
+    matchEnded: matchEndedSignal,
+    opponentAccessories: hookOpponentAccessories,
+    broadcastAccessories,
+    surrenderMatch,
+  } = useMultiplayer(user?.id ?? null, user?.username ?? null);
+  const computer = useComputerOpponent(diff);
 
   const timeLimit = getTimeLimit(diff, 'survival');
-  const stickmanSize = Math.min(130, Math.max(80, screenHeight * 0.16));
+  // ─── Arena sizing: fully adaptive ───
+  // Arena height = adaptive % of screen, smaller on compact devices
+  const arenaH = Math.max(130, Math.min(240, screenHeight * (screenHeight < 750 ? 0.19 : 0.23)));
+  const arenaW = screenWidth - 24;
+  // Character size scales proportionally to arena height
+  // Stickman canvas: w = size*5.2, h = size*2.55
+  // We want the character to fill ~70% of arena height
+  const charSize = Math.max(40, Math.min(90, (arenaH * 0.7) / 2.55));
+  const charCanvasW = charSize * 5.2;
+  const charCanvasH = charSize * 2.55;
+  // Scale so two characters fit side by side (each gets ~50% of arena width)
+  const scaleByW = (arenaW * 0.5) / charCanvasW;
+  const scaleByH = (arenaH * 0.85) / charCanvasH;
+  const charScale = Math.min(1.2, scaleByW, scaleByH);
+
+  // ═══ Opponent accessories state (merged hook + DB fallback) ═══
+  const [dbOpponentAccessories, setDbOpponentAccessories] = useState<Partial<Record<AccessoryType, string | null>>>({});
+  const opponentAccessories = hookOpponentAccessories || dbOpponentAccessories;
 
   const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null);
   const [userInput, setUserInput] = useState('');
@@ -86,6 +117,30 @@ export default function MultiplayerGameScreen() {
   const [winner, setWinner] = useState<'you' | 'opponent' | null>(null);
   const [waitingForStart, setWaitingForStart] = useState(!isComputer);
   const [preGameCountdown, setPreGameCountdown] = useState<number | 'GO' | null>(null);
+  const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
+
+  const isSmallScreen = screenHeight < 700;
+  const isVerySmallScreen = screenHeight < 640;
+
+  // ═══ Coin system (PvP only, not vs computer) ═══
+  const [totalCoinsEarned, setTotalCoinsEarned] = useState(0);
+  const [lastCoinReward, setLastCoinReward] = useState<{ coins: number; multiplier: number } | null>(null);
+
+  // ═══ New: answer tracking & waiting state (online only) ═══
+  const [myAnsweredQ, setMyAnsweredQ] = useState(0);
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [scribbleMode, setScribbleMode] = useState(false);
+  const myAnsweredQRef = useRef(0);
+  const gameOverRef = useRef(false);
+  const questionNumRef = useRef(1);
+  const opponentAnsweredRef = useRef<typeof opponentAnsweredCurrentQ>(null);
+  const triggerAdvanceRef = useRef<(() => void) | null>(null);
+
+  // Keep refs in sync
+  useEffect(() => { myAnsweredQRef.current = myAnsweredQ; }, [myAnsweredQ]);
+  useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
+  useEffect(() => { questionNumRef.current = questionNum; }, [questionNum]);
+  useEffect(() => { opponentAnsweredRef.current = opponentAnsweredCurrentQ; }, [opponentAnsweredCurrentQ]);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const feedbackScale = useSharedValue(1);
@@ -96,6 +151,8 @@ export default function MultiplayerGameScreen() {
 
   const goPlayer = useAudioPlayer(require('@/assets/sounds/go.wav'));
   const tickPlayer = useAudioPlayer(require('@/assets/sounds/tick.wav'));
+  const victoryPlayer = useAudioPlayer(require('@/assets/sounds/victory.mp3'));
+  const loserPlayer = useAudioPlayer(require('@/assets/sounds/loser.mp3'));
 
   const SOUNDTRACK_ASSETS = [
   require('@/assets/sounds/soundtrack_1.mp3'),
@@ -123,6 +180,8 @@ export default function MultiplayerGameScreen() {
 // Pick a random BGM once per game mount
   const randomBgmSource = useMemo(() => SOUNDTRACK_ASSETS[Math.floor(Math.random() * SOUNDTRACK_ASSETS.length)], []);
   const bgmPlayer = useAudioPlayer(randomBgmSource);
+  const bgmStatus = useAudioPlayerStatus(bgmPlayer);
+  const bgmIndexRef = useRef(SOUNDTRACK_ASSETS.indexOf(randomBgmSource));
 
   const safePlay = useCallback((player: any) => {
     try {
@@ -143,8 +202,8 @@ export default function MultiplayerGameScreen() {
       const t = setTimeout(() => {
         setPreGameCountdown(null);
         startTimer();
-        // Start BGM
-        bgmPlayer.loop = true;
+        // Start BGM (no loop — we rotate tracks)
+        bgmPlayer.loop = false;
         bgmPlayer.volume = 0.3;
         safePlay(bgmPlayer);
       }, 600);
@@ -160,15 +219,45 @@ export default function MultiplayerGameScreen() {
     }
   }, [preGameCountdown]);
 
-  // Stop BGM on game over or unmount
+  // Stop BGM on game over, play win/lose jingle
   useEffect(() => {
     if (gameOver) {
+      gameOverRef.current = true;
       try { bgmPlayer.pause(); } catch (_) {}
+      // Play result jingle
+      if (winner === 'you') {
+        safePlay(victoryPlayer);
+      } else {
+        safePlay(loserPlayer);
+      }
     }
     return () => {
+      gameOverRef.current = true;
       try { bgmPlayer.pause(); } catch (_) {}
     };
   }, [gameOver]);
+
+  // Rotate to a new random soundtrack when the current one finishes
+  useEffect(() => {
+    if (gameOverRef.current) return;
+    if (bgmStatus.playing === false && bgmStatus.currentTime > 0 && bgmStatus.duration > 0 && bgmStatus.currentTime >= bgmStatus.duration - 0.5) {
+      // Pick a different random track
+      let nextIdx = Math.floor(Math.random() * SOUNDTRACK_ASSETS.length);
+      if (SOUNDTRACK_ASSETS.length > 1) {
+        while (nextIdx === bgmIndexRef.current) {
+          nextIdx = Math.floor(Math.random() * SOUNDTRACK_ASSETS.length);
+        }
+      }
+      bgmIndexRef.current = nextIdx;
+      try {
+        bgmPlayer.replace(SOUNDTRACK_ASSETS[nextIdx]);
+        bgmPlayer.volume = 0.3;
+        bgmPlayer.play();
+      } catch (e) {
+        console.warn('BGM rotation failed', e);
+      }
+    }
+  }, [bgmStatus.playing, bgmStatus.currentTime]);
 
   // Tick sound for last 5 seconds
   useEffect(() => {
@@ -184,17 +273,58 @@ export default function MultiplayerGameScreen() {
       ? (currentRoom?.host_lives ?? 5)
       : (currentRoom?.guest_lives ?? 5);
 
+  // ═══ Local state for opponent's stats to ensure instant updates from broadcast ═══
+  const [opponentScoreLocal, setOpponentScoreLocal] = useState(0);
+  const [opponentLivesLocal, setOpponentLivesLocal] = useState(5);
+
   const opponentLives = isComputer
     ? computer.computerLives
-    : isHost
-      ? (currentRoom?.guest_lives ?? 5)
-      : (currentRoom?.host_lives ?? 5);
+    : opponentLivesLocal;
 
   const opponentScore = isComputer
     ? computer.computerScore
-    : isHost
-      ? (currentRoom?.guest_score ?? 0)
-      : (currentRoom?.host_score ?? 0);
+    : opponentScoreLocal;
+
+  // ─── Opponent accessories reactive fetch ───
+  useEffect(() => {
+    if (isComputer || !roomId) return;
+    const opponentId = isHost ? currentRoom?.guest_id : currentRoom?.host_id;
+    if (!opponentId) return;
+
+    supabase
+      .from('user_accessories')
+      .select('accessory_id, equipped')
+      .eq('user_id', opponentId)
+      .eq('equipped', true)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const overrides: Partial<Record<AccessoryType, string | null>> = {
+            hair: null, face: null, cheeks: null, mouth: null,
+            upper: null, lower: null, shoes: null, balloons: null,
+            back: null, tail: null,
+          };
+          data.forEach((row: any) => {
+            const slot = getSlotForAccessory(row.accessory_id);
+            if (slot) overrides[slot] = row.accessory_id;
+          });
+          setDbOpponentAccessories(overrides);
+        } else {
+          setDbOpponentAccessories({
+            hair: null, face: null, cheeks: null, mouth: null,
+            upper: null, lower: null, shoes: null, balloons: null,
+            back: null, tail: null,
+          });
+        }
+      });
+  }, [roomId, isHost, currentRoom?.guest_id, currentRoom?.host_id, isComputer]);
+
+  // Broadcast our own accessories when game starts
+  const accessories = useGameState((state) => state.equippedAccessories);
+  useEffect(() => {
+    if (gameStarted && !isComputer) {
+      broadcastAccessories(accessories);
+    }
+  }, [gameStarted, isComputer, accessories]);
 
   // ═══ Initialize channels on mount ═══
   useEffect(() => {
@@ -255,8 +385,10 @@ export default function MultiplayerGameScreen() {
       setUserInput('');
       setFeedback(null);
       setIsTransitioning(false);
+      setWaitingForOpponent(false);
       feedbackOpacity.value = 0;
       setTimeLeft(getTimeLimit(diff, 'survival', undefined, receivedProblem.questionNum));
+      resetAnswerTracking();
       
       if (receivedProblem.questionNum === 1 && preGameCountdown === null && !gameOver) {
         setPreGameCountdown(3);
@@ -266,12 +398,104 @@ export default function MultiplayerGameScreen() {
     }
   }, [receivedProblem]);
 
-  // ═══ Watch for game over from room state (online) ═══
+  // ═══ Sync local stats with currentRoom only as initial fallback ═══
+  // (broadcast values are more accurate; don't overwrite them)
+  const hasReceivedBroadcast = useRef(false);
+  useEffect(() => {
+    if (opponentAnsweredCurrentQ) hasReceivedBroadcast.current = true;
+  }, [opponentAnsweredCurrentQ]);
+
+  useEffect(() => {
+    if (currentRoom && !hasReceivedBroadcast.current) {
+      const dbScore = isHost ? currentRoom.guest_score : currentRoom.host_score;
+      const dbLives = isHost ? currentRoom.guest_lives : currentRoom.host_lives;
+      setOpponentScoreLocal(dbScore);
+      setOpponentLivesLocal(dbLives);
+    }
+  }, [currentRoom?.guest_score, currentRoom?.host_score, currentRoom?.guest_lives, currentRoom?.host_lives, isHost]);
+
+  // ═══ Guest: Watch for bothAnsweredSignal (advance to next question) ═══
+  useEffect(() => {
+    if (!isHost && !isComputer && bothAnsweredSignal && !gameOverRef.current) {
+      setWaitingForOpponent(false);
+    }
+  }, [bothAnsweredSignal, isHost, isComputer]);
+
+  // ═══ Handle opponent answer broadcast (instant stats + sound + match end) ═══
+  useEffect(() => {
+    if (opponentAnsweredCurrentQ && !isComputer && !gameOverRef.current) {
+      if (opponentAnsweredCurrentQ.questionNum === questionNumRef.current) {
+        // Instant update from broadcast
+        setOpponentScoreLocal(opponentAnsweredCurrentQ.score);
+        setOpponentLivesLocal(opponentAnsweredCurrentQ.livesLeft);
+
+        // Check if the opponent just lost (their lives reached 0) — WE WIN!
+        if (opponentAnsweredCurrentQ.matchEnded || opponentAnsweredCurrentQ.livesLeft <= 0) {
+          setWaitingForOpponent(false);
+          setGameOver(true);
+          stopTimer();
+          setWinner('you');
+          return; // Don't advance — game is over
+        }
+        
+        // Host: if I already answered this question AND opponent just answered, advance now
+        if (isHost && myAnsweredQRef.current >= questionNumRef.current) {
+          setWaitingForOpponent(false);
+          setTimeout(() => { triggerAdvanceRef.current?.(); }, 1200);
+        }
+
+        // Play pop sound if they were wrong
+        if (!opponentAnsweredCurrentQ.isCorrect) {
+          setTimeout(() => safePlay(pingPlayer), 400);
+        }
+      }
+    }
+  }, [opponentAnsweredCurrentQ, isComputer, isHost]);
+
+
+
+  // ─── Back Button Handling ───
+  useEffect(() => {
+    const onBackPress = () => {
+      if (!gameOver && !waitingForStart) {
+        setShowSurrenderConfirm(true);
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [gameOver, waitingForStart]);
+
+  const handleSurrender = async () => {
+    setShowSurrenderConfirm(false);
+    await surrenderMatch();
+    setGameOver(true);
+    setWinner('opponent');
+  };
+
+  // ═══ Match end broadcast (instant game-over on both clients) ═══
+  useEffect(() => {
+    if (matchEndedSignal && !gameOver) {
+      setGameOver(true);
+      stopTimer();
+      computer.cancelComputerTurn();
+      setWaitingForOpponent(false);
+      if (matchEndedSignal.winnerId === user?.id) {
+        setWinner('you');
+      } else {
+        setWinner('opponent');
+      }
+    }
+  }, [matchEndedSignal]);
+
+  // ═══ Watch for game over from room state (safety net) ═══
   useEffect(() => {
     if (!isComputer && currentRoom?.status === 'finished' && !gameOver) {
       setGameOver(true);
       stopTimer();
-      computer.cancelComputerTurn();
+      setWaitingForOpponent(false);
       if (currentRoom.winner_id === user?.id) {
         setWinner('you');
       } else {
@@ -281,9 +505,10 @@ export default function MultiplayerGameScreen() {
     if (!isComputer && currentRoom?.status === 'cancelled' && !gameOver) {
       setGameOver(true);
       stopTimer();
+      setWaitingForOpponent(false);
       setWinner('you');
     }
-  }, [currentRoom?.status]);
+  }, [currentRoom?.status, currentRoom?.winner_id, user?.id, isComputer, gameOver]);
 
   // ═══ Watch for computer game over ═══
   useEffect(() => {
@@ -339,8 +564,112 @@ export default function MultiplayerGameScreen() {
     }
   }, [timeLeft, isTransitioning, gameOver, currentProblem]);
 
+  // ─── Award coins on game over (PvP winner only) ───
+  useEffect(() => {
+    if (!gameOver || isComputer || winner !== 'you' || totalCoinsEarned <= 0) return;
+    // Award coins locally
+    const { addCoins } = useGameState.getState();
+    addCoins(totalCoinsEarned);
+    // Persist to DB
+    if (user?.id) {
+      dbLib.addCoins(user.id, totalCoinsEarned).catch(() => {});
+    }
+  }, [gameOver]);
+
+
+  // ═══ Host triggers advance after both players answered ═══
+  const triggerAdvance = useCallback(() => {
+    if (gameOverRef.current) return;
+    const nextNum = questionNumRef.current + 1;
+    const newProblem = generateProblem(diff, nextNum);
+
+    const broadcastProblem: BroadcastProblem = {
+      display: newProblem.display,
+      answer: newProblem.answer,
+      stringAnswer: newProblem.stringAnswer,
+      questionNum: nextNum,
+    };
+
+    // Send to guest + update DB
+    advanceQuestion(broadcastProblem);
+
+    // Update local state for host
+    setCurrentProblem(newProblem);
+    setUserInput('');
+    setQuestionNum(nextNum);
+    setMyAnsweredQ(0); // reset for new question
+    setTimeLeft(getTimeLimit(diff, 'survival', undefined, nextNum));
+    setFeedback(null);
+    setIsTransitioning(false);
+    setWaitingForOpponent(false);
+    feedbackOpacity.value = 0;
+    problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
+    startTimer();
+  }, [diff, advanceQuestion, startTimer]);
+
+  // Keep triggerAdvance ref in sync
+  useEffect(() => { triggerAdvanceRef.current = triggerAdvance; }, [triggerAdvance]);
+
+  // ═══ Safety net: if host is stuck waiting but opponent already answered, unstick ═══
+  useEffect(() => {
+    if (!isHost || isComputer || !waitingForOpponent || gameOverRef.current) return;
+    // Check every 2 seconds if we're stuck
+    const interval = setInterval(() => {
+      const oppAns = opponentAnsweredRef.current;
+      if (oppAns && oppAns.questionNum >= questionNumRef.current && myAnsweredQRef.current >= questionNumRef.current) {
+        setWaitingForOpponent(false);
+        triggerAdvance();
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [waitingForOpponent, isHost, isComputer, triggerAdvance]);
+
+  // ═══ After a player answers: decide whether to wait or advance ═══
+  const afterMyAnswer = useCallback((didMatchEnd: boolean) => {
+    if (didMatchEnd) return; // game over already handled
+
+    if (isComputer) {
+      // Computer mode: advance immediately as before
+      setTimeout(() => {
+        const nextNum = questionNumRef.current + 1;
+        const newProblem = generateProblem(diff, nextNum);
+        setCurrentProblem(newProblem);
+        setUserInput('');
+        setQuestionNum(nextNum);
+        setTimeLeft(getTimeLimit(diff, 'survival', undefined, nextNum));
+        setFeedback(null);
+        setIsTransitioning(false);
+        feedbackOpacity.value = 0;
+        problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
+        startTimer();
+        computer.cancelComputerTurn();
+        startComputerForQuestion();
+      }, 1200);
+      return;
+    }
+
+    // Online mode
+    if (isHost) {
+      // Use ref to get the LATEST opponent answer (avoids stale closure)
+      const latestOppAns = opponentAnsweredRef.current;
+      if (latestOppAns && latestOppAns.questionNum >= questionNumRef.current) {
+        // Opponent already answered — advance after a short delay for feedback visibility
+        setTimeout(() => triggerAdvance(), 1200);
+      } else {
+        // Waiting for opponent
+        setWaitingForOpponent(true);
+      }
+    } else {
+      // Guest: wait for bothAnsweredSignal from host
+      // The receivedProblem effect will handle the advance
+      setWaitingForOpponent(true);
+    }
+  }, [isComputer, isHost, diff, startTimer, triggerAdvance]);
 
   const handleTimeout = () => {
+    // Duplicate guard for online mode
+    if (!isComputer && myAnsweredQ >= questionNum) return;
+
     stopTimer();
     setIsTransitioning(true);
     const newWrong = myWrong + 1;
@@ -355,26 +684,45 @@ export default function MultiplayerGameScreen() {
     feedbackOpacity.value = withTiming(1, { duration: 200 });
     feedbackScale.value = withSequence(withSpring(1.2), withSpring(1));
 
-    if (!isComputer) {
-      reportLifeLost(isHost);
-    }
-
-    if (newWrong >= 5) {
-      setGameOver(true);
-      stopTimer();
-      computer.cancelComputerTurn();
-      if (isComputer) {
+    if (isComputer) {
+      if (newWrong >= 5) {
+        setGameOver(true);
+        stopTimer();
+        computer.cancelComputerTurn();
         setWinner('opponent');
+        return;
       }
-      // For online, the DB update in reportLifeLost will set finished + winner
+      afterMyAnswer(false);
       return;
     }
 
-    setTimeout(() => nextQuestion(), 1500);
+    // Online mode: mark as answered
+    setMyAnsweredQ(questionNum);
+
+    // Calculate accurate local stats for the broadcast
+    const localLives = 5 - newWrong; // lives = 5 - total wrong answers
+    const localScore = myScore; // score unchanged on wrong answer
+
+    // Submit via hook (handles DB + broadcast)
+    submitAnswer({ isHost, questionNum, isCorrect: false, localLives, localScore }).then(({ matchEnded: ended }) => {
+      if (newWrong >= 5) {
+        // Fix Lose Bug: set game over immediately
+        setMyWrong(prev => prev + 1);
+        setGameOver(true);
+        setWinner('opponent');
+        return;
+      }
+      if (ended) return;
+      afterMyAnswer(ended);
+    });
   };
 
   const handleSubmit = () => {
     if (!userInput || isTransitioning || gameOver || !currentProblem) return;
+
+    // Duplicate submission guard for online mode
+    if (!isComputer && myAnsweredQ >= questionNum) return;
+
     stopTimer();
     setIsTransitioning(true);
 
@@ -408,7 +756,14 @@ export default function MultiplayerGameScreen() {
     if (isCorrect) {
       setMyScore((prev) => prev + 1);
       setFeedback('correct');
-      if (!isComputer) reportCorrectAnswer(isHost);
+
+      // Award coins for PvP matches only (not vs computer)
+      if (!isComputer) {
+        const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft, 'survival', questionNum);
+        setTotalCoinsEarned((prev) => prev + coinResult.total);
+        setLastCoinReward({ coins: coinResult.total, multiplier: coinResult.multiplier });
+      }
+
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -416,69 +771,56 @@ export default function MultiplayerGameScreen() {
       const newWrong = myWrong + 1;
       setMyWrong(newWrong);
       setFeedback('wrong');
+      setLastCoinReward(null);
       setTimeout(() => safePlay(pingPlayer), 400);
-      if (!isComputer) reportLifeLost(isHost);
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-
-      if (newWrong >= 5) {
-        setGameOver(true);
-        stopTimer();
-        computer.cancelComputerTurn();
-        if (isComputer) setWinner('opponent');
-        return;
       }
     }
 
     feedbackOpacity.value = withTiming(1, { duration: 200 });
     feedbackScale.value = withSequence(withSpring(1.2), withSpring(1));
 
-    setTimeout(() => nextQuestion(), 1200);
-  };
-
-  const nextQuestion = () => {
-    const nextNum = questionNum + 1;
-
-    if (isComputer || isHost) {
-      const newProblem = generateProblem(diff, nextNum);
-      setCurrentProblem(newProblem);
-
-      if (!isComputer) {
-        broadcastQuestion({
-          display: newProblem.display,
-          answer: newProblem.answer,
-          stringAnswer: newProblem.stringAnswer,
-          questionNum: nextNum,
-        });
+    if (isComputer) {
+      // Computer mode: same logic as before
+      if (!isCorrect) {
+        const newWrong = myWrong + 1;
+        if (newWrong >= 5) {
+          setGameOver(true);
+          stopTimer();
+          computer.cancelComputerTurn();
+          setWinner('opponent');
+          return;
+        }
       }
-
-      // Host/Computer: reset UI and start timer immediately
-      setUserInput('');
-      setQuestionNum(nextNum);
-      setTimeLeft(getTimeLimit(diff, 'survival', undefined, nextNum));
-      setFeedback(null);
-      setIsTransitioning(false);
-      feedbackOpacity.value = 0;
-      problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
-      startTimer();
-
-      if (isComputer) {
-        computer.cancelComputerTurn();
-        startComputerForQuestion();
-      }
-    } else {
-      // Guest: reset UI only. Timer, timeLeft, and problem will be
-      // set when the broadcast arrives via the receivedProblem useEffect.
-      setUserInput('');
-      setFeedback(null);
-      setIsTransitioning(false);
-      feedbackOpacity.value = 0;
+      afterMyAnswer(false);
+      return;
     }
+
+    // Online mode: mark as answered
+    setMyAnsweredQ(questionNum);
+
+    // Calculate accurate local stats for the broadcast
+    const localLives = isCorrect ? (5 - myWrong) : (5 - (myWrong + 1));
+    const localScore = isCorrect ? (myScore + 1) : myScore;
+
+    // Submit via hook
+    submitAnswer({ isHost, questionNum, isCorrect, localLives, localScore }).then(({ matchEnded: ended }) => {
+      if (!isCorrect && (myWrong + 1) >= 5) {
+        // Fix Lose Bug: set game over immediately
+        setMyWrong(prev => prev + 1);
+        setGameOver(true);
+        setWinner('opponent');
+        return;
+      }
+      afterMyAnswer(ended);
+    });
   };
 
   const handleNumberPress = (value: string) => {
-    if (isTransitioning || gameOver || !currentProblem) return;
+    if (isTransitioning || gameOver || waitingForOpponent || !currentProblem) return;
+    // Block input if already answered this question (online)
+    if (!isComputer && myAnsweredQ >= questionNum) return;
     if (value === '/' && userInput.includes('/')) return;
     const ansStr = currentProblem.stringAnswer || currentProblem.answer.toString();
     const cleanInput = userInput.replace(/ /g, '');
@@ -499,7 +841,8 @@ export default function MultiplayerGameScreen() {
   };
 
   const handleDelete = () => {
-    if (isTransitioning || gameOver) return;
+    if (isTransitioning || gameOver || waitingForOpponent) return;
+    if (!isComputer && myAnsweredQ >= questionNum) return;
     setUserInput((prev) => {
       if (prev.includes(' ')) {
         const chars = prev.split('');
@@ -560,15 +903,15 @@ export default function MultiplayerGameScreen() {
     return (
       <LinearGradient colors={['#1a0533', '#0d1b2a', '#1b2838']} style={[styles.container, { paddingTop: topPad }]}>
         <View style={styles.waitingContainer}>
-          <Animated.View entering={ZoomIn.springify().damping(12)}>
+          <Animated.View entering={ZoomIn.duration(300)}>
             <Text style={styles.waitingEmoji}>⚔️</Text>
           </Animated.View>
           <Animated.Text entering={FadeIn.delay(300)} style={styles.waitingText}>
             Waiting for battle to start...
           </Animated.Text>
-          <Pressable style={styles.quitBtnLarge} onPress={handleQuit}>
+          {/* <Pressable style={styles.quitBtnLarge} onPress={handleQuit}>
             <Text style={styles.quitBtnLargeText}>Leave</Text>
-          </Pressable>
+          </Pressable> */}
         </View>
       </LinearGradient>
     );
@@ -593,10 +936,11 @@ export default function MultiplayerGameScreen() {
           {/* Winner/Loser Stickman */}
           <Animated.View entering={FadeIn.delay(400)} style={styles.gameOverStickman}>
             <Stickman 
-              wrongCount={5 - (isWinner ? (5 - myWrong) : 0)} 
-              size={120} 
+              wrongCount={5 - (isWinner ? (isComputer ? (5 - myWrong) : myLives) : 0)} 
+              size={70} 
               forceShowBalloons 
               hideStickman={!isWinner}
+              hideBackground={true}
             />
           </Animated.View>
 
@@ -613,6 +957,15 @@ export default function MultiplayerGameScreen() {
               <Text style={styles.statLabel}>Your Balloons Left</Text>
               <Text style={styles.statValue}>{isComputer ? 5 - myWrong : myLives}</Text>
             </View>
+            {/* Show coins earned for PvP matches */}
+            {!isComputer && (
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>🪙 Coins Earned</Text>
+                <Text style={[styles.statValue, { color: isWinner && totalCoinsEarned > 0 ? '#FFD700' : '#FF6B6B' }]}>
+                  {isWinner ? `+${totalCoinsEarned}` : '0'}
+                </Text>
+              </View>
+            )}
           </Animated.View>
           <Pressable style={styles.returnBtn} onPress={() => router.replace('/lobby')}>
             <Text style={styles.returnBtnText}>Return to Lobby</Text>
@@ -630,8 +983,8 @@ export default function MultiplayerGameScreen() {
     >
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <Pressable onPress={handleQuit} style={styles.quitBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+        <Pressable onPress={() => setShowSurrenderConfirm(true)} style={styles.quitBtn}>
+          <Ionicons name="flag" size={20} color="#fff" />
         </Pressable>
         <View style={[styles.diffBadge, { backgroundColor: getDiffColor() }]}>
           <Text style={styles.diffText}>
@@ -641,86 +994,103 @@ export default function MultiplayerGameScreen() {
         <Timer timeLeft={timeLeft} totalTime={timeLimit} isPaused={false} />
       </View>
 
-      {/* Arena Row — Dual Stickman with Balloons */}
-      <View style={styles.arenaRow}>
-        {/* My Side */}
-        <View style={styles.playerSide}>
-          <LinearGradient
-            colors={['rgba(78,205,196,0.15)', 'rgba(78,205,196,0.05)']}
-            style={styles.playerCard}
-          >
-            <Text style={styles.playerLabel}>👤 You</Text>
-            <View style={styles.stickmanWrapper}>
-              <Stickman wrongCount={myWrong} size={stickmanSize} forceShowBalloons />
-            </View>
-            <View style={styles.livesRow}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Text key={i} style={{ fontSize: 14, opacity: i < (5 - myWrong) ? 1 : 0.2 }}>
-                  🎈
-                </Text>
-              ))}
-            </View>
-            <Text style={styles.scoreText}>Score: {myScore}</Text>
-          </LinearGradient>
+      {/* Arena — Battle Stage with Both Stickmen */}
+      <View style={[styles.arenaContainer, { height: arenaH }]}>
+        {/* Animated battle backdrop */}
+        <ArenaStage width={arenaW} height={arenaH} />
+
+        {/* Player Stickman (left) — feet on the floor line */}
+        <View style={[styles.arenaCharacter, {
+          left: arenaW * 0.03,
+          bottom: arenaH * 0.22,
+          transform: [{ scale: charScale }],
+          transformOrigin: 'bottom left',
+        }]}>
+          <Stickman wrongCount={myWrong} size={charSize} forceShowBalloons hideBackground />
+        </View>
+
+        {/* Opponent Stickman (right) — feet on the floor line */}
+        <View style={[styles.arenaCharacter, {
+          right: arenaW * 0.03,
+          bottom: arenaH * 0.22,
+          transform: [{ scale: charScale }],
+          transformOrigin: 'bottom right',
+        }]}>
+          <Stickman
+            wrongCount={5 - opponentLives}
+            size={charSize}
+            forceShowBalloons
+            hideBackground
+            previewOverrides={isComputer
+              ? { hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, balloons: null, back: null, tail: null }
+              : opponentAccessories}
+          />
         </View>
 
         {/* VS Badge */}
-        <View style={styles.vsBadge}>
-          <LinearGradient colors={['#FF6B6B', '#ee5a24']} style={styles.vsGradient}>
-            <Text style={styles.vsText}>VS</Text>
-          </LinearGradient>
-        </View>
-
-        {/* Opponent Side */}
-        <View style={styles.playerSide}>
-          <LinearGradient
-            colors={['rgba(255,107,107,0.15)', 'rgba(255,107,107,0.05)']}
-            style={styles.playerCard}
-          >
-            <Text style={styles.playerLabel}>
-              {isComputer ? '🤖 CPU' : '👤 Opponent'}
-            </Text>
-            <View style={styles.stickmanWrapper}>
-              <Stickman
-                wrongCount={5 - opponentLives}
-                size={stickmanSize}
-                forceShowBalloons
-                previewOverrides={isComputer ? {
-                  hair: null, face: null, cheeks: null, mouth: null, upper: null, lower: null, shoes: null, balloons: null, back: null, tail: null
-                } : undefined}
-              />
-            </View>
-            <View style={styles.livesRow}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Text key={i} style={{ fontSize: 14, opacity: i < opponentLives ? 1 : 0.2 }}>
-                  🎈
-                </Text>
-              ))}
-            </View>
-            <Text style={styles.scoreText}>Score: {opponentScore}</Text>
+        <View style={[styles.vsBadgeCenter, {
+          width: Math.max(36, arenaH * 0.2),
+          height: Math.max(36, arenaH * 0.2),
+          marginLeft: -Math.max(18, arenaH * 0.1),
+          marginTop: -Math.max(18, arenaH * 0.1),
+        }]}>
+          <LinearGradient colors={['#FF6B6B', '#ee5a24']} style={[styles.vsGradient, {
+            width: Math.max(36, arenaH * 0.2),
+            height: Math.max(36, arenaH * 0.2),
+            borderRadius: Math.max(18, arenaH * 0.1),
+          }]}>
+            <Text style={[styles.vsText, { fontSize: Math.max(13, arenaH * 0.08) }]}>VS</Text>
           </LinearGradient>
         </View>
       </View>
 
+      <View style={[styles.statsRow, isVerySmallScreen && { paddingVertical: 2 }]}>
+        {/* Your stats */}
+        <View style={styles.statsSide}>
+          <Text style={[styles.playerLabel, { color: '#4ECDC4' }, isVerySmallScreen && { fontSize: 9 }]}>👤 YOU</Text>
+          <View style={styles.livesRow}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Text key={i} style={{ fontSize: isVerySmallScreen ? 10 : 12, opacity: i < (5 - myWrong) ? 1 : 0.2 }}>🎈</Text>
+            ))}
+          </View>
+          <Text style={[styles.scoreText, isVerySmallScreen && { fontSize: 9 }]}>Score: {myScore}</Text>
+        </View>
+        {/* Opponent stats */}
+        <View style={styles.statsSide}>
+          <Text style={[styles.playerLabel, { color: '#FF6B6B' }, isVerySmallScreen && { fontSize: 9 }]}>{isComputer ? '🤖 CPU' : '👤 OPP'}</Text>
+          <View style={styles.livesRow}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Text key={i} style={{ fontSize: isVerySmallScreen ? 10 : 12, opacity: i < opponentLives ? 1 : 0.2 }}>🎈</Text>
+            ))}
+          </View>
+          <Text style={[styles.scoreText, isVerySmallScreen && { fontSize: 9 }]}>Score: {opponentScore}</Text>
+        </View>
+      </View>
+
       {/* Problem Display */}
-      <Animated.View style={[styles.problemContainer, problemAnimStyle]}>
+      <Animated.View style={[
+        styles.problemContainer, 
+        problemAnimStyle,
+        isVerySmallScreen && { paddingVertical: 4 }
+      ]}>
         {preGameCountdown === null && (
           <>
-            <View style={styles.questionBadge}>
+            <View style={[styles.questionBadge, isVerySmallScreen && { marginBottom: 2 }]}>
               <Text style={styles.questionBadgeText}>Q{questionNum}</Text>
             </View>
-            <Text style={styles.problemText}>{currentProblem?.display ?? '...'}</Text>
-            <View style={styles.answerRow}>
-              <Text style={styles.answerDisplay}>
+            <Text style={[styles.problemText, isVerySmallScreen && { fontSize: 22 }]}>{currentProblem?.display ?? '...'}</Text>
+            <View style={[styles.answerRow, isVerySmallScreen && { paddingVertical: 4, marginTop: 4, minWidth: 80 }]}>
+              <Text style={[styles.answerDisplay, isVerySmallScreen && { fontSize: 20 }]}>
                 {userInput || '?'}
               </Text>
             </View>
             {feedback && (
-              <Animated.View style={[styles.feedbackRow, feedbackAnimStyle]}>
+              <Animated.View style={[styles.feedbackRow, feedbackAnimStyle, isVerySmallScreen && { marginTop: 2 }]}>
                 <Text
                   style={[
                     styles.feedbackText,
                     { color: feedback === 'correct' ? '#4ECDC4' : '#FF6B6B' },
+                    isVerySmallScreen && { fontSize: 13 }
                   ]}
                 >
                   {getFeedbackText()}
@@ -731,15 +1101,101 @@ export default function MultiplayerGameScreen() {
         )}
       </Animated.View>
 
-      {/* Number Pad */}
-      <View style={styles.padContainer}>
-        <NumberPad
-          onPress={handleNumberPress}
-          onDelete={handleDelete}
-          onSubmit={handleSubmit}
-          disabled={isTransitioning || gameOver}
-        />
-      </View>
+      {/* Number Pad / Scribble Area */}
+      {scribbleMode ? (
+        <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(250)} exiting={FadeOut.duration(200)}>
+          <ScribbleArea onClose={() => setScribbleMode(false)} />
+        </Animated.View>
+      ) : (
+        <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(250)} exiting={FadeOut.duration(200)}>
+          <View style={styles.toggleRow}>
+            <Pressable
+              style={({ pressed }) => [styles.scribbleToggle, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                setScribbleMode(true);
+              }}
+            >
+              <Ionicons name="pencil" size={18} color="#fff" />
+            </Pressable>
+          </View>
+          <View style={styles.padContainer}>
+            <NumberPad
+              onPress={handleNumberPress}
+              onDelete={handleDelete}
+              onSubmit={handleSubmit}
+              disabled={isTransitioning || gameOver || waitingForOpponent || (!isComputer && myAnsweredQ >= questionNum)}
+              isSmallScreen={isSmallScreen}
+              screenHeight={screenHeight}
+            />
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Waiting for Opponent Overlay */}
+      {waitingForOpponent && !gameOver && preGameCountdown === null && (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={styles.waitingOverlayContainer}>
+            <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
+              <Text style={styles.waitingOverlayEmoji}>⏳</Text>
+              <Text style={styles.waitingOverlayText}>Waiting for opponent…</Text>
+              <Text style={styles.waitingOverlaySubtext}>Your answer has been submitted</Text>
+            </Animated.View>
+          </View>
+        </View>
+      )}
+
+      {/* Surrender Confirmation */}
+      {showSurrenderConfirm && (
+        <View style={styles.waitingOverlayContainer}>
+          <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
+            <Text style={styles.waitingOverlayEmoji}>🏳️</Text>
+            <Text style={styles.waitingOverlayText}>Surrender Match?</Text>
+            <Text style={styles.waitingOverlaySubtext}>You will lose the match and all accumulated coins.</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <Pressable 
+                style={[styles.returnBtn, { backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 0 }]} 
+                onPress={() => setShowSurrenderConfirm(false)}
+              >
+                <Text style={styles.returnBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable 
+                style={[styles.returnBtn, { backgroundColor: '#FF6B6B', marginTop: 0 }]} 
+                onPress={handleSurrender}
+              >
+                <Text style={styles.returnBtnText}>Surrender</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      )}
+
+      {/* Surrender Confirmation */}
+      {showSurrenderConfirm && (
+        <View style={styles.waitingOverlayContainer}>
+          <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
+            <Text style={styles.waitingOverlayEmoji}>🏳️</Text>
+            <Text style={styles.waitingOverlayText}>Surrender Match?</Text>
+            <Text style={styles.waitingOverlaySubtext}>You will lose the match and all accumulated coins.</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <Pressable 
+                style={[styles.returnBtn, { backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 0 }]} 
+                onPress={() => setShowSurrenderConfirm(false)}
+              >
+                <Text style={styles.returnBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable 
+                style={[styles.returnBtn, { backgroundColor: '#FF6B6B', marginTop: 0 }]} 
+                onPress={handleSurrender}
+              >
+                <Text style={styles.returnBtnText}>Surrender</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      )}
 
       {/* Countdown Overlay */}
       {preGameCountdown !== null && (
@@ -790,52 +1246,58 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   // ─── Arena ───
-  arenaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  playerSide: {
-    flex: 1,
-  },
-  playerCard: {
-    alignItems: 'center',
+  arenaContainer: {
+    marginHorizontal: 12,
     borderRadius: 16,
-    padding: 6,
-    marginHorizontal: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  arenaCharacter: {
+    position: 'absolute',
+  },
+  arenaCharLeft: {
+    left: 0,
+    bottom: 0,
+  },
+  arenaCharRight: {
+    right: 0,
+    bottom: 0,
+  },
+  vsBadgeCenter: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    left: '50%',
+    marginLeft: -20,
+    marginTop: -20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
   },
   playerLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#fff',
-    marginBottom: 2,
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  stickmanWrapper: {
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   livesRow: {
     flexDirection: 'row',
     gap: 2,
-    marginTop: 2,
   },
   scoreText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
   },
-  vsBadge: {
-    width: 40,
-    height: 40,
-    zIndex: 10,
-    marginHorizontal: -5,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  statsSide: {
+    alignItems: 'center',
+    gap: 1,
   },
   vsGradient: {
     width: 40,
@@ -902,6 +1364,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  scribbleToggle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#9B59B6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#9B59B6',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
   padContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -924,7 +1405,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   gameOverStickman: {
-    height: 140,
+    height: 180,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -994,6 +1476,43 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // ─── Waiting for Opponent Overlay ───
+  waitingOverlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 90,
+  },
+  waitingOverlayCard: {
+    backgroundColor: 'rgba(30,30,60,0.95)',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(78,205,196,0.3)',
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    gap: 8,
+  },
+  waitingOverlayEmoji: {
+    fontSize: 48,
+  },
+  waitingOverlayText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  waitingOverlaySubtext: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
   },
   // ─── Countdown ───
   countdownContainer: {

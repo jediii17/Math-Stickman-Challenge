@@ -1,32 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Text, Pressable, FlatList, Platform, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, Layout } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import * as db from '@/lib/db';
 import StickmanCoin, { abbreviateCoins } from '@/components/StickmanCoin';
 
 // ─── Types ───
-type TabKey = 'coins' | 'classic' | 'survival_easy' | 'survival_average' | 'survival_hard';
-
-interface Tab {
-  key: TabKey;
-  label: string;
-  icon: string;
-  color: string;
-}
-
-const TABS: Tab[] = [
-  { key: 'coins', label: 'Coins', icon: 'gold', color: '#FFD700' },
-  { key: 'classic', label: 'Classic', icon: 'map-marker-path', color: '#3498DB' },
-  { key: 'survival_easy', label: 'Easy', icon: 'sword-cross', color: '#2ECC71' },
-  { key: 'survival_average', label: 'Average', icon: 'sword-cross', color: '#F39C12' },
-  { key: 'survival_hard', label: 'Hard', icon: 'skull-crossbones', color: '#E74C3C' },
-];
+type GameMode = 'coins' | 'classic' | 'survival' | 'arena';
+type Difficulty = 'easy' | 'average' | 'hard';
 
 interface LeaderboardEntry {
   id: string;
@@ -34,6 +20,27 @@ interface LeaderboardEntry {
   value: number;
   rank: number;
 }
+
+interface ModeOption {
+  key: GameMode;
+  label: string;
+  icon: string;
+  color: string;
+  hasDifficulty: boolean;
+}
+
+const MODES: ModeOption[] = [
+  { key: 'coins', label: 'Coins', icon: 'gold', color: '#FFD700', hasDifficulty: false },
+  { key: 'classic', label: 'Classic', icon: 'map-marker-path', color: '#3498DB', hasDifficulty: false },
+  { key: 'survival', label: 'Survival', icon: 'sword-cross', color: '#2ECC71', hasDifficulty: true },
+  { key: 'arena', label: 'Arena', icon: 'sword-cross', color: '#FF6B6B', hasDifficulty: true },
+];
+
+const DIFFICULTIES: { key: Difficulty; label: string; color: string }[] = [
+  { key: 'easy', label: 'Easy', color: '#2ECC71' },
+  { key: 'average', label: 'Average', color: '#F39C12' },
+  { key: 'hard', label: 'Hard', color: '#E74C3C' },
+];
 
 // ─── Helpers ───
 function getRankBadgeColors(rank: number): [string, string] {
@@ -53,23 +60,27 @@ function getRowStyle(rank: number, isCurrentUser: boolean) {
   return { backgroundColor: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255, 255, 255, 0.08)' };
 }
 
-function getValueLabel(tab: TabKey, value: number): string {
-  switch (tab) {
+function getValueLabel(mode: GameMode, value: number): string {
+  switch (mode) {
     case 'coins': return abbreviateCoins(value);
     case 'classic': return `Lv.${value}`;
+    case 'arena': return `${value}W`;
     default: return `${value}Q`;
   }
 }
 
 // ─── Row Component ───
-function LeaderboardRow({ entry, rank, isCurrentUser, activeTab }: {
-  entry: LeaderboardEntry; rank: number; isCurrentUser: boolean; activeTab: TabKey;
+function LeaderboardRow({ entry, rank, isCurrentUser, activeMode }: {
+  entry: LeaderboardEntry; rank: number; isCurrentUser: boolean; activeMode: GameMode;
 }) {
   const rowStyle = getRowStyle(rank, isCurrentUser);
   const isTop3 = rank <= 3;
 
   return (
-    <Animated.View entering={FadeInDown.delay(Math.min(rank * 30, 600)).springify()}>
+    <Animated.View 
+      entering={FadeInDown.delay(Math.min(rank * 30, 600)).springify()}
+      layout={Layout.springify()}
+    >
       <View style={[styles.row, rowStyle]}>
         <LinearGradient
           colors={getRankBadgeColors(rank)}
@@ -96,9 +107,9 @@ function LeaderboardRow({ entry, rank, isCurrentUser, activeTab }: {
         </View>
 
         <View style={styles.valueContainer}>
-          {activeTab === 'coins' && <StickmanCoin size={16} animated={false} />}
+          {activeMode === 'coins' && <StickmanCoin size={16} animated={false} />}
           <Text style={[styles.valueText, isTop3 && styles.topValueText]}>
-            {getValueLabel(activeTab, entry.value)}
+            {getValueLabel(activeMode, entry.value)}
           </Text>
         </View>
       </View>
@@ -110,7 +121,9 @@ function LeaderboardRow({ entry, rank, isCurrentUser, activeTab }: {
 export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabKey>('coins');
+  const [activeMode, setActiveMode] = useState<GameMode>('coins');
+  const [activeDifficulty, setActiveDifficulty] = useState<Difficulty>('easy');
+  
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -118,11 +131,11 @@ export default function LeaderboardScreen() {
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const fetchLeaderboard = useCallback(async (tab: TabKey) => {
+  const fetchLeaderboard = useCallback(async (mode: GameMode, diff: Difficulty) => {
     try {
       let data: LeaderboardEntry[] = [];
 
-      switch (tab) {
+      switch (mode) {
         case 'coins': {
           const coins = await db.getLeaderboard(50, 0);
           data = coins.map(e => ({ id: e.id, username: e.username, value: e.coins, rank: e.rank }));
@@ -132,16 +145,12 @@ export default function LeaderboardScreen() {
           data = await db.getClassicLeaderboard(50, 0);
           break;
         }
-        case 'survival_easy': {
-          data = await db.getSurvivalLeaderboard('easy', 50);
+        case 'survival': {
+          data = await db.getSurvivalLeaderboard(diff, 50);
           break;
         }
-        case 'survival_average': {
-          data = await db.getSurvivalLeaderboard('average', 50);
-          break;
-        }
-        case 'survival_hard': {
-          data = await db.getSurvivalLeaderboard('hard', 50);
+        case 'arena': {
+          data = await db.getArenaLeaderboard(diff, 50);
           break;
         }
       }
@@ -158,17 +167,21 @@ export default function LeaderboardScreen() {
   useEffect(() => {
     setLoading(true);
     setLeaderboard([]);
-    fetchLeaderboard(activeTab);
-  }, [activeTab, fetchLeaderboard]);
+    fetchLeaderboard(activeMode, activeDifficulty);
+  }, [activeMode, activeDifficulty, fetchLeaderboard]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchLeaderboard(activeTab);
-  }, [activeTab, fetchLeaderboard]);
+    fetchLeaderboard(activeMode, activeDifficulty);
+  }, [activeMode, activeDifficulty, fetchLeaderboard]);
 
   const currentUserEntry = user ? leaderboard.find(e => e.id === user.id) : null;
   const currentUserRank = currentUserEntry?.rank || 0;
-  const activeTabInfo = TABS.find(t => t.key === activeTab)!;
+  
+  const activeModeInfo = useMemo(() => MODES.find(m => m.key === activeMode)!, [activeMode]);
+  const activeDiffInfo = useMemo(() => DIFFICULTIES.find(d => d.key === activeDifficulty)!, [activeDifficulty]);
+
+  const mainColor = activeModeInfo.hasDifficulty ? activeDiffInfo.color : activeModeInfo.color;
 
   return (
     <LinearGradient
@@ -195,43 +208,64 @@ export default function LeaderboardScreen() {
             </View>
           </Animated.View>
 
-          {/* Tab Bar */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabBar}
-            contentContainerStyle={styles.tabBarContent}
-          >
-            {TABS.map(tab => (
+          {/* Mode Selector (Top Tabs) */}
+          <View style={styles.modeTabs}>
+            {MODES.map(mode => (
               <Pressable
-                key={tab.key}
+                key={mode.key}
                 style={[
-                  styles.tab,
-                  activeTab === tab.key && [styles.activeTab, { borderColor: tab.color }],
+                  styles.modeTab,
+                  activeMode === mode.key && [styles.activeModeTab, { borderColor: mode.color }],
                 ]}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => setActiveMode(mode.key)}
               >
                 <MaterialCommunityIcons
-                  name={tab.icon as any}
+                  name={mode.icon as any}
                   size={16}
-                  color={activeTab === tab.key ? tab.color : 'rgba(255,255,255,0.5)'}
+                  color={activeMode === mode.key ? mode.color : 'rgba(255,255,255,0.5)'}
                 />
                 <Text style={[
-                  styles.tabLabel,
-                  activeTab === tab.key && { color: tab.color, fontFamily: 'Fredoka_700Bold' },
-                ]}>{tab.label}</Text>
+                  styles.modeTabLabel,
+                  activeMode === mode.key && { color: mode.color, fontFamily: 'Fredoka_700Bold' },
+                ]}>{mode.label}</Text>
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
+
+          {/* Difficulty Selector (Sub Tabs) */}
+          {activeModeInfo.hasDifficulty && (
+            <Animated.View entering={FadeIn.duration(300)} style={styles.diffSelectorContainer}>
+              <View style={styles.diffSelector}>
+                {DIFFICULTIES.map(diff => (
+                  <Pressable
+                    key={diff.key}
+                    style={[
+                      styles.diffTab,
+                      activeDifficulty === diff.key && { backgroundColor: diff.color },
+                    ]}
+                    onPress={() => setActiveDifficulty(diff.key)}
+                  >
+                    <Text style={[
+                      styles.diffTabLabel,
+                      activeDifficulty === diff.key && styles.activeDiffTabLabel
+                    ]}>
+                      {diff.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Animated.View>
+          )}
 
           {/* Current user rank badge */}
           {!isGuest && user && currentUserRank > 0 && (
             <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.myRankBadge}>
               <Text style={styles.myRankLabel}>Your Rank</Text>
-              <Text style={[styles.myRankNumber, { color: activeTabInfo.color }]}>#{currentUserRank}</Text>
-              <Text style={styles.myRankValue}>{getValueLabel(activeTab, currentUserEntry!.value)}</Text>
+              <Text style={[styles.myRankNumber, { color: mainColor }]}>#{currentUserRank}</Text>
+              <Text style={styles.myRankValue}>{getValueLabel(activeMode, currentUserEntry!.value)}</Text>
             </Animated.View>
           )}
+
           {isGuest && (
             <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.loginPrompt}>
               <Ionicons name="information-circle-outline" size={16} color="rgba(255,255,255,0.7)" />
@@ -244,7 +278,7 @@ export default function LeaderboardScreen() {
         <View style={styles.listContainer}>
           {loading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={activeTabInfo.color} />
+              <ActivityIndicator size="large" color={mainColor} />
               <Text style={styles.loadingText}>Loading legends...</Text>
             </View>
           ) : leaderboard.length === 0 ? (
@@ -262,13 +296,13 @@ export default function LeaderboardScreen() {
                   entry={item}
                   rank={item.rank}
                   isCurrentUser={!isGuest && user?.id === item.id}
-                  activeTab={activeTab}
+                  activeMode={activeMode}
                 />
               )}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTabInfo.color} />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mainColor} />
               }
             />
           )}
@@ -290,7 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
     marginTop: 8,
   },
   backBtn: {
@@ -314,7 +348,7 @@ const styles = StyleSheet.create({
   },
   trophyArea: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   trophyGlow: {
     shadowColor: '#FFD700',
@@ -323,32 +357,57 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  tabBar: {
-    maxHeight: 50,
-    marginBottom: 8,
-  },
-  tabBarContent: {
+  modeTabs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
-    paddingHorizontal: 4,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  tab: {
+  modeTab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  activeTab: {
+  activeModeTab: {
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  tabLabel: {
+  modeTabLabel: {
     fontSize: 13,
     fontFamily: 'Fredoka_500Medium',
     color: 'rgba(255,255,255,0.7)',
+  },
+  diffSelectorContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  diffSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    padding: 4,
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 300,
+  },
+  diffTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  diffTabLabel: {
+    fontSize: 13,
+    fontFamily: 'Fredoka_600SemiBold',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  activeDiffTabLabel: {
+    color: '#fff',
   },
   myRankBadge: {
     alignSelf: 'center',
@@ -359,7 +418,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 24,
-    marginTop: 8,
+    marginTop: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
@@ -371,7 +430,6 @@ const styles = StyleSheet.create({
   myRankNumber: {
     fontSize: 22,
     fontFamily: 'Fredoka_700Bold',
-    color: '#FFD700',
   },
   myRankValue: {
     fontSize: 14,

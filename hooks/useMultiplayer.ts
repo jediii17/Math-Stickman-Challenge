@@ -9,6 +9,7 @@ export interface OnlinePlayer {
   id: string;
   username: string;
   presenceRef?: string;
+  status: 'online' | 'playing';
 }
 
 export interface Invitation {
@@ -30,6 +31,9 @@ export interface MultiplayerRoom {
   host_score: number;
   guest_score: number;
   winner_id: string | null;
+  current_question_num: number;
+  host_answered_q: number;
+  guest_answered_q: number;
 }
 
 export interface BroadcastProblem {
@@ -50,6 +54,20 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   // Game channel state
   const [receivedProblem, setReceivedProblem] = useState<BroadcastProblem | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+
+  // ─── New answer-tracking state ───
+  // ─── New answer-tracking state ───
+  const [opponentAnsweredCurrentQ, setOpponentAnsweredCurrentQ] = useState<{
+    playerId: string;
+    questionNum: number;
+    isCorrect: boolean;
+    livesLeft: number;
+    score: number;
+    matchEnded: boolean;
+  } | null>(null);
+  const [bothAnsweredSignal, setBothAnsweredSignal] = useState<BroadcastProblem | null>(null);
+  const [matchEnded, setMatchEnded] = useState<{ winnerId: string; reason?: 'surrender' } | null>(null);
+  const [opponentAccessories, setOpponentAccessories] = useState<Record<string, string | null> | null>(null);
 
   const lobbyChannelRef = useRef<RealtimeChannel | null>(null);
   const roomChannelRef = useRef<RealtimeChannel | null>(null);
@@ -107,7 +125,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       });
   }, []);
 
-  // ───── Game Broadcast Channel (shared questions) ─────
+  // ───── Game Broadcast Channel (shared questions + answer sync) ─────
 
   const joinGameChannel = useCallback((roomId: number) => {
     if (gameChannelRef.current) {
@@ -122,10 +140,35 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .on('broadcast', { event: 'game_start' }, () => {
         setGameStarted(true);
       })
+      .on('broadcast', { event: 'player_answered' }, ({ payload }) => {
+        // The other player answered — update local tracking
+        if (payload.playerId !== userId) {
+          setOpponentAnsweredCurrentQ(payload);
+        }
+      })
+      .on('broadcast', { event: 'both_answered' }, ({ payload }) => {
+        // Both players answered — carries the next question for the guest
+        setBothAnsweredSignal(payload as BroadcastProblem);
+      })
+      .on('broadcast', { event: 'accessories' }, ({ payload }) => {
+        // Received opponent's accessories
+        if (payload.playerId !== userId) {
+          setOpponentAccessories(payload.accessories);
+        }
+      })
+      .on('broadcast', { event: 'match_end' }, ({ payload }) => {
+        setMatchEnded({ winnerId: payload.winnerId, reason: payload.reason });
+      })
+      .on('broadcast', { event: 'surrender' }, ({ payload }) => {
+        // Opponent surrendered
+        if (payload.playerId !== userId) {
+          setMatchEnded({ winnerId: userId!, reason: 'surrender' });
+        }
+      })
       .subscribe();
 
     gameChannelRef.current = channel;
-  }, []);
+  }, [userId]);
 
   const leaveGameChannel = useCallback(() => {
     if (gameChannelRef.current) {
@@ -134,7 +177,20 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     }
     setReceivedProblem(null);
     setGameStarted(false);
+    setOpponentAnsweredCurrentQ(null);
+    setBothAnsweredSignal(null);
+    setMatchEnded(null);
   }, []);
+
+  const broadcastAccessories = useCallback((accessories: Record<string, string | null>) => {
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'accessories',
+        payload: { playerId: userId, accessories },
+      });
+    }
+  }, [userId]);
 
   const broadcastQuestion = useCallback((problem: BroadcastProblem) => {
     if (gameChannelRef.current) {
@@ -184,13 +240,18 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<{ id: string; username: string }>();
+        const state = channel.presenceState<{ id: string; username: string; status: 'online' | 'playing' }>();
         const players: OnlinePlayer[] = [];
         for (const [key, presences] of Object.entries(state)) {
           if (key === userId) continue;
           const p = presences[0];
           if (p) {
-            players.push({ id: p.id, username: p.username, presenceRef: key });
+            players.push({
+              id: p.id,
+              username: p.username,
+              presenceRef: key,
+              status: p.status || 'online'
+            });
           }
         }
         setOnlinePlayers(players);
@@ -214,7 +275,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ id: userId, username });
+          await channel.track({ id: userId, username, status: 'online' });
           setIsInLobby(true);
         }
       });
@@ -291,7 +352,12 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
     subscribeToRoom(pendingInvitation.roomId);
     setPendingInvitation(null);
-  }, [pendingInvitation, userId, subscribeToRoom]);
+    
+    // Track as playing
+    if (lobbyChannelRef.current && userId && username) {
+      lobbyChannelRef.current.track({ id: userId, username, status: 'playing' });
+    }
+  }, [pendingInvitation, userId, username, subscribeToRoom]);
 
   // ───── Start the match (host triggers this) ─────
 
@@ -300,11 +366,160 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
     await supabase
       .from('multiplayer_rooms')
-      .update({ status: 'playing', host_lives: 5, guest_lives: 5, host_score: 0, guest_score: 0 })
+      .update({
+        status: 'playing',
+        host_lives: 5,
+        guest_lives: 5,
+        host_score: 0,
+        guest_score: 0,
+        current_question_num: 1,
+        host_answered_q: 0,
+        guest_answered_q: 0,
+      })
       .eq('id', currentRoom.id);
   }, [currentRoom]);
 
-  // ───── Report a life lost ─────
+  // ───── Submit an answer (replaces reportLifeLost / reportCorrectAnswer) ─────
+
+  const submitAnswer = useCallback(async (params: {
+    isHost: boolean;
+    questionNum: number;
+    isCorrect: boolean;
+    localLives: number; // caller's accurate local lives count (AFTER this answer)
+    localScore: number; // caller's accurate local score (AFTER this answer)
+  }) => {
+    const room = currentRoomRef.current;
+    if (!room) return { matchEnded: false };
+
+    // Duplicate check: skip if player already answered this question
+    const alreadyAnswered = params.isHost
+      ? room.host_answered_q >= params.questionNum
+      : room.guest_answered_q >= params.questionNum;
+    if (alreadyAnswered) return { matchEnded: false };
+
+    const answeredField = params.isHost ? 'host_answered_q' : 'guest_answered_q';
+    const updates: Record<string, any> = {
+      [answeredField]: params.questionNum,
+    };
+
+    if (params.isCorrect) {
+      const scoreField = params.isHost ? 'host_score' : 'guest_score';
+      const currentScore = params.isHost ? room.host_score : room.guest_score;
+      updates[scoreField] = currentScore + 1;
+    } else {
+      const livesField = params.isHost ? 'host_lives' : 'guest_lives';
+      const currentLives = params.isHost ? room.host_lives : room.guest_lives;
+      const newLives = currentLives - 1;
+      updates[livesField] = newLives;
+
+      if (newLives <= 0) {
+        updates.status = 'finished';
+        updates.winner_id = params.isHost ? room.guest_id : room.host_id;
+      }
+    }
+
+    await supabase
+      .from('multiplayer_rooms')
+      .update(updates)
+      .eq('id', room.id);
+
+    // Use the caller's LOCAL accurate stats for broadcast (avoids stale room data)
+    const didEnd = params.localLives <= 0;
+
+    // Broadcast that this player has answered
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'player_answered',
+        payload: {
+          playerId: userId,
+          questionNum: params.questionNum,
+          isCorrect: params.isCorrect,
+          livesLeft: params.localLives,
+          score: params.localScore,
+          matchEnded: didEnd
+        },
+      });
+    }
+
+    if (didEnd) {
+      const winnerId = params.isHost ? room.guest_id : room.host_id;
+      // Broadcast match end to both clients
+      if (gameChannelRef.current && winnerId) {
+        gameChannelRef.current.send({
+          type: 'broadcast',
+          event: 'match_end',
+          payload: { winnerId },
+        });
+      }
+    }
+
+    return { matchEnded: didEnd };
+  }, [userId]);
+
+  // ───── Surrender (end match giving win to opponent) ─────
+
+  const surrenderMatch = useCallback(async () => {
+    const room = currentRoomRef.current;
+    if (!room || room.status === 'finished') return;
+
+    const winnerId = userId === room.host_id ? room.guest_id : room.host_id;
+
+    // Update DB
+    await supabase
+      .from('multiplayer_rooms')
+      .update({
+        status: 'finished',
+        winner_id: winnerId
+      })
+      .eq('id', room.id);
+
+    // Broadcast surrender
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'surrender',
+        payload: { playerId: userId },
+      });
+    }
+  }, [userId]);
+
+  // ───── Advance to the next question (host-only) ─────
+
+  const advanceQuestion = useCallback(async (nextProblem: BroadcastProblem) => {
+    const room = currentRoomRef.current;
+    if (!room) return;
+
+    // Update DB with next question number
+    await supabase
+      .from('multiplayer_rooms')
+      .update({ current_question_num: nextProblem.questionNum })
+      .eq('id', room.id);
+
+    // Broadcast the next question to the guest
+    broadcastQuestion(nextProblem);
+
+    // Broadcast "both_answered" signal (carries the new question for the guest)
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'both_answered',
+        payload: nextProblem,
+      });
+    }
+
+    // Reset opponent tracking for the new question
+    setOpponentAnsweredCurrentQ(null);
+  }, [broadcastQuestion]);
+
+  // ───── Reset answer tracking for a new question ─────
+
+  const resetAnswerTracking = useCallback(() => {
+    setOpponentAnsweredCurrentQ(null);
+    setBothAnsweredSignal(null);
+  }, []);
+
+  // ───── Legacy functions (kept for computer mode compatibility) ─────
 
   const reportLifeLost = useCallback(async (isHost: boolean) => {
     const room = currentRoomRef.current;
@@ -324,8 +539,6 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .update(updates)
       .eq('id', room.id);
   }, []);
-
-  // ───── Report a correct answer ─────
 
   const reportCorrectAnswer = useCallback(async (isHost: boolean) => {
     const room = currentRoomRef.current;
@@ -356,8 +569,13 @@ export function useMultiplayer(userId: string | null, username: string | null) {
         .eq('id', room.id);
     }
 
+    // Restore presence to online
+    if (lobbyChannelRef.current && userId && username) {
+      lobbyChannelRef.current.track({ id: userId, username, status: 'online' });
+    }
+
     setCurrentRoom(null);
-  }, []);
+  }, [userId, username]);
 
   // ───── Cleanup on unmount ─────
 
@@ -378,6 +596,10 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     isInLobby,
     receivedProblem,
     gameStarted,
+    opponentAnsweredCurrentQ,
+    bothAnsweredSignal,
+    matchEnded,
+    opponentAccessories,
 
     // Actions
     joinLobby,
@@ -386,6 +608,9 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     acceptInvite,
     declineInvite,
     startMatch,
+    submitAnswer,
+    advanceQuestion,
+    resetAnswerTracking,
     reportLifeLost,
     reportCorrectAnswer,
     leaveRoom,
@@ -394,5 +619,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     leaveGameChannel,
     broadcastQuestion,
     broadcastGameStart,
+    broadcastAccessories,
+    surrenderMatch,
   };
 }

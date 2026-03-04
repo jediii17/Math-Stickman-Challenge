@@ -90,7 +90,7 @@ export default function InvitationModal({
     <Modal transparent animationType="fade" visible={visible}>
       <View style={styles.overlay}>
         <Animated.View
-          entering={ZoomIn.springify().damping(15)}
+          entering={ZoomIn.duration(300)}
           style={styles.container}
         >
           {/* Header */}
