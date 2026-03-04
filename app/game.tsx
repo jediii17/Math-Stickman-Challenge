@@ -62,6 +62,16 @@ const SOUNDTRACK_ASSETS = [
   require('@/assets/sounds/soundtrack_8.mp3'),
   require('@/assets/sounds/soundtrack_9.mp3'),
   require('@/assets/sounds/soundtrack_10.mp3'),
+  require('@/assets/sounds/soundtrack_11.mp3'),
+  require('@/assets/sounds/soundtrack_12.mp3'),
+  require('@/assets/sounds/soundtrack_13.mp3'),
+  require('@/assets/sounds/soundtrack_14.mp3'),
+  require('@/assets/sounds/soundtrack_15.mp3'),
+  require('@/assets/sounds/soundtrack_16.mp3'),
+  require('@/assets/sounds/soundtrack_17.mp3'),
+  require('@/assets/sounds/soundtrack_18.mp3'),
+  require('@/assets/sounds/soundtrack_19.mp3'),
+  require('@/assets/sounds/soundtrack_20.mp3'),
 ];
 
 interface GameResult {
