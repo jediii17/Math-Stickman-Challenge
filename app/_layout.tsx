@@ -97,7 +97,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!lobbyBgm || !bgmStarted.current) return;
     const currentRoute = segments[0] || '';
-    const isInGame = currentRoute === 'game' || currentRoute === 'results';
+    const isInGame = currentRoute === 'game' || currentRoute === 'results' || currentRoute === 'multiplayer-game';
     try {
       if (isInGame) {
         lobbyBgm.pause();

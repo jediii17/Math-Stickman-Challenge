@@ -111,6 +111,13 @@ export default function DifficultyScreen() {
     setShowSurvival(true);
   };
 
+  const handleLobby = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    router.push('/lobby');
+  };
+
   return (
     <LinearGradient
       colors={['#0F4C2E', '#1A7A3D', '#27AE60']}
@@ -141,48 +148,72 @@ export default function DifficultyScreen() {
               Choose your challenge!
             </Animated.Text>
 
-            <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.modeRow}>
-              {/* Classic Button (Left) */}
-              <Pressable
-                onPress={handleClassic}
-                style={({ pressed }) => [
-                  styles.modeCard,
-                  pressed && { transform: [{ scale: 0.95 }] },
-                ]}
-              >
-                <LinearGradient
-                  colors={['#fc79efff', '#931f8cff']}
-                  style={styles.modeCardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+            <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.modeGrid}>
+              <View style={styles.modeRow}>
+                {/* Classic Button (Left) */}
+                <Pressable
+                  onPress={handleClassic}
+                  style={({ pressed }) => [
+                    styles.modeCard,
+                    pressed && { transform: [{ scale: 0.95 }] },
+                  ]}
                 >
-                  <View style={styles.modeIconWrap}>
-                    <Ionicons name="map" size={40} color="#fff" />
-                  </View>
-                  <Text style={styles.modeCardTitle}>Classic</Text>
-                  <Text style={styles.modeCardDesc}>Adventure through levels</Text>
-                </LinearGradient>
-              </Pressable>
+                  <LinearGradient
+                    colors={['#fc79efff', '#931f8cff']}
+                    style={styles.modeCardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.modeIconWrap}>
+                      <Ionicons name="map" size={40} color="#fff" />
+                    </View>
+                    <Text style={styles.modeCardTitle}>Classic</Text>
+                    <Text style={styles.modeCardDesc}>Levels</Text>
+                  </LinearGradient>
+                </Pressable>
 
-              {/* Survival Button (Right) */}
+                {/* Survival Button (Right) */}
+                <Pressable
+                  onPress={handleSurvival}
+                  style={({ pressed }) => [
+                    styles.modeCard,
+                    pressed && { transform: [{ scale: 0.95 }] },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['#E74C3C', '#C0392B']}
+                    style={styles.modeCardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.modeIconWrap}>
+                      <Ionicons name="skull" size={40} color="#fff" />
+                    </View>
+                    <Text style={styles.modeCardTitle}>Survival</Text>
+                    <Text style={styles.modeCardDesc}>Endless</Text>
+                  </LinearGradient>
+                </Pressable>
+              </View>
+
+              {/* 1v1 Arena Button (Full Width Bottom) */}
               <Pressable
-                onPress={handleSurvival}
+                onPress={handleLobby}
                 style={({ pressed }) => [
-                  styles.modeCard,
+                  styles.arenaCard,
                   pressed && { transform: [{ scale: 0.95 }] },
                 ]}
               >
                 <LinearGradient
-                  colors={['#E74C3C', '#C0392B']}
-                  style={styles.modeCardGradient}
+                  colors={['#8E44AD', '#6C3483']}
+                  style={styles.arenaCardGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   <View style={styles.modeIconWrap}>
-                    <Ionicons name="skull" size={40} color="#fff" />
+                    <MaterialCommunityIcons name="sword-cross" size={32} color="#fff" />
                   </View>
-                  <Text style={styles.modeCardTitle}>Survival</Text>
-                  <Text style={styles.modeCardDesc}>Endless math challenge</Text>
+                  <Text style={styles.modeCardTitle}>1v1 Arena</Text>
+                  <Text style={styles.modeCardDesc}>Challenge online players</Text>
                 </LinearGradient>
               </Pressable>
             </Animated.View>
@@ -334,6 +365,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  modeGrid: {
+    width: '100%',
+    gap: 16,
+  },
   modeRow: {
     flexDirection: 'row',
     gap: 16,
@@ -376,6 +411,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Fredoka_500Medium',
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
+  },
+  arenaCard: {
+    width: '100%',
+    shadowColor: '#8E44AD',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  arenaCardGradient: {
+    borderRadius: 24,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
 
   // ── Survival difficulty cards ──

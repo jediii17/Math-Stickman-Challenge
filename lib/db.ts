@@ -58,7 +58,7 @@ async function withRetry<T>(
       console.log(`[db.ts] Executing query... Attempt ${attempt + 1}/${maxRetries + 1}`);
       
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Supabase request timed out after 10000ms')), 10000);
+        setTimeout(() => reject(new Error('Supabase request timed out after 30000ms')), 30000);
       });
 
       const result = await Promise.race([fn(), timeoutPromise]);
@@ -572,6 +572,27 @@ export async function getSurvivalLeaderboard(difficulty: string, limit: number =
     return [];
   });
 }
+
+// --- Arena (1v1) Leaderboard ---
+
+export async function getArenaLeaderboard(difficulty: string, limit: number = 50, offset: number = 0) {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .rpc('get_arena_leaderboard', { diff_param: difficulty, result_limit: limit, result_offset: offset });
+
+    if (error) throw error;
+    return (data || []).map((e: any) => ({
+      id: e.id,
+      username: e.username,
+      value: Number(e.value),
+      rank: Number(e.rank),
+    }));
+  }).catch((e) => {
+    console.error('Arena leaderboard error:', e);
+    return [];
+  });
+}
+
 // --- Shop Items ---
 
 export interface ShopItem {
