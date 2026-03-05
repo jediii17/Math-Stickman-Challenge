@@ -20,7 +20,7 @@ import Animated, {
   FadeOut,
   ZoomIn,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -135,6 +135,7 @@ export default function MultiplayerGameScreen() {
   const questionNumRef = useRef(1);
   const opponentAnsweredRef = useRef<typeof opponentAnsweredCurrentQ>(null);
   const triggerAdvanceRef = useRef<(() => void) | null>(null);
+  const startTimerRef = useRef<(() => void) | null>(null);
 
   // Keep refs in sync
   useEffect(() => { myAnsweredQRef.current = myAnsweredQ; }, [myAnsweredQ]);
@@ -367,33 +368,60 @@ export default function MultiplayerGameScreen() {
     }
   }, [isComputer, isHost, currentRoom?.status]);
 
-  // ═══ Guest: Receive game start and questions ═══
+  // ═══ Guest: Receive game start signal ═══
   useEffect(() => {
     if (!isHost && !isComputer && gameStarted) {
       setWaitingForStart(false);
     }
   }, [gameStarted, isHost, isComputer]);
 
+  // ═══ Guest: Receive questions via 'question' broadcast ═══
+  // Q1: handled here (with countdown). Q2+: backup channel (primary is bothAnsweredSignal).
+  // Guard: only process if questionNum > current to prevent double-processing.
   useEffect(() => {
-    if (!isHost && !isComputer && receivedProblem) {
-      setCurrentProblem({
-        display: receivedProblem.display,
-        answer: receivedProblem.answer,
-        stringAnswer: receivedProblem.stringAnswer,
-      } as MathProblem);
-      setQuestionNum(receivedProblem.questionNum);
-      setUserInput('');
-      setFeedback(null);
-      setIsTransitioning(false);
-      setWaitingForOpponent(false);
-      feedbackOpacity.value = 0;
-      setTimeLeft(getTimeLimit(diff, 'survival', undefined, receivedProblem.questionNum));
-      resetAnswerTracking();
-      
-      if (receivedProblem.questionNum === 1 && preGameCountdown === null && !gameOver) {
-        setPreGameCountdown(3);
-      } else {
-        startTimer();
+    if (!isHost && !isComputer && receivedProblem && !gameOverRef.current) {
+      // Only process if this is a NEWER question than what we currently have
+      if (receivedProblem.questionNum > questionNumRef.current) {
+        setCurrentProblem({
+          display: receivedProblem.display,
+          answer: receivedProblem.answer,
+          stringAnswer: receivedProblem.stringAnswer,
+        } as MathProblem);
+        setQuestionNum(receivedProblem.questionNum);
+        setUserInput('');
+        setFeedback(null);
+        setIsTransitioning(false);
+        setWaitingForOpponent(false);
+        setMyAnsweredQ(0);
+        feedbackOpacity.value = 0;
+        setTimeLeft(getTimeLimit(diff, 'survival', undefined, receivedProblem.questionNum));
+        resetAnswerTracking();
+        problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
+
+        if (receivedProblem.questionNum === 1 && preGameCountdown === null && !gameOver) {
+          setPreGameCountdown(3);
+        } else {
+          startTimerRef.current?.();
+        }
+      } else if (receivedProblem.questionNum === 1 && questionNumRef.current <= 1 && !currentProblem) {
+        // Initial Q1: only process if we don't have a problem yet
+        setCurrentProblem({
+          display: receivedProblem.display,
+          answer: receivedProblem.answer,
+          stringAnswer: receivedProblem.stringAnswer,
+        } as MathProblem);
+        setQuestionNum(1);
+        setUserInput('');
+        setFeedback(null);
+        setIsTransitioning(false);
+        setWaitingForOpponent(false);
+        feedbackOpacity.value = 0;
+        setTimeLeft(getTimeLimit(diff, 'survival', undefined, 1));
+        resetAnswerTracking();
+
+        if (preGameCountdown === null && !gameOver) {
+          setPreGameCountdown(3);
+        }
       }
     }
   }, [receivedProblem]);
@@ -415,11 +443,33 @@ export default function MultiplayerGameScreen() {
   }, [currentRoom?.guest_score, currentRoom?.host_score, currentRoom?.guest_lives, currentRoom?.host_lives, isHost]);
 
   // ═══ Guest: Watch for bothAnsweredSignal (advance to next question) ═══
+  // This is the PRIMARY mechanism for the guest to receive questions 2+.
   useEffect(() => {
     if (!isHost && !isComputer && bothAnsweredSignal && !gameOverRef.current) {
-      setWaitingForOpponent(false);
+      // Guard: only process if this is a NEW question (strictly greater than current)
+      if (bothAnsweredSignal.questionNum > questionNumRef.current) {
+        setCurrentProblem({
+          display: bothAnsweredSignal.display,
+          answer: bothAnsweredSignal.answer,
+          stringAnswer: bothAnsweredSignal.stringAnswer,
+        } as MathProblem);
+        setQuestionNum(bothAnsweredSignal.questionNum);
+        setUserInput('');
+        setFeedback(null);
+        setIsTransitioning(false);
+        setWaitingForOpponent(false);
+        setMyAnsweredQ(0); // reset for new question
+        feedbackOpacity.value = 0;
+        setTimeLeft(getTimeLimit(diff, 'survival', undefined, bothAnsweredSignal.questionNum));
+        resetAnswerTracking();
+        problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
+        startTimerRef.current?.();
+      } else {
+        // Same or older question — just clear waiting state
+        setWaitingForOpponent(false);
+      }
     }
-  }, [bothAnsweredSignal, isHost, isComputer]);
+  }, [bothAnsweredSignal, isHost, isComputer, diff, resetAnswerTracking]);
 
   // ═══ Handle opponent answer broadcast (instant stats + sound + match end) ═══
   useEffect(() => {
@@ -564,9 +614,9 @@ export default function MultiplayerGameScreen() {
     }
   }, [timeLeft, isTransitioning, gameOver, currentProblem]);
 
-  // ─── Award coins on game over (PvP winner only) ───
+  // ─── Award coins on game over (winner gets coins) ───
   useEffect(() => {
-    if (!gameOver || isComputer || winner !== 'you' || totalCoinsEarned <= 0) return;
+    if (!gameOver || winner !== 'you' || totalCoinsEarned <= 0) return;
     // Award coins locally
     const { addCoins } = useGameState.getState();
     addCoins(totalCoinsEarned);
@@ -597,32 +647,69 @@ export default function MultiplayerGameScreen() {
     setCurrentProblem(newProblem);
     setUserInput('');
     setQuestionNum(nextNum);
-    setMyAnsweredQ(0); // reset for new question
+    setMyAnsweredQ(0); // reset for new question — will be compared against nextNum
     setTimeLeft(getTimeLimit(diff, 'survival', undefined, nextNum));
     setFeedback(null);
     setIsTransitioning(false);
     setWaitingForOpponent(false);
     feedbackOpacity.value = 0;
+    // Reset opponent tracking ref so the host doesn't see stale data from previous question
+    opponentAnsweredRef.current = null;
     problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
     startTimer();
   }, [diff, advanceQuestion, startTimer]);
 
-  // Keep triggerAdvance ref in sync
+  // Keep triggerAdvance and startTimer refs in sync
   useEffect(() => { triggerAdvanceRef.current = triggerAdvance; }, [triggerAdvance]);
+  useEffect(() => { startTimerRef.current = startTimer; }, [startTimer]);
 
   // ═══ Safety net: if host is stuck waiting but opponent already answered, unstick ═══
   useEffect(() => {
     if (!isHost || isComputer || !waitingForOpponent || gameOverRef.current) return;
-    // Check every 2 seconds if we're stuck
-    const interval = setInterval(() => {
-      const oppAns = opponentAnsweredRef.current;
-      if (oppAns && oppAns.questionNum >= questionNumRef.current && myAnsweredQRef.current >= questionNumRef.current) {
-        setWaitingForOpponent(false);
-        triggerAdvance();
+
+    // First: quick check from local ref (immediate unstick if broadcast arrived)
+    const oppAns = opponentAnsweredRef.current;
+    if (oppAns && oppAns.questionNum >= questionNumRef.current && myAnsweredQRef.current >= questionNumRef.current) {
+      setWaitingForOpponent(false);
+      setTimeout(() => triggerAdvanceRef.current?.(), 1200);
+      return;
+    }
+
+    // Fallback: poll DB every 3 seconds in case the broadcast was missed
+    const interval = setInterval(async () => {
+      if (gameOverRef.current) return;
+      const curQ = questionNumRef.current;
+      const { data } = await supabase
+        .from('multiplayer_rooms')
+        .select('host_answered_q, guest_answered_q, status')
+        .eq('id', roomId)
+        .single();
+      if (data && data.status !== 'finished' && data.status !== 'cancelled') {
+        const hostDone = data.host_answered_q >= curQ;
+        const guestDone = data.guest_answered_q >= curQ;
+        if (hostDone && guestDone) {
+          setWaitingForOpponent(false);
+          triggerAdvanceRef.current?.();
+        }
       }
-    }, 2000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [waitingForOpponent, isHost, isComputer, triggerAdvance]);
+  }, [waitingForOpponent, isHost, isComputer, roomId]);
+
+  // ═══ Safety net (guest): if stuck waiting, check room state ═══
+  // The guest receives questions via two broadcast channels (question + both_answered).
+  // If both are missed (very rare), this effect detects the advance via currentRoom realtime updates.
+  useEffect(() => {
+    if (isHost || isComputer || !waitingForOpponent || gameOverRef.current) return;
+    if (!currentRoom) return;
+
+    // If the room's current_question_num has moved past our question, the host already advanced
+    if (currentRoom.current_question_num > questionNumRef.current) {
+      // Just clear waiting — the question broadcasts should arrive shortly
+      // (they travel via a faster channel than Postgres changes)
+      setWaitingForOpponent(false);
+    }
+  }, [waitingForOpponent, isHost, isComputer, currentRoom?.current_question_num]);
 
   // ═══ After a player answers: decide whether to wait or advance ═══
   const afterMyAnswer = useCallback((didMatchEnd: boolean) => {
@@ -757,12 +844,10 @@ export default function MultiplayerGameScreen() {
       setMyScore((prev) => prev + 1);
       setFeedback('correct');
 
-      // Award coins for PvP matches only (not vs computer)
-      if (!isComputer) {
-        const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft, 'survival', questionNum);
-        setTotalCoinsEarned((prev) => prev + coinResult.total);
-        setLastCoinReward({ coins: coinResult.total, multiplier: coinResult.multiplier });
-      }
+      // Award coins for correct answers
+      const coinResult = calculateQuestionCoins(diff, timeLimit, timeLeft, 'survival', questionNum);
+      setTotalCoinsEarned((prev) => prev + coinResult.total);
+      setLastCoinReward({ coins: coinResult.total, multiplier: coinResult.multiplier });
 
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -904,7 +989,7 @@ export default function MultiplayerGameScreen() {
       <LinearGradient colors={['#1a0533', '#0d1b2a', '#1b2838']} style={[styles.container, { paddingTop: topPad }]}>
         <View style={styles.waitingContainer}>
           <Animated.View entering={ZoomIn.duration(300)}>
-            <Text style={styles.waitingEmoji}>⚔️</Text>
+            <MaterialCommunityIcons name="sword-cross" size={64} color="#FF6B6B" />
           </Animated.View>
           <Animated.Text entering={FadeIn.delay(300)} style={styles.waitingText}>
             Waiting for battle to start...
@@ -924,7 +1009,11 @@ export default function MultiplayerGameScreen() {
       <LinearGradient colors={['#1a0533', '#0d1b2a', '#1b2838']} style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
         <View style={styles.gameOverContainer}>
           <Animated.View entering={ZoomIn.springify().damping(12)}>
-            <Text style={styles.gameOverEmoji}>{isWinner ? '🏆' : '😢'}</Text>
+            {isWinner ? (
+              <Ionicons name="trophy" size={64} color="#FFD700" />
+            ) : (
+              <Ionicons name="sad" size={64} color="#FF6B6B" />
+            )}
           </Animated.View>
           <Animated.Text
             entering={FadeIn.delay(300)}
@@ -957,15 +1046,13 @@ export default function MultiplayerGameScreen() {
               <Text style={styles.statLabel}>Your Balloons Left</Text>
               <Text style={styles.statValue}>{isComputer ? 5 - myWrong : myLives}</Text>
             </View>
-            {/* Show coins earned for PvP matches */}
-            {!isComputer && (
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>🪙 Coins Earned</Text>
-                <Text style={[styles.statValue, { color: isWinner && totalCoinsEarned > 0 ? '#FFD700' : '#FF6B6B' }]}>
-                  {isWinner ? `+${totalCoinsEarned}` : '0'}
-                </Text>
-              </View>
-            )}
+            {/* Show coins earned */}
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}><Ionicons name="cash" size={16} color="#FFD700" /> Coins Earned</Text>
+              <Text style={[styles.statValue, { color: isWinner && totalCoinsEarned > 0 ? '#FFD700' : '#FF6B6B' }]}>
+                {isWinner ? `+${totalCoinsEarned}` : '0'}
+              </Text>
+            </View>
           </Animated.View>
           <Pressable style={styles.returnBtn} onPress={() => router.replace('/lobby')}>
             <Text style={styles.returnBtnText}>Return to Lobby</Text>
@@ -988,7 +1075,7 @@ export default function MultiplayerGameScreen() {
         </Pressable>
         <View style={[styles.diffBadge, { backgroundColor: getDiffColor() }]}>
           <Text style={styles.diffText}>
-            ⚔️ 1v1 {diff.charAt(0).toUpperCase() + diff.slice(1)}
+            <MaterialCommunityIcons name="sword-cross" size={14} color="#fff" /> 1v1 {diff.charAt(0).toUpperCase() + diff.slice(1)}
           </Text>
         </View>
         <Timer timeLeft={timeLeft} totalTime={timeLimit} isPaused={false} />
@@ -1047,20 +1134,20 @@ export default function MultiplayerGameScreen() {
       <View style={[styles.statsRow, isVerySmallScreen && { paddingVertical: 2 }]}>
         {/* Your stats */}
         <View style={styles.statsSide}>
-          <Text style={[styles.playerLabel, { color: '#4ECDC4' }, isVerySmallScreen && { fontSize: 9 }]}>👤 YOU</Text>
+          <Text style={[styles.playerLabel, { color: '#4ECDC4' }, isVerySmallScreen && { fontSize: 9 }]}><Ionicons name="person" size={isVerySmallScreen ? 9 : 11} color="#4ECDC4" /> YOU</Text>
           <View style={styles.livesRow}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <Text key={i} style={{ fontSize: isVerySmallScreen ? 10 : 12, opacity: i < (5 - myWrong) ? 1 : 0.2 }}>🎈</Text>
+              <Ionicons key={i} name="balloon" size={isVerySmallScreen ? 10 : 12} color="#FF6B6B" style={{ opacity: i < (5 - myWrong) ? 1 : 0.2 }} />
             ))}
           </View>
           <Text style={[styles.scoreText, isVerySmallScreen && { fontSize: 9 }]}>Score: {myScore}</Text>
         </View>
         {/* Opponent stats */}
         <View style={styles.statsSide}>
-          <Text style={[styles.playerLabel, { color: '#FF6B6B' }, isVerySmallScreen && { fontSize: 9 }]}>{isComputer ? '🤖 CPU' : '👤 OPP'}</Text>
+          <Text style={[styles.playerLabel, { color: '#FF6B6B' }, isVerySmallScreen && { fontSize: 9 }]}>{isComputer ? <><Ionicons name="hardware-chip" size={isVerySmallScreen ? 9 : 11} color="#FF6B6B" /> CPU</> : <><Ionicons name="person" size={isVerySmallScreen ? 9 : 11} color="#FF6B6B" /> OPP</>}</Text>
           <View style={styles.livesRow}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <Text key={i} style={{ fontSize: isVerySmallScreen ? 10 : 12, opacity: i < opponentLives ? 1 : 0.2 }}>🎈</Text>
+              <Ionicons key={i} name="balloon" size={isVerySmallScreen ? 10 : 12} color="#FF6B6B" style={{ opacity: i < opponentLives ? 1 : 0.2 }} />
             ))}
           </View>
           <Text style={[styles.scoreText, isVerySmallScreen && { fontSize: 9 }]}>Score: {opponentScore}</Text>
@@ -1139,7 +1226,7 @@ export default function MultiplayerGameScreen() {
         <View style={StyleSheet.absoluteFill}>
           <View style={styles.waitingOverlayContainer}>
             <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
-              <Text style={styles.waitingOverlayEmoji}>⏳</Text>
+              <Ionicons name="hourglass" size={48} color="#4ECDC4" />
               <Text style={styles.waitingOverlayText}>Waiting for opponent…</Text>
               <Text style={styles.waitingOverlaySubtext}>Your answer has been submitted</Text>
             </Animated.View>
@@ -1151,7 +1238,7 @@ export default function MultiplayerGameScreen() {
       {showSurrenderConfirm && (
         <View style={styles.waitingOverlayContainer}>
           <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
-            <Text style={styles.waitingOverlayEmoji}>🏳️</Text>
+            <Ionicons name="flag" size={48} color="#FF6B6B" />
             <Text style={styles.waitingOverlayText}>Surrender Match?</Text>
             <Text style={styles.waitingOverlaySubtext}>You will lose the match and all accumulated coins.</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
@@ -1176,7 +1263,7 @@ export default function MultiplayerGameScreen() {
       {showSurrenderConfirm && (
         <View style={styles.waitingOverlayContainer}>
           <Animated.View entering={ZoomIn.duration(300)} style={styles.waitingOverlayCard}>
-            <Text style={styles.waitingOverlayEmoji}>🏳️</Text>
+            <Ionicons name="flag" size={48} color="#FF6B6B" />
             <Text style={styles.waitingOverlayText}>Surrender Match?</Text>
             <Text style={styles.waitingOverlaySubtext}>You will lose the match and all accumulated coins.</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>

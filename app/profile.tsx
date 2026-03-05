@@ -62,6 +62,17 @@ export default function ProfileScreen() {
       setError('Username must be at least 3 characters');
       return;
     }
+    // No space for username
+    if(newUsername.trim().includes(' ')) {
+      setError('Username cannot contain spaces');
+      return;
+    }
+
+    //max username length
+    if(newUsername.trim().length > 20) {
+      setError('Username cannot be longer than 20 characters');
+      return;
+    }
 
     setLoading(true);
     setError(null);

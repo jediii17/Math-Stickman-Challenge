@@ -92,7 +92,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   const subscribeToRoom = useCallback((roomId: number) => {
     // Cleanup previous subscription
     if (roomChannelRef.current) {
-      roomChannelRef.current.unsubscribe();
+      supabase.removeChannel(roomChannelRef.current);
     }
 
     const channel = supabase
@@ -129,7 +129,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const joinGameChannel = useCallback((roomId: number) => {
     if (gameChannelRef.current) {
-      gameChannelRef.current.unsubscribe();
+      supabase.removeChannel(gameChannelRef.current);
     }
 
     const channel = supabase
@@ -172,7 +172,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const leaveGameChannel = useCallback(() => {
     if (gameChannelRef.current) {
-      gameChannelRef.current.unsubscribe();
+      supabase.removeChannel(gameChannelRef.current);
       gameChannelRef.current = null;
     }
     setReceivedProblem(null);
@@ -287,7 +287,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const leaveLobby = useCallback(() => {
     if (lobbyChannelRef.current) {
-      lobbyChannelRef.current.unsubscribe();
+      supabase.removeChannel(lobbyChannelRef.current);
       lobbyChannelRef.current = null;
     }
     setIsInLobby(false);
@@ -496,10 +496,11 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .update({ current_question_num: nextProblem.questionNum })
       .eq('id', room.id);
 
-    // Broadcast the next question to the guest
+    // Send the question via 'question' broadcast as a backup delivery channel
     broadcastQuestion(nextProblem);
 
-    // Broadcast "both_answered" signal (carries the new question for the guest)
+    // Broadcast "both_answered" signal — this is the PRIMARY source of next question for the guest.
+    // The guest has a questionNum guard to prevent double-processing from both channels.
     if (gameChannelRef.current) {
       gameChannelRef.current.send({
         type: 'broadcast',
@@ -557,7 +558,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const leaveRoom = useCallback(async () => {
     if (roomChannelRef.current) {
-      roomChannelRef.current.unsubscribe();
+      supabase.removeChannel(roomChannelRef.current);
       roomChannelRef.current = null;
     }
 
@@ -581,9 +582,9 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   useEffect(() => {
     return () => {
-      if (lobbyChannelRef.current) lobbyChannelRef.current.unsubscribe();
-      if (roomChannelRef.current) roomChannelRef.current.unsubscribe();
-      if (gameChannelRef.current) gameChannelRef.current.unsubscribe();
+      if (lobbyChannelRef.current) supabase.removeChannel(lobbyChannelRef.current);
+      if (roomChannelRef.current) supabase.removeChannel(roomChannelRef.current);
+      if (gameChannelRef.current) supabase.removeChannel(gameChannelRef.current);
       if (inviteTimerRef.current) clearTimeout(inviteTimerRef.current);
     };
   }, []);
