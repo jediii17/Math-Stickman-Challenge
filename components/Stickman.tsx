@@ -25,10 +25,30 @@ interface StickmanProps {
   emojiReaction?: { emojis: string[]; type: 'correct' | 'wrong' | 'gameover' } | null;
   isShop?: boolean;
   forceShowBalloons?: boolean;
+  hideStickman?: boolean;
+  hideBackground?: boolean;
 }
-export default function Stickman({ wrongCount, size = 200, previewOverrides, hideArms = false, emojiReaction = null, isShop = false, forceShowBalloons = false }: StickmanProps) {
+export default function Stickman({ 
+  wrongCount, 
+  size = 200, 
+  previewOverrides, 
+  hideArms = false, 
+  emojiReaction = null, 
+  isShop = false, 
+  forceShowBalloons = false,
+  hideStickman = false,
+  hideBackground = false
+}: StickmanProps) {
   const storeEquipped = useGameState((state) => state.equippedAccessories);
-  const equipped = previewOverrides ? { ...storeEquipped, ...previewOverrides } : storeEquipped;
+  // If previewOverrides is provided (usually for an opponent), we use it as the source of truth.
+  // We do NOT spread storeEquipped here because that would leak the local user's clothes to the opponent.
+  const equipped = previewOverrides 
+    ? { 
+        hair: null, face: null, cheeks: null, mouth: null, 
+        upper: null, lower: null, shoes: null, balloons: null, 
+        back: null, tail: null, ...previewOverrides 
+      } 
+    : storeEquipped;
   const shake = useSharedValue(0);
   const scale = useSharedValue(1);
   // 5 balloon sway animations (horizontal float)
@@ -43,6 +63,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const birdX = useSharedValue(0);
   const flag1Rot = useSharedValue(0);
   const flag2Rot = useSharedValue(0);
+  const rocketFlame = useSharedValue(1);
   // Idle animations for the stickman
   const idleSway = useSharedValue(0);
   useEffect(() =>{
@@ -139,6 +160,15 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
         withTiming(-5, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
       ), -1, true);
     }
+    // Rocket flame pulse
+    rocketFlame.value = withRepeat(
+      withSequence(
+        withTiming(1.5, { duration: 100, easing: Easing.linear }),
+        withTiming(0.8, { duration: 100, easing: Easing.linear }),
+      ),
+      -1,
+      true
+    );
   }, []);
   const bodyAnimStyle = useAnimatedStyle(() => ({
     transform: [
@@ -164,6 +194,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   const birdAnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: birdX.value }] }));
   const flag1AnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flag1Rot.value }] }));
   const flag2AnimStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flag2Rot.value }] }));
+  const flameStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: rocketFlame.value }] }));
   // -- Layout constants --
   const w = size * 5.2;  // Card width – stretch edge to edge
   const h = size * 2.55; // Increased canvas height to fit balloons at top without clipping
@@ -2034,7 +2065,7 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
   return (
     <View style={[styles.container, { width: w, height: h, borderRadius: 16, overflow: 'hidden' }]}>{/* ===== SHOP: Dressing Room Background ===== */}{isShop && (
         <Svg style={{ position: 'absolute' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}><Defs><LinearGradient id="shopWallGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#FFF8E1" /><Stop offset="1" stopColor="#FFECB3" /></LinearGradient><LinearGradient id="shopFloorGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#D7CCC8" /><Stop offset="1" stopColor="#BCAAA4" /></LinearGradient></Defs>{/* Wall */}<Rect x={0} y={0} width={w} height={h} rx={16} fill="url(#shopWallGrad)" />{/* Floor */}<Rect x={0} y={groundY} width={w} height={h - groundY} fill="url(#shopFloorGrad)" />{/* Floor line */}<Line x1={0} y1={groundY} x2={w} y2={groundY} stroke="#A1887F" strokeWidth={2} />{/* Wood planks */}<Line x1={0} y1={groundY + (h - groundY) * 0.3} x2={w} y2={groundY + (h - groundY) * 0.3} stroke="#BCAAA4" strokeWidth={0.5} opacity={0.5} /><Line x1={0} y1={groundY + (h - groundY) * 0.6} x2={w} y2={groundY + (h - groundY) * 0.6} stroke="#BCAAA4" strokeWidth={0.5} opacity={0.5} />{/* Left curtain */}<Path d={`M0,0 Q${w*0.08},${h*0.05} ${w*0.03},${h*0.4} Q${w*0.06},${h*0.5} ${w*0.02},${groundY}`} fill="#E91E63" opacity={0.2} /><Path d={`M0,0 Q${w*0.05},${h*0.03} ${w*0.02},${h*0.35} Q${w*0.04},${h*0.45} ${w*0.01},${groundY}`} fill="#E91E63" opacity={0.3} />{/* Right curtain */}<Path d={`M${w},0 Q${w*0.92},${h*0.05} ${w*0.97},${h*0.4} Q${w*0.94},${h*0.5} ${w*0.98},${groundY}`} fill="#E91E63" opacity={0.2} /><Path d={`M${w},0 Q${w*0.95},${h*0.03} ${w*0.98},${h*0.35} Q${w*0.96},${h*0.45} ${w*0.99},${groundY}`} fill="#E91E63" opacity={0.3} />{/* Spotlight from above */}<Ellipse cx={cx} cy={groundY - bk * 0.05} rx={bk * 0.5} ry={bk * 0.04} fill="#FFF9C4" opacity={0.3} />{/* Decorative stars */}<Circle cx={w * 0.15} cy={h * 0.12} r={3} fill="#FFD54F" opacity={0.6} /><Circle cx={w * 0.85} cy={h * 0.08} r={2.5} fill="#FFD54F" opacity={0.5} /><Circle cx={w * 0.7} cy={h * 0.15} r={2} fill="#FFD54F" opacity={0.4} /><Circle cx={w * 0.3} cy={h * 0.18} r={2} fill="#FFD54F" opacity={0.4} />{/* Mirror frame (right side) */}<Rect x={w * 0.78} y={h * 0.2} width={w * 0.15} height={h * 0.35} rx={4} fill="#EFEBE9" stroke="#8D6E63" strokeWidth={2} /><Rect x={w * 0.79} y={h * 0.21} width={w * 0.13} height={h * 0.33} rx={3} fill="#E3F2FD" opacity={0.5} />{/* Clothes rack (left side) */}<Line x1={w * 0.05} y1={h * 0.25} x2={w * 0.22} y2={h * 0.25} stroke="#795548" strokeWidth={2.5} strokeLinecap="round" /><Line x1={w * 0.08} y1={h * 0.25} x2={w * 0.08} y2={groundY} stroke="#795548" strokeWidth={2} /><Line x1={w * 0.19} y1={h * 0.25} x2={w * 0.19} y2={groundY} stroke="#795548" strokeWidth={2} />{/* Hangers on rack */}<Path d={`M${w*0.10},${h*0.25} L${w*0.11},${h*0.28} L${w*0.13},${h*0.25}`} stroke="#9E9E9E" strokeWidth={1} fill="none" /><Path d={`M${w*0.14},${h*0.25} L${w*0.15},${h*0.28} L${w*0.17},${h*0.25}`} stroke="#9E9E9E" strokeWidth={1} fill="none" /></Svg>
-      )}{/* ===== GAME: Outdoor Scene Background ===== */}{!isShop && (
+      )}{/* ===== GAME: Outdoor Scene Background ===== */}{!isShop && !hideBackground && (
         <>
           {/* -- Layer 1: Deep Sky & Sun -- */}
           <Svg style={{ position: 'absolute' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
@@ -2156,11 +2187,16 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
                 <Circle cx={w * 0.88} cy={groundY - bk * 0.037} r={bk * 0.005} fill="#FFF176" />
               </G>
 
-              {/* Crashed Paper Airplanes */}
+              {/* Crashed Rockets */}
               {crashedPlanes.map((plane, i) => (
-                <G key={`crashed-${i}`} transform={`translate(${plane.x}, ${groundY - bk * 0.025}) rotate(${plane.rotation})`}>
-                  <Path d={`M0,0 L${bk * 0.08},${bk * 0.025} L0,${bk * 0.05} L${bk * 0.025},${bk * 0.025} Z`} fill="#E0E0E0" stroke="#BDBDBD" strokeWidth={0.5} />
-                  <Path d={`M${bk * 0.025},${bk * 0.025} L${bk * 0.06},${bk * 0.04} L${bk * 0.04},${bk * 0.08} Z`} fill="#BDBDBD" />
+                <G key={`crashed-${i}`} transform={`translate(${plane.x}, ${groundY - bk * 0.04}) rotate(${plane.rotation})`}>
+                  {/* Rocket Body */}
+                  <Rect x={0} y={0} width={bk * 0.08} height={bk * 0.03} rx={bk * 0.015} fill="#90A4AE" />
+                  {/* Nose Cone */}
+                  <Path d={`M${bk * 0.08},0 L${bk * 0.11},${bk * 0.015} L${bk * 0.08},${bk * 0.03} Z`} fill="#F44336" />
+                  {/* Fins */}
+                  <Path d={`M0,0 L${-bk * 0.02},${-bk * 0.01} L0,${bk * 0.015} Z`} fill="#37474F" />
+                  <Path d={`M0,${bk * 0.03} L${-bk * 0.02},${bk * 0.04} L0,${bk * 0.015} Z`} fill="#37474F" />
                 </G>
               ))}
             </Svg>
@@ -2181,7 +2217,8 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
       )}
 
       {/* ── Layer 6: Stickman Body (idle animation in game, static in shop) ── */}
-      <Animated.View style={[{ position: 'absolute', width: w, height: h }, bodyAnimStyle, !isShop ? idleAnimStyle : undefined]}>
+      {!hideStickman && (
+        <Animated.View style={[{ position: 'absolute', width: w, height: h, zIndex: 100 }, bodyAnimStyle, !isShop ? idleAnimStyle : undefined]}>
         <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           {/* -- Balloon Strings -- */}
           {(!isShop || forceShowBalloons) && balloonPositions.map((pos, i) => {
@@ -2284,7 +2321,8 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
             </G>
           </G>
         </Svg>
-      </Animated.View>
+        </Animated.View>
+      )}
       {/* -- Animated Balloon Overlays (game or shop preview) -- */}
       {(!isShop || forceShowBalloons) && balloonPositions.map((pos, i) =>{
         if (i >= 5 - displayWrong) return null; // popped (delayed)
@@ -2328,16 +2366,32 @@ export default function Stickman({ wrongCount, size = 200, previewOverrides, hid
                 <Circle key={`p-${j}`} cx={px} cy={py} r={balloonR * 0.12} fill={particleColor} opacity={0.8} />
               );
             })}{/* Center flash */}<Circle cx={balloonR * 2} cy={balloonR * 2} r={balloonR * 0.5} fill="white" opacity={0.6} /></Svg></Animated.View>
-      )}{/* -- Flying Paper Airplane (animated from left to balloon) -- */}<Animated.View
+      )}{/* -- Flying Rocket (animated from left to balloon) -- */}<Animated.View
         pointerEvents="none"
         style={[{
           position: 'absolute',
           left: 0,
           top: 0,
-          width: bk * 0.12,
+          width: bk * 0.15,
           height: bk * 0.08,
+          flexDirection: 'row',
+          alignItems: 'center',
         }, atkPlaneStyle]}
-      ><Svg width={bk * 0.12} height={bk * 0.08} viewBox={`0 0 ${bk * 0.12} ${bk * 0.08}`}><Path d={`M${bk*0.12},${bk*0.025} L0,0 L${bk*0.03},${bk*0.025} L0,${bk*0.05} Z`} fill="#FFFFFF" stroke="#BDBDBD" strokeWidth={0.8} /><Path d={`M${bk*0.03},${bk*0.025} L${bk*0.06},${bk*0.035} L${bk*0.045},${bk*0.065} Z`} fill="#E0E0E0" /></Svg></Animated.View>{/* -- Emoji Reaction Bubbles -- */}{emojiReaction && emojiReaction.emojis.map((emoji, i) =>{
+      >
+        {/* Flame (behind) */}
+        <Animated.View style={[{ width: bk * 0.04, height: bk * 0.02, backgroundColor: '#FFD700', borderTopLeftRadius: bk * 0.02, borderBottomLeftRadius: bk * 0.02, marginLeft: -bk * 0.01 }, flameStyle]} />
+        <Svg width={bk * 0.11} height={bk * 0.06} viewBox={`0 0 ${bk * 0.11} ${bk * 0.06}`}>
+          {/* Rocket Body */}
+          <Rect x={0} y={bk * 0.015} width={bk * 0.08} height={bk * 0.03} rx={bk * 0.015} fill="#90A4AE" />
+          {/* Nose Cone */}
+          <Path d={`M${bk * 0.08},${bk * 0.015} L${bk * 0.11},${bk * 0.03} L${bk * 0.08},${bk * 0.045} Z`} fill="#F44336" />
+          {/* Fins */}
+          <Path d={`M0,${bk * 0.015} L${-bk * 0.02},0 L0,${bk * 0.015} Z`} fill="#37474F" />
+          <Path d={`M0,${bk * 0.045} L${-bk * 0.02},${bk * 0.06} L0,${bk * 0.045} Z`} fill="#37474F" />
+          {/* Window */}
+          <Circle cx={bk * 0.04} cy={bk * 0.03} r={bk * 0.008} fill="#B3E5FC" />
+        </Svg>
+      </Animated.View>{/* -- Emoji Reaction Bubbles -- */}{emojiReaction && emojiReaction.emojis.map((emoji, i) =>{
         const emojiX = i === 0 ? cx + bk * 0.4 : cx - bk * 0.4;
         const emojiY = headCY - bk * 0.35;
         const bgColor = emojiReaction.type === 'correct' ? 'rgba(76, 175, 80, 0.9)'

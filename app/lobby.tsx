@@ -147,18 +147,20 @@ export default function LobbyScreen() {
             <View>
               <Text style={styles.playerName}>{item.username}</Text>
               <View style={styles.onlineDot}>
-                <View style={styles.dot} />
-                <Text style={styles.onlineText}>Online</Text>
+                <View style={[styles.dot, item.status === 'playing' && { backgroundColor: Colors.secondary }]} />
+                <Text style={[styles.onlineText, item.status === 'playing' && { color: Colors.secondary }]}>
+                  {item.status === 'playing' ? 'In Match' : 'Online'}
+                </Text>
               </View>
             </View>
           </View>
           <Pressable
             style={[
               styles.inviteBtn,
-              isInvited && styles.inviteBtnDisabled,
+              (isInvited || item.status === 'playing') && styles.inviteBtnDisabled,
             ]}
             onPress={() => handleInvite(item)}
-            disabled={isInvited || waitingForResponse}
+            disabled={isInvited || waitingForResponse || item.status === 'playing'}
           >
             {isInvited ? (
               <ActivityIndicator color="#fff" size="small" />

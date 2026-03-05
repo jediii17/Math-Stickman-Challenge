@@ -14,12 +14,12 @@ interface NumberPadProps {
 }
 
 export default function NumberPad({ onPress, onDelete, onSubmit, disabled, isSmallScreen = false, screenHeight = 800 }: NumberPadProps) {
-  // Proportional sizing: keys take up ~35% of screen height for 5 rows
-  const availableHeight = screenHeight * 0.35;
-  const keyHeight = Math.max(36, Math.min(56, Math.floor((availableHeight - 4 * 6) / 5)));
-  const keyWidth = Math.max(55, Math.min(80, Math.round(keyHeight * 1.4)));
-  const keyGap = Math.max(4, Math.min(8, Math.round(keyHeight * 0.12)));
-  const fontSize = Math.max(16, Math.min(24, Math.round(keyHeight * 0.42)));
+  // Proportional sizing: keys should be compact to leave room for arena + input
+  const availableHeight = screenHeight * (screenHeight < 700 ? 0.24 : screenHeight < 800 ? 0.26 : 0.30);
+  const keyHeight = Math.max(32, Math.min(48, Math.floor((availableHeight - 4 * 6) / 5)));
+  const keyWidth = Math.max(50, Math.min(72, Math.round(keyHeight * 1.4)));
+  const keyGap = Math.max(3, Math.min(6, Math.round(keyHeight * 0.10)));
+  const fontSize = Math.max(14, Math.min(22, Math.round(keyHeight * 0.42)));
   const goKeyWidth = (keyWidth * 3) + (keyGap * 2);
 
   const dynamicRow = { gap: keyGap };
@@ -126,8 +126,8 @@ export default function NumberPad({ onPress, onDelete, onSubmit, disabled, isSma
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingHorizontal: 20,
-    gap: 8,
+    paddingHorizontal: 12, // Reduced from 20
+    gap: 4, // Reduced from 8
   },
   row: {
     flexDirection: 'row',

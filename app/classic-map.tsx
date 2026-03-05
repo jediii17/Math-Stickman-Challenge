@@ -695,7 +695,7 @@ export default function ClassicMapScreen() {
   const stickmanAnimStyle = useAnimatedStyle(() => ({
     position: 'absolute' as const,
     left: stickmanX.value - 45,
-    top: stickmanY.value - NODE_SIZE - 75,
+    top: stickmanY.value - 128, // Standing on top edge of circle
     width: 90,
     height: 90,
     zIndex: 100,
@@ -823,10 +823,10 @@ export default function ClassicMapScreen() {
       sY: stickmanY.value,
     }),
     (current) => {
-      // Calculate off-screen status
+      // Calculate off-screen status - match stickmanAnimStyle top offset (-128)
       const scrollOffset = current.scroll;
-      const actualStickmanY = current.sY - NODE_SIZE - 75; 
-      const actualStickmanBottom = actualStickmanY + 90;
+      const actualStickmanY = current.sY - 128; 
+      const actualStickmanBottom = actualStickmanY + 117; // size 90 * 1.3 height
       
       const screenTop = scrollOffset + topPadding + 60;
       const screenBottom = scrollOffset + screenHeight;
@@ -1030,7 +1030,7 @@ export default function ClassicMapScreen() {
 
           {/* Walking Stickman (AnimatedStickman with accessories) */}
           <Animated.View style={stickmanAnimStyle}>
-            <AnimatedStickman size={110} hideArms={false} />
+            <AnimatedStickman size={90} hideArms={false} />
           </Animated.View>
 
           {/* "You're here" floating indicator above stickman */}
@@ -1041,7 +1041,7 @@ export default function ClassicMapScreen() {
               style={{
                 position: 'absolute',
                 left: stickmanPosRef.current.x - 60,
-                top: stickmanPosRef.current.y - NODE_SIZE - 75 - 44,
+                top: stickmanPosRef.current.y - 128 - 44, // Match stickman top offset (-128)
                 width: 120,
                 alignItems: 'center',
                 zIndex: 200,
