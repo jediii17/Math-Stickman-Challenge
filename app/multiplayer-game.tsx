@@ -951,7 +951,7 @@ export default function MultiplayerGameScreen() {
       await leaveRoom();
       leaveGameChannel();
     }
-    router.replace('/lobby');
+    router.back();
   };
 
   const feedbackAnimStyle = useAnimatedStyle(() => ({
@@ -1054,7 +1054,7 @@ export default function MultiplayerGameScreen() {
               </Text>
             </View>
           </Animated.View>
-          <Pressable style={styles.returnBtn} onPress={() => router.replace('/lobby')}>
+          <Pressable style={styles.returnBtn} onPress={() => router.back()}>
             <Text style={styles.returnBtnText}>Return to Lobby</Text>
           </Pressable>
         </View>

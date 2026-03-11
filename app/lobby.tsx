@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -29,6 +29,8 @@ type Difficulty = 'easy' | 'average' | 'hard';
 export default function LobbyScreen() {
   const insets = useSafeAreaInsets();
   const { user, isGuest } = useAuth();
+  const { supabase } = require('@/lib/supabase');
+
   const {
     onlinePlayers,
     pendingInvitation,
@@ -41,6 +43,7 @@ export default function LobbyScreen() {
     declineInvite,
     startMatch,
     leaveRoom,
+    setPresenceStatus,
   } = useMultiplayer(user?.id ?? null, user?.username ?? null);
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
@@ -69,6 +72,7 @@ export default function LobbyScreen() {
       }
     }
     if (currentRoom?.status === 'playing') {
+      setPresenceStatus('playing');
       router.push({
         pathname: '/multiplayer-game',
         params: {
@@ -78,11 +82,37 @@ export default function LobbyScreen() {
         },
       });
     }
-    if (currentRoom?.status === 'cancelled') {
+    if (currentRoom?.status === 'cancelled' || currentRoom?.status === 'finished') {
       setWaitingForResponse(false);
       setInvitedPlayerId(null);
+      leaveRoom(); // Restores presence to 'online' and clears room
     }
   }, [currentRoom?.status]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Sync room state when lobby regains focus (e.g. returning from a match)
+      const syncRoomState = async () => {
+        if (currentRoom?.id) {
+          const { data } = await supabase
+            .from('multiplayer_rooms')
+            .select('status')
+            .eq('id', currentRoom.id)
+            .single();
+          
+          if (data && (data.status === 'finished' || data.status === 'cancelled')) {
+            setWaitingForResponse(false);
+            setInvitedPlayerId(null);
+            leaveRoom();
+          }
+        } else if (isInLobby && user) {
+          // Double check we are online and not stuck in 'playing' if we don't have a room
+          setPresenceStatus('online');
+        }
+      };
+      syncRoomState();
+    }, [currentRoom?.id, isInLobby, user, leaveRoom, setPresenceStatus])
+  );
 
   const handleInvite = useCallback(async (player: OnlinePlayer) => {
     setInvitedPlayerId(player.id);

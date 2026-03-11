@@ -2218,7 +2218,7 @@ export default function Stickman({
 
       {/* ── Layer 6: Stickman Body (idle animation in game, static in shop) ── */}
       {!hideStickman && (
-        <Animated.View style={[{ position: 'absolute', width: w, height: h, zIndex: 100 }, bodyAnimStyle, !isShop ? idleAnimStyle : undefined]}>
+        <Animated.View style={[{ position: 'absolute', width: w, height: h, zIndex: 100, elevation: 100 }, bodyAnimStyle, !isShop ? idleAnimStyle : undefined]}>
         <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           {/* -- Balloon Strings -- */}
           {(!isShop || forceShowBalloons) && balloonPositions.map((pos, i) => {
@@ -2339,6 +2339,8 @@ export default function Stickman({
               top: pos.y - bH / 2,
               width: bW,
               height: bH,
+              zIndex: 110,
+              elevation: 110,
             }, balloonSwayStyles[i]]}
           >{renderBalloonShape(equipped.balloons, color, bW, bH, balloonR)}</Animated.View>
         );

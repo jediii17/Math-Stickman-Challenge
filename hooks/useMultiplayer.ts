@@ -249,8 +249,13 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<{ id: string; username: string; status: 'online' | 'playing' }>();
         const players: OnlinePlayer[] = [];
+        
         for (const [key, presences] of Object.entries(state)) {
+          // Note: we still filter out our own user ID so we don't show up in our own lobby list
           if (key === userId) continue;
+          
+          // Supabase presence might have multiple connections for the same user, 
+          // we just take the first one (most recent status)
           const p = presences[0];
           if (p) {
             players.push({
@@ -261,6 +266,8 @@ export function useMultiplayer(userId: string | null, username: string | null) {
             });
           }
         }
+        
+        // Update the state with the complete list of *other* players currently in the channel
         setOnlinePlayers(players);
       })
       .on('broadcast', { event: 'invite' }, ({ payload }) => {
@@ -294,12 +301,24 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const leaveLobby = useCallback(() => {
     if (lobbyChannelRef.current) {
+      // Untrack presence before removing channel
+      if (userId) {
+        lobbyChannelRef.current.untrack();
+      }
       supabase.removeChannel(lobbyChannelRef.current);
       lobbyChannelRef.current = null;
     }
     setIsInLobby(false);
     setOnlinePlayers([]);
-  }, []);
+  }, [userId]);
+
+  // ───── Set Presence Status Manually ─────
+
+  const setPresenceStatus = useCallback((status: 'online' | 'playing') => {
+    if (lobbyChannelRef.current && userId && username) {
+      lobbyChannelRef.current.track({ id: userId, username, status });
+    }
+  }, [userId, username]);
 
   // ───── Send an invitation ─────
 
@@ -633,5 +652,6 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     broadcastGameStart,
     broadcastAccessories,
     surrenderMatch,
+    setPresenceStatus,
   };
 }

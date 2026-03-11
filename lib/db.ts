@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, resetSupabaseClient } from './supabase';
 import { Alert } from 'react-native';
 
 // --- Retry helper for resilient DB calls ---
@@ -54,11 +54,18 @@ async function withRetry<T>(
 ): Promise<T> {
   let lastError: any;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      console.log(`[db.ts] Resetting Supabase client before attempt ${attempt + 1}...`);
+      resetSupabaseClient();
+      await delay(baseDelay * Math.pow(2, attempt - 1));
+    }
+
     try {
       console.log(`[db.ts] Executing query... Attempt ${attempt + 1}/${maxRetries + 1}`);
       
+      const REQUEST_TIMEOUT_MS = 8000;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Supabase request timed out after 30000ms')), 30000);
+        setTimeout(() => reject(new Error(`Supabase request timed out after ${REQUEST_TIMEOUT_MS}ms`)), REQUEST_TIMEOUT_MS);
       });
 
       const result = await Promise.race([fn(), timeoutPromise]);
@@ -68,9 +75,8 @@ async function withRetry<T>(
       console.warn(`[db.ts] Query failed on attempt ${attempt + 1}:`, error.message || error);
       lastError = error;
       if (attempt < maxRetries) {
-        console.log(`[db.ts] Refreshing session and waiting ${baseDelay * Math.pow(2, attempt)}ms before next attempt...`);
+        // We still ensure session just in case it actually was a token issue
         await ensureSession();
-        await delay(baseDelay * Math.pow(2, attempt));
       }
     }
   }
