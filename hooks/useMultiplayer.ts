@@ -69,6 +69,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   const [matchEnded, setMatchEnded] = useState<{ winnerId: string; reason?: 'surrender' } | null>(null);
   const [opponentAccessories, setOpponentAccessories] = useState<Record<string, string | null> | null>(null);
 
+  const locallyFinishedRef = useRef(false);
   const lobbyChannelRef = useRef<RealtimeChannel | null>(null);
   const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const gameChannelRef = useRef<RealtimeChannel | null>(null);
@@ -143,6 +144,9 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .on('broadcast', { event: 'player_answered' }, ({ payload }) => {
         // The other player answered — update local tracking
         if (payload.playerId !== userId) {
+          if (payload.matchEnded || payload.livesLeft <= 0) {
+            locallyFinishedRef.current = true;
+          }
           setOpponentAnsweredCurrentQ(payload);
         }
       })
@@ -157,11 +161,13 @@ export function useMultiplayer(userId: string | null, username: string | null) {
         }
       })
       .on('broadcast', { event: 'match_end' }, ({ payload }) => {
+        locallyFinishedRef.current = true;
         setMatchEnded({ winnerId: payload.winnerId, reason: payload.reason });
       })
       .on('broadcast', { event: 'surrender' }, ({ payload }) => {
         // Opponent surrendered
         if (payload.playerId !== userId) {
+          locallyFinishedRef.current = true;
           setMatchEnded({ winnerId: userId!, reason: 'surrender' });
         }
       })
@@ -180,6 +186,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     setOpponentAnsweredCurrentQ(null);
     setBothAnsweredSignal(null);
     setMatchEnded(null);
+    locallyFinishedRef.current = false;
   }, []);
 
   const broadcastAccessories = useCallback((accessories: Record<string, string | null>) => {
@@ -443,6 +450,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     }
 
     if (didEnd) {
+      locallyFinishedRef.current = true;
       const winnerId = params.isHost ? room.guest_id : room.host_id;
       // Broadcast match end to both clients
       if (gameChannelRef.current && winnerId) {
@@ -464,6 +472,8 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     if (!room || room.status === 'finished') return;
 
     const winnerId = userId === room.host_id ? room.guest_id : room.host_id;
+
+    locallyFinishedRef.current = true;
 
     // Update DB
     await supabase
@@ -531,6 +541,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     const updates: Record<string, any> = { [field]: newLives };
 
     if (newLives <= 0) {
+      locallyFinishedRef.current = true;
       updates.status = 'finished';
       updates.winner_id = isHost ? room.guest_id : room.host_id;
     }
@@ -563,7 +574,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     }
 
     const room = currentRoomRef.current;
-    if (room && room.status !== 'finished') {
+    if (room && room.status !== 'finished' && !locallyFinishedRef.current) {
       await supabase
         .from('multiplayer_rooms')
         .update({ status: 'cancelled' })
