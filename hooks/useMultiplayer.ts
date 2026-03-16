@@ -411,15 +411,16 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
     if (params.isCorrect) {
       const scoreField = params.isHost ? 'host_score' : 'guest_score';
-      const currentScore = params.isHost ? room.host_score : room.guest_score;
-      updates[scoreField] = currentScore + 1;
+      // Use caller's accurate local score instead of stale room data
+      updates[scoreField] = params.localScore;
     } else {
       const livesField = params.isHost ? 'host_lives' : 'guest_lives';
-      const currentLives = params.isHost ? room.host_lives : room.guest_lives;
-      const newLives = currentLives - 1;
-      updates[livesField] = newLives;
+      // Use caller's accurate local lives instead of stale room data
+      // (room ref can lag behind due to Postgres realtime subscription delay,
+      //  causing lives to "bounce" or prematurely trigger game-over)
+      updates[livesField] = params.localLives;
 
-      if (newLives <= 0) {
+      if (params.localLives <= 0) {
         updates.status = 'finished';
         updates.winner_id = params.isHost ? room.guest_id : room.host_id;
       }
@@ -565,6 +566,14 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       .eq('id', room.id);
   }, []);
 
+  // ───── Update presence status (called by MultiplayerProvider) ─────
+
+  const updatePresenceStatus = useCallback((status: 'online' | 'playing') => {
+    if (lobbyChannelRef.current && userId && username) {
+      lobbyChannelRef.current.track({ id: userId, username, status });
+    }
+  }, [userId, username]);
+
   // ───── Cancel / leave the room ─────
 
   const leaveRoom = useCallback(async () => {
@@ -582,12 +591,10 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     }
 
     // Restore presence to online
-    if (lobbyChannelRef.current && userId && username) {
-      lobbyChannelRef.current.track({ id: userId, username, status: 'online' });
-    }
+    updatePresenceStatus('online');
 
     setCurrentRoom(null);
-  }, [userId, username]);
+  }, [updatePresenceStatus]);
 
   // ───── Cleanup on unmount ─────
 
@@ -633,5 +640,6 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     broadcastGameStart,
     broadcastAccessories,
     surrenderMatch,
+    updatePresenceStatus,
   };
 }

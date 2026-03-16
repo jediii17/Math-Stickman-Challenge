@@ -21,8 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMultiplayer, OnlinePlayer } from '@/hooks/useMultiplayer';
-import InvitationModal from '@/components/InvitationModal';
+import { useMultiplayerContext } from '@/contexts/MultiplayerProvider';
+import type { OnlinePlayer } from '@/hooks/useMultiplayer';
 
 type Difficulty = 'easy' | 'average' | 'hard';
 
@@ -31,52 +31,21 @@ export default function LobbyScreen() {
   const { user, isGuest } = useAuth();
   const {
     onlinePlayers,
-    pendingInvitation,
     currentRoom,
     isInLobby,
-    joinLobby,
-    leaveLobby,
     sendInvite,
-    acceptInvite,
-    declineInvite,
-    startMatch,
     leaveRoom,
-  } = useMultiplayer(user?.id ?? null, user?.username ?? null);
+  } = useMultiplayerContext();
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
   const [invitedPlayerId, setInvitedPlayerId] = useState<string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
-  // Join lobby on mount
-  useEffect(() => {
-    if (user && !isGuest) {
-      joinLobby();
-    }
-    return () => leaveLobby();
-  }, [user, isGuest]);
-
-  // When room status changes to 'waiting', only HOST starts the match
-  // Guest waits for the status to change to 'playing' via realtime subscription
+  // React to room status changes for local UI state only
+  // (navigation and startMatch are handled by MultiplayerProvider)
   useEffect(() => {
     if (currentRoom?.status === 'waiting') {
       setWaitingForResponse(false);
-      const isRoomHost = currentRoom.host_id === user?.id;
-      if (isRoomHost) {
-        // Small delay so both devices can sync
-        setTimeout(() => {
-          startMatch();
-        }, 500);
-      }
-    }
-    if (currentRoom?.status === 'playing') {
-      router.push({
-        pathname: '/multiplayer-game',
-        params: {
-          roomId: currentRoom.id.toString(),
-          difficulty: currentRoom.difficulty,
-          isHost: (currentRoom.host_id === user?.id).toString(),
-        },
-      });
     }
     if (currentRoom?.status === 'cancelled') {
       setWaitingForResponse(false);
@@ -100,13 +69,6 @@ export default function LobbyScreen() {
     }, 16000);
   }, [selectedDifficulty, sendInvite]);
 
-  const handleAcceptInvite = useCallback(() => {
-    acceptInvite();
-  }, [acceptInvite]);
-
-  const handleDeclineInvite = useCallback(() => {
-    declineInvite();
-  }, [declineInvite]);
 
   const getDiffColor = (diff: Difficulty) => {
     switch (diff) {
@@ -306,14 +268,6 @@ export default function LobbyScreen() {
         </Animated.View>
       )}
 
-      {/* Invitation Modal (when someone invites US) */}
-      <InvitationModal
-        visible={!!pendingInvitation}
-        hostUsername={pendingInvitation?.hostUsername ?? ''}
-        difficulty={pendingInvitation?.difficulty ?? 'easy'}
-        onAccept={handleAcceptInvite}
-        onDecline={handleDeclineInvite}
-      />
     </View>
   );
 }

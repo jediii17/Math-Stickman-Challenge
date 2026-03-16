@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { MultiplayerProvider } from "@/contexts/MultiplayerProvider";
 import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import {
   useFonts,
@@ -112,11 +113,13 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <RootLayoutNav />
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+        <MultiplayerProvider>
+          <QueryClientProvider client={queryClient}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <RootLayoutNav />
+            </GestureHandlerRootView>
+          </QueryClientProvider>
+        </MultiplayerProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

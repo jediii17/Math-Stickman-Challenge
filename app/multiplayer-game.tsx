@@ -31,7 +31,8 @@ import Stickman from '@/components/Stickman';
 import Timer from '@/components/Timer';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMultiplayer, BroadcastProblem } from '@/hooks/useMultiplayer';
+import { useMultiplayerContext } from '@/contexts/MultiplayerProvider';
+import type { BroadcastProblem } from '@/hooks/useMultiplayer';
 import { AccessoryType, getSlotForAccessory, useGameState } from '@/hooks/useGameState';
 import { supabase } from '@/lib/supabase';
 import * as dbLib from '@/lib/db';
@@ -82,7 +83,7 @@ export default function MultiplayerGameScreen() {
     opponentAccessories: hookOpponentAccessories,
     broadcastAccessories,
     surrenderMatch,
-  } = useMultiplayer(user?.id ?? null, user?.username ?? null);
+  } = useMultiplayerContext();
   const computer = useComputerOpponent(diff);
 
   const timeLimit = getTimeLimit(diff, 'survival');
@@ -951,7 +952,11 @@ export default function MultiplayerGameScreen() {
       await leaveRoom();
       leaveGameChannel();
     }
-    router.replace('/lobby');
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/lobby');
+    }
   };
 
   const feedbackAnimStyle = useAnimatedStyle(() => ({
