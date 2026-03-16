@@ -83,6 +83,9 @@ export default function MultiplayerGameScreen() {
     opponentAccessories: hookOpponentAccessories,
     broadcastAccessories,
     surrenderMatch,
+    requestSync,
+    syncRequestedForQ,
+    broadcastBothAnswered,
   } = useMultiplayerContext();
   const computer = useComputerOpponent(diff);
 
@@ -706,11 +709,28 @@ export default function MultiplayerGameScreen() {
 
     // If the room's current_question_num has moved past our question, the host already advanced
     if (currentRoom.current_question_num > questionNumRef.current) {
-      // Just clear waiting — the question broadcasts should arrive shortly
-      // (they travel via a faster channel than Postgres changes)
-      setWaitingForOpponent(false);
+      // The host has advanced to the next question, but we missed the broadcasts!
+      // Request a sync for the new question:
+      requestSync(currentRoom.current_question_num, currentRoom.host_id);
     }
-  }, [waitingForOpponent, isHost, isComputer, currentRoom?.current_question_num]);
+  }, [waitingForOpponent, isHost, isComputer, currentRoom?.current_question_num, requestSync]);
+
+  // ═══ Safety net (host): respond to sync requests ═══
+  useEffect(() => {
+    if (isHost && !isComputer && currentProblem && syncRequestedForQ === questionNumRef.current) {
+      // The guest missed the broadcasts for this question and requested a sync
+      const problemMsg: BroadcastProblem = {
+        display: currentProblem.display,
+        answer: currentProblem.answer,
+        stringAnswer: currentProblem.stringAnswer,
+        questionNum: questionNumRef.current,
+      };
+      
+      // Resend the broadcasts
+      broadcastQuestion(problemMsg);
+      broadcastBothAnswered(problemMsg);
+    }
+  }, [syncRequestedForQ, isHost, isComputer, currentProblem, broadcastQuestion, broadcastBothAnswered]);
 
   // ═══ After a player answers: decide whether to wait or advance ═══
   const afterMyAnswer = useCallback((didMatchEnd: boolean) => {

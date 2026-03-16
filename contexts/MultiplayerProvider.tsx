@@ -52,6 +52,8 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     acceptInvite,
     declineInvite,
     startMatch,
+    broadcastBothAnswered,
+    requestSync,
   } = multiplayer;
 
   // ─── Determine if user is on a game screen ───

@@ -68,6 +68,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   const [bothAnsweredSignal, setBothAnsweredSignal] = useState<BroadcastProblem | null>(null);
   const [matchEnded, setMatchEnded] = useState<{ winnerId: string; reason?: 'surrender' } | null>(null);
   const [opponentAccessories, setOpponentAccessories] = useState<Record<string, string | null> | null>(null);
+  const [syncRequestedForQ, setSyncRequestedForQ] = useState<number | null>(null);
 
   const locallyFinishedRef = useRef(false);
   const lobbyChannelRef = useRef<RealtimeChannel | null>(null);
@@ -154,6 +155,11 @@ export function useMultiplayer(userId: string | null, username: string | null) {
         // Both players answered — carries the next question for the guest
         setBothAnsweredSignal(payload as BroadcastProblem);
       })
+      .on('broadcast', { event: 'request_sync' }, ({ payload }) => {
+        if (payload.targetId === userId) {
+          setSyncRequestedForQ(payload.questionNum);
+        }
+      })
       .on('broadcast', { event: 'accessories' }, ({ payload }) => {
         // Received opponent's accessories
         if (payload.playerId !== userId) {
@@ -186,7 +192,18 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     setOpponentAnsweredCurrentQ(null);
     setBothAnsweredSignal(null);
     setMatchEnded(null);
+    setSyncRequestedForQ(null);
     locallyFinishedRef.current = false;
+  }, []);
+
+  const requestSync = useCallback((qNum: number, hostId: string) => {
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'request_sync',
+        payload: { questionNum: qNum, targetId: hostId },
+      });
+    }
   }, []);
 
   const broadcastAccessories = useCallback((accessories: Record<string, string | null>) => {
@@ -204,6 +221,16 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       gameChannelRef.current.send({
         type: 'broadcast',
         event: 'question',
+        payload: problem,
+      });
+    }
+  }, []);
+
+  const broadcastBothAnswered = useCallback((problem: BroadcastProblem) => {
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: 'broadcast',
+        event: 'both_answered',
         payload: problem,
       });
     }
@@ -265,6 +292,23 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       })
       .on('broadcast', { event: 'invite' }, ({ payload }) => {
         if (payload.targetId === userId) {
+          // Block invitations when the player is already in an active match
+          const activeRoom = currentRoomRef.current;
+          const isInActiveRoom =
+            activeRoom != null &&
+            activeRoom.status !== 'finished' &&
+            activeRoom.status !== 'cancelled';
+
+          if (isInActiveRoom) {
+            // Auto-cancel the room that was created for this invitation
+            supabase
+              .from('multiplayer_rooms')
+              .update({ status: 'cancelled' })
+              .eq('id', payload.roomId)
+              .then(() => {});
+            return;
+          }
+
           const invitation: Invitation = {
             roomId: payload.roomId,
             hostId: payload.hostId,
@@ -305,6 +349,16 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
   const sendInvite = useCallback(async (targetId: string, difficulty: 'easy' | 'average' | 'hard') => {
     if (!userId || !username) return null;
+
+    // Check if the target player is currently in a match via presence state
+    if (lobbyChannelRef.current) {
+      const state = lobbyChannelRef.current.presenceState<{ id: string; username: string; status: 'online' | 'playing' }>();
+      const targetPresence = state[targetId];
+      if (targetPresence && targetPresence[0]?.status === 'playing') {
+        console.warn('[useMultiplayer] Target player is in a match, cannot invite');
+        return null;
+      }
+    }
 
     const { data, error } = await supabase
       .from('multiplayer_rooms')
@@ -619,6 +673,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     bothAnsweredSignal,
     matchEnded,
     opponentAccessories,
+    syncRequestedForQ,
 
     // Actions
     joinLobby,
@@ -637,9 +692,11 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     joinGameChannel,
     leaveGameChannel,
     broadcastQuestion,
+    broadcastBothAnswered,
     broadcastGameStart,
     broadcastAccessories,
     surrenderMatch,
     updatePresenceStatus,
+    requestSync,
   };
 }
