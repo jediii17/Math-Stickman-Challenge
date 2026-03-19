@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   FlatList,
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router } from 'expo-router';
 import Animated, {
   FadeIn,

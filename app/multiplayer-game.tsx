@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback,useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   Text,
-  Pressable,
   Platform,
   useWindowDimensions,
   Alert,
   BackHandler,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, {
   useSharedValue,
@@ -141,6 +141,7 @@ export default function MultiplayerGameScreen() {
   const opponentAnsweredRef = useRef<typeof opponentAnsweredCurrentQ>(null);
   const triggerAdvanceRef = useRef<(() => void) | null>(null);
   const startTimerRef = useRef<(() => void) | null>(null);
+  const lastAdvancedQuestionRef = useRef(1); // Track the last question we successfully advanced to
 
   // Keep refs in sync
   useEffect(() => { myAnsweredQRef.current = myAnsweredQ; }, [myAnsweredQ]);
@@ -188,6 +189,7 @@ export default function MultiplayerGameScreen() {
   const bgmPlayer = useAudioPlayer(randomBgmSource);
   const bgmStatus = useAudioPlayerStatus(bgmPlayer);
   const bgmIndexRef = useRef(SOUNDTRACK_ASSETS.indexOf(randomBgmSource));
+  const activeAudioTimers = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
 
   const safePlay = useCallback((player: any) => {
     try {
@@ -198,6 +200,50 @@ export default function MultiplayerGameScreen() {
     } catch (err) {
       console.warn('Audio play failed', err);
     }
+  }, []);
+
+  const fadeAudio = useCallback((player: any, targetVolume: number, duration: number = 1000) => {
+    if (!player) return null;
+    
+    // Clear any previous fades for this player if needed? 
+    // For now we just focus on safety.
+    
+    const startVolume = player.volume;
+    const steps = 20;
+    const interval = duration / steps;
+    const volumeStep = (targetVolume - startVolume) / steps;
+    let currentStep = 0;
+    
+    const timer = setInterval(() => {
+      try {
+        currentStep++;
+        const nextVolume = startVolume + (volumeStep * currentStep);
+        player.volume = Math.max(0, Math.min(1, nextVolume));
+        
+        if (currentStep >= steps) {
+          clearInterval(timer);
+          activeAudioTimers.current.delete(timer);
+          if (targetVolume === 0) {
+            try { player.pause(); } catch(e) {}
+          }
+        }
+      } catch (err) {
+        // If the player is released or any other error, stop the timer immediately
+        clearInterval(timer);
+        activeAudioTimers.current.delete(timer);
+      }
+    }, interval);
+    
+    activeAudioTimers.current.add(timer);
+    return timer;
+  }, []);
+
+  // Cleanup all audio timers on unmount
+  useEffect(() => {
+    return () => {
+      activeAudioTimers.current.forEach(timer => clearInterval(timer));
+      activeAudioTimers.current.clear();
+    };
   }, []);
 
   // Pre-game countdown effect
@@ -229,7 +275,9 @@ export default function MultiplayerGameScreen() {
   useEffect(() => {
     if (gameOver) {
       gameOverRef.current = true;
-      try { bgmPlayer.pause(); } catch (_) {}
+      // Fade out BGM on game over
+      fadeAudio(bgmPlayer, 0, 1500);
+      
       // Play result jingle
       if (winner === 'you') {
         safePlay(victoryPlayer);
@@ -244,9 +292,22 @@ export default function MultiplayerGameScreen() {
   }, [gameOver]);
 
   // Rotate to a new random soundtrack when the current one finishes
+  const isFadingOutRef = useRef(false);
   useEffect(() => {
     if (gameOverRef.current) return;
+    
+    // Smooth transition: Start fade out ~3 seconds before the end
+    if (bgmStatus.playing && bgmStatus.currentTime > 0 && bgmStatus.duration > 0 && bgmStatus.currentTime >= bgmStatus.duration - 3) {
+      if (!isFadingOutRef.current) {
+        isFadingOutRef.current = true;
+        fadeAudio(bgmPlayer, 0, 2500);
+      }
+    }
+
     if (bgmStatus.playing === false && bgmStatus.currentTime > 0 && bgmStatus.duration > 0 && bgmStatus.currentTime >= bgmStatus.duration - 0.5) {
+      // Reset fade ref for next track
+      isFadingOutRef.current = false;
+      
       // Pick a different random track
       let nextIdx = Math.floor(Math.random() * SOUNDTRACK_ASSETS.length);
       if (SOUNDTRACK_ASSETS.length > 1) {
@@ -257,8 +318,9 @@ export default function MultiplayerGameScreen() {
       bgmIndexRef.current = nextIdx;
       try {
         bgmPlayer.replace(SOUNDTRACK_ASSETS[nextIdx]);
-        bgmPlayer.volume = 0.3;
+        bgmPlayer.volume = 0; // Start at 0 for fade in
         bgmPlayer.play();
+        fadeAudio(bgmPlayer, 0.3, 2000); // Fade in to 0.3
       } catch (e) {
         console.warn('BGM rotation failed', e);
       }
@@ -386,7 +448,7 @@ export default function MultiplayerGameScreen() {
   useEffect(() => {
     if (!isHost && !isComputer && receivedProblem && !gameOverRef.current) {
       // Only process if this is a NEWER question than what we currently have
-      if (receivedProblem.questionNum > questionNumRef.current) {
+      if (receivedProblem.questionNum > lastAdvancedQuestionRef.current) {
         setCurrentProblem({
           display: receivedProblem.display,
           answer: receivedProblem.answer,
@@ -401,6 +463,7 @@ export default function MultiplayerGameScreen() {
         feedbackOpacity.value = 0;
         setTimeLeft(getTimeLimit(diff, 'survival', undefined, receivedProblem.questionNum));
         resetAnswerTracking();
+        lastAdvancedQuestionRef.current = receivedProblem.questionNum;
         problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
 
         if (receivedProblem.questionNum === 1 && preGameCountdown === null && !gameOver) {
@@ -416,6 +479,7 @@ export default function MultiplayerGameScreen() {
           stringAnswer: receivedProblem.stringAnswer,
         } as MathProblem);
         setQuestionNum(1);
+        lastAdvancedQuestionRef.current = 1; // Explicitly set on first question
         setUserInput('');
         setFeedback(null);
         setIsTransitioning(false);
@@ -452,7 +516,7 @@ export default function MultiplayerGameScreen() {
   useEffect(() => {
     if (!isHost && !isComputer && bothAnsweredSignal && !gameOverRef.current) {
       // Guard: only process if this is a NEW question (strictly greater than current)
-      if (bothAnsweredSignal.questionNum > questionNumRef.current) {
+      if (bothAnsweredSignal.questionNum > lastAdvancedQuestionRef.current) {
         setCurrentProblem({
           display: bothAnsweredSignal.display,
           answer: bothAnsweredSignal.answer,
@@ -467,6 +531,7 @@ export default function MultiplayerGameScreen() {
         feedbackOpacity.value = 0;
         setTimeLeft(getTimeLimit(diff, 'survival', undefined, bothAnsweredSignal.questionNum));
         resetAnswerTracking();
+        lastAdvancedQuestionRef.current = bothAnsweredSignal.questionNum;
         problemScale.value = withSequence(withTiming(0.8, { duration: 100 }), withSpring(1));
         startTimerRef.current?.();
       } else {
@@ -637,7 +702,16 @@ export default function MultiplayerGameScreen() {
   // ═══ Host triggers advance after both players answered ═══
   const triggerAdvance = useCallback(() => {
     if (gameOverRef.current) return;
+
     const nextNum = questionNumRef.current + 1;
+
+    // Guard: Prevent double-advancing if another trigger already moved us forward
+    if (lastAdvancedQuestionRef.current >= nextNum) {
+      console.log(`[triggerAdvance] Skipping double advance to Q${nextNum} (already at ${lastAdvancedQuestionRef.current})`);
+      return;
+    }
+
+    lastAdvancedQuestionRef.current = nextNum;
     const newProblem = generateProblem(diff, nextNum);
 
     const broadcastProblem: BroadcastProblem = {
@@ -1082,7 +1156,7 @@ export default function MultiplayerGameScreen() {
               </Text>
             </View>
           </Animated.View>
-          <Pressable style={styles.returnBtn} onPress={() => router.replace('/lobby')}>
+          <Pressable style={styles.returnBtn} onPress={handleQuit}>
             <Text style={styles.returnBtnText}>Return to Lobby</Text>
           </Pressable>
         </View>

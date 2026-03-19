@@ -3,10 +3,10 @@ import {
   View,
   StyleSheet,
   Text,
-  Pressable,
   Platform,
   useWindowDimensions,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';

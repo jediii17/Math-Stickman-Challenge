@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Pressable, Modal, Platform } from 'react-native';
+import { View, StyleSheet, Text, Modal, Platform } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import Svg, { Path, G, Circle, Text as SvgText, Line, TSpan, Rect, Ellipse } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -17,7 +18,8 @@ import Animated, {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { runOnJS } from 'react-native-worklets';
+import { runOnJS } from 'react-native-reanimated';
+import { useAudioPlayer } from 'expo-audio';
 import Colors from '@/constants/colors';
 import { useGameState, getSlotForAccessory } from '@/hooks/useGameState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -431,6 +433,30 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
   }, [coinSpinsToday, lastCoinSpinTime]);
 
   const rotation = useSharedValue(0);
+  const lastTickIndex = useSharedValue(0);
+
+  const wheelTickPlayer = useAudioPlayer(require('@/assets/sounds/ping.wav'));
+  const tadaPlayer = useAudioPlayer(require('@/assets/sounds/tada_sfx.mp3'));
+
+  const playTick = () => {
+    wheelTickPlayer.seekTo(0);
+    wheelTickPlayer.play();
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+  };
+
+  useDerivedValue(() => {
+    const currentRotation = rotation.value;
+    const tickStep = 360 / 8; // 45 degrees
+    const currentIndex = Math.floor(currentRotation / tickStep);
+    
+    if (currentIndex !== lastTickIndex.value) {
+      lastTickIndex.value = currentIndex;
+      runOnJS(playTick)();
+    }
+  });
+
   const [visualCoins, setVisualCoins] = useState(coins);
   const wonAmountRef = useRef(0);
   const alreadyOwnedRef = useRef(false);
@@ -572,6 +598,10 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
     setIsSpinning(false);
     setWonPrize(prize);
     setShowResult(true);
+
+    // Play tada sound
+    tadaPlayer.seekTo(0);
+    tadaPlayer.play();
 
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MultiplayerProvider } from "@/contexts/MultiplayerProvider";
+import { AudioProvider } from "@/contexts/AudioContext";
 import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import {
   useFonts,
@@ -112,15 +113,17 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <MultiplayerProvider>
-          <QueryClientProvider client={queryClient}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <RootLayoutNav />
-            </GestureHandlerRootView>
-          </QueryClientProvider>
-        </MultiplayerProvider>
-      </AuthProvider>
+      <AudioProvider>
+        <AuthProvider>
+          <MultiplayerProvider>
+            <QueryClientProvider client={queryClient}>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <RootLayoutNav />
+              </GestureHandlerRootView>
+            </QueryClientProvider>
+          </MultiplayerProvider>
+        </AuthProvider>
+      </AudioProvider>
     </ErrorBoundary>
   );
 }

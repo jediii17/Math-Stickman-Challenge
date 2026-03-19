@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Pressable, ScrollView, useWindowDimensions, Platform, Modal, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, useWindowDimensions, Platform, Modal } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -1171,7 +1172,7 @@ export default function ClassicMapScreen() {
               </Text>
               
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
+                <Pressable 
                   style={styles.cancelBtn} 
                   onPress={() => {
                     setSelectedLevel(null);
@@ -1179,23 +1180,21 @@ export default function ClassicMapScreen() {
                     setIsWalking(false);
                     setPendingLevel(null);
                   }}
-                  activeOpacity={0.7}
                 >
                   <Ionicons name="arrow-back" size={16} color="#888" />
                   <Text style={styles.cancelBtnText}>Back</Text>
-                </TouchableOpacity>
+                </Pressable>
                 
-                <TouchableOpacity 
+                <Pressable 
                   style={[styles.playBtn, { backgroundColor: currentSeason.colors[1] }]} 
                   onPress={() => {
                     if (selectedLevel) launchGame(selectedLevel);
                     setSelectedLevel(null);
                   }}
-                  activeOpacity={0.8}
                 >
                   <Ionicons name="play" size={20} color="#fff" />
                   <Text style={styles.playBtnText}>Play!</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           </Animated.View>

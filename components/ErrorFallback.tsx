@@ -3,13 +3,13 @@ import { reloadAppAsync } from "expo";
 import {
   StyleSheet,
   View,
-  Pressable,
   ScrollView,
   Text,
   Modal,
   useColorScheme,
   Platform,
 } from "react-native";
+import Pressable from "@/components/AppPressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 

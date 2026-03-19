@@ -3,12 +3,11 @@ import {
   View,
   StyleSheet,
   Text,
-  Pressable,
   Platform,
   Modal,
-  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import Animated, {
@@ -1030,20 +1029,20 @@ export default function GameScreen() {
               </Text>
               
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
+                <Pressable 
                   style={styles.cancelBtn} 
                   onPress={handleCancelQuit}
                 >
                   <Text style={styles.cancelBtnText}>Keep Playing</Text>
-                </TouchableOpacity>
+                </Pressable>
                 
-                <TouchableOpacity 
+                <Pressable 
                   style={styles.quitBtn} 
                   onPress={handleConfirmQuit}
                 >
                   <Ionicons name="exit" size={18} color="#fff" style={{ marginRight: 6 }} />
                   <Text style={styles.quitBtnText}>Quit</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           </Animated.View>

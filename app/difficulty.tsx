@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Platform, useWindowDimensions, Modal } from 'react-native';
+import { View, StyleSheet, Text, Platform, useWindowDimensions, Modal } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';

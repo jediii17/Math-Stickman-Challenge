@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Text, Pressable, FlatList, Platform, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, FlatList, Platform, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';

@@ -3,9 +3,9 @@ import {
   View,
   Text,
   Modal,
-  Pressable,
   StyleSheet,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

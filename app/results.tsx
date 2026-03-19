@@ -3,13 +3,12 @@ import {
   View,
   StyleSheet,
   Text,
-  Pressable,
   Platform,
   FlatList,
   Modal,
-  TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { BlurView } from 'expo-blur';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -643,9 +642,9 @@ export default function ResultsScreen() {
           <Animated.View entering={FadeInUp.duration(300).springify()} style={modalStyles.container}>
             <View style={modalStyles.header}>
               <Text style={modalStyles.title}>Solution</Text>
-              <TouchableOpacity onPress={() => setSelectedProblem(null)} style={modalStyles.closeBtn}>
+              <Pressable onPress={() => setSelectedProblem(null)} style={modalStyles.closeBtn}>
                 <Ionicons name="close" size={24} color={Colors.textLight} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             <ScrollView style={modalStyles.body} contentContainerStyle={{ paddingBottom: 40 }}>
               <Text style={modalStyles.problemDisplay}>{selectedProblem.display}</Text>

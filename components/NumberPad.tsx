@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Text, Platform } from 'react-native';
+import { View, StyleSheet, Text, Platform } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, StyleSheet, PanResponder, Pressable, Text, Platform } from 'react-native';
+import { View, StyleSheet, PanResponder, Text, Platform } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

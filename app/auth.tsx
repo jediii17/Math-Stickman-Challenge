@@ -3,12 +3,12 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
 } from 'react-native';
+import Pressable from '@/components/AppPressable';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
