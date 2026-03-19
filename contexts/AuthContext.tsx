@@ -126,42 +126,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
-    // 1. Explicitly check for an existing session on app load to guarantee we don't miss it
-    const loadInitialSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          const profile = await db.getProfile(data.session.user.id);
+    // Track whether first auth event has been processed (for isLoading gate)
+    let initialLoadDone = false;
+
+    // Single source of truth: onAuthStateChange handles both initial session
+    // recovery (INITIAL_SESSION event) and all future auth state changes.
+    // This eliminates the race condition that occurred when loadInitialSession()
+    // and onAuthStateChange competed to set user state.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const profile = await db.getProfile(session.user.id);
           if (profile) {
-            // On initial load, we adopt the existing session key from DB if we don't have one
+            // On initial load, adopt the existing session key from DB
             if (!currentSessionKey.current && profile.session_key) {
               currentSessionKey.current = profile.session_key;
             }
             setUser(profile);
             setIsGuest(false);
           }
-        }
-      } catch (e) {
-        console.warn('Initial session load failed:', e);
-      } finally {
-        setIsLoading(false); // Stop the loading screen once we know the state
-      }
-    };
-
-    loadInitialSession();
-
-    // 2. Listen for future auth state changes (like manual logins/logouts)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const profile = await db.getProfile(session.user.id);
-          if (profile) {
-            setUser(profile);
-            setIsGuest(false);
-          }
         } else {
           setUser(null);
           setIsGuest(true);
+        }
+
+        // Clear loading gate after the first auth event is fully processed
+        if (!initialLoadDone) {
+          initialLoadDone = true;
+          setIsLoading(false);
         }
       },
     );

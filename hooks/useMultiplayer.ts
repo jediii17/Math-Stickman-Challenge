@@ -56,7 +56,6 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   const [gameStarted, setGameStarted] = useState(false);
 
   // ─── New answer-tracking state ───
-  // ─── New answer-tracking state ───
   const [opponentAnsweredCurrentQ, setOpponentAnsweredCurrentQ] = useState<{
     playerId: string;
     questionNum: number;
@@ -79,6 +78,9 @@ export function useMultiplayer(userId: string | null, username: string | null) {
   // Use refs to avoid stale closure issues in timers/callbacks
   const pendingInvitationRef = useRef<Invitation | null>(null);
   const currentRoomRef = useRef<MultiplayerRoom | null>(null);
+
+  // Stable ref to declineInvite — allows joinLobby to call it without depending on it
+  const declineInviteRef = useRef<(() => void) | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -262,6 +264,11 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     setPendingInvitation(null);
   }, []);
 
+  // Keep ref in sync so joinLobby can call the latest version without depending on it
+  useEffect(() => {
+    declineInviteRef.current = declineInvite;
+  }, [declineInvite]);
+
   // ───── Join the lobby (presence tracking) ─────
 
   const joinLobby = useCallback(() => {
@@ -320,7 +327,8 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
           if (inviteTimerRef.current) clearTimeout(inviteTimerRef.current);
           inviteTimerRef.current = setTimeout(() => {
-            declineInvite();
+            // Use ref so joinLobby doesn't depend on declineInvite → stays stable
+            declineInviteRef.current?.();
           }, 15000);
         }
       })
@@ -332,7 +340,7 @@ export function useMultiplayer(userId: string | null, username: string | null) {
       });
 
     lobbyChannelRef.current = channel;
-  }, [userId, username, declineInvite]);
+  }, [userId, username]);
 
   // ───── Leave the lobby ─────
 
@@ -638,17 +646,44 @@ export function useMultiplayer(userId: string | null, username: string | null) {
 
     const room = currentRoomRef.current;
     if (room && room.status !== 'finished' && !locallyFinishedRef.current) {
-      await supabase
-        .from('multiplayer_rooms')
-        .update({ status: 'cancelled' })
-        .eq('id', room.id);
+      if (room.status === 'playing') {
+        const winnerId = userId === room.host_id ? room.guest_id : room.host_id;
+        await supabase
+          .from('multiplayer_rooms')
+          .update({ status: 'finished', winner_id: winnerId })
+          .eq('id', room.id);
+      } else {
+        await supabase
+          .from('multiplayer_rooms')
+          .update({ status: 'cancelled' })
+          .eq('id', room.id);
+      }
     }
 
     // Restore presence to online
     updatePresenceStatus('online');
 
     setCurrentRoom(null);
-  }, [updatePresenceStatus]);
+  }, [updatePresenceStatus, userId]);
+
+  // ───── Claim a win explicitly (called by the winner) ─────
+
+  const claimWin = useCallback(async () => {
+    const room = currentRoomRef.current;
+    if (!room || room.status === 'finished') return;
+
+    if (!userId) return;
+
+    locallyFinishedRef.current = true;
+
+    await supabase
+      .from('multiplayer_rooms')
+      .update({
+        status: 'finished',
+        winner_id: userId
+      })
+      .eq('id', room.id);
+  }, [userId]);
 
   // ───── Cleanup on unmount ─────
 
@@ -698,5 +733,6 @@ export function useMultiplayer(userId: string | null, username: string | null) {
     surrenderMatch,
     updatePresenceStatus,
     requestSync,
+    claimWin,
   };
 }

@@ -33,6 +33,7 @@ export default function LobbyScreen() {
     onlinePlayers,
     currentRoom,
     isInLobby,
+    isInGame,
     sendInvite,
     leaveRoom,
   } = useMultiplayerContext();
@@ -219,6 +220,33 @@ export default function LobbyScreen() {
             <Text style={styles.countText}>{onlinePlayers.length}</Text>
           </View>
         </View>
+
+        {/* Your Status Card */}
+        {user && (
+          <View style={styles.youCard}>
+            <View style={styles.playerInfo}>
+              <View style={[styles.avatarCircle, styles.youAvatar]}>
+                <Ionicons name="person" size={20} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.playerName}>{user.username} <Text style={styles.youLabel}>(You)</Text></Text>
+                <View style={styles.onlineDot}>
+                  {isInGame || (currentRoom && currentRoom.status !== 'finished' && currentRoom.status !== 'cancelled') ? (
+                    <>
+                      <View style={[styles.dot, { backgroundColor: Colors.secondary }]} />
+                      <Text style={[styles.onlineText, { color: Colors.secondary }]}>In Match</Text>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.dot} />
+                      <Text style={styles.onlineText}>Online</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {!isInLobby ? (
           <View style={styles.loadingContainer}>
@@ -525,5 +553,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     flex: 1,
+  },
+  youCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f8ff',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '40',
+  },
+  youAvatar: {
+    backgroundColor: Colors.primary,
+  },
+  youLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textLight,
   },
 });

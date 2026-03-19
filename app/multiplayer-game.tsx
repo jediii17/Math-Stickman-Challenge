@@ -86,6 +86,7 @@ export default function MultiplayerGameScreen() {
     requestSync,
     syncRequestedForQ,
     broadcastBothAnswered,
+    claimWin,
   } = useMultiplayerContext();
   const computer = useComputerOpponent(diff);
 
@@ -489,6 +490,7 @@ export default function MultiplayerGameScreen() {
           setGameOver(true);
           stopTimer();
           setWinner('you');
+          claimWin();
           return; // Don't advance — game is over
         }
         
@@ -538,6 +540,7 @@ export default function MultiplayerGameScreen() {
       setWaitingForOpponent(false);
       if (matchEndedSignal.winnerId === user?.id) {
         setWinner('you');
+        claimWin();
       } else {
         setWinner('opponent');
       }
