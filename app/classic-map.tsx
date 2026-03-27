@@ -45,12 +45,8 @@ const MAP_PADDING_BOTTOM = 120;
 const MAP_PADDING_TOP = 80;
 
 // --- Ticket milestone levels ---
-const TICKET_MILESTONES: Record<number, number> = {
-  3: 1, 7: 1, 12: 1, 18: 2, 25: 2,
-};
 function isTicketLevel(level: number): number {
-  if (TICKET_MILESTONES[level]) return TICKET_MILESTONES[level];
-  if (level > 25 && (level - 25) % 10 === 0) return 2;
+  if (level > 0 && level % 3 === 0) return 1;
   return 0;
 }
 
