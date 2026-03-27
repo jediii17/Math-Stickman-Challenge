@@ -494,7 +494,7 @@ export default function ClassicMapScreen() {
   const totalMapHeight = totalLevels * LEVEL_SPACING + MAP_PADDING_BOTTOM + MAP_PADDING_TOP;
 
   // Determine Current Season based on scroll position (default to player's current level season)
-  const playerSeasonIndex = Math.floor((classicLevel - 1) / 25) % 4; // Use 25 since chunks use 25
+  const playerSeasonIndex = Math.floor((classicLevel - 1) / 100) % 4; // Use 100 since chunks use 100
   const [displayedSeasonIndex, setDisplayedSeasonIndex] = useState(playerSeasonIndex);
   const [hereDirection, setHereDirection] = useState<'above' | 'below' | null>(null);
   const currentSeason = SEASONS[playerSeasonIndex]; // Fixed color for back bar background
@@ -505,7 +505,7 @@ export default function ClassicMapScreen() {
     const decs = [];
     
     for (let level = 1; level <= totalLevels; level++) {
-      const decSeasonIndex = Math.floor((level - 1) / 25) % 4;
+      const decSeasonIndex = Math.floor((level - 1) / 100) % 4;
       const decSeason = SEASONS[decSeasonIndex];
       
       // We generate around 2-3 items per level chunk
@@ -532,12 +532,12 @@ export default function ClassicMapScreen() {
     return decs;
   }, [totalLevels, totalMapHeight]);
   
-  // Calculate seasonal background chunks calculate chunks of 25 levels
+  // Calculate seasonal background chunks calculate chunks of 100 levels
   const seasonChunks = React.useMemo(() => {
     const chunks = [];
-    for (let startLevel = 1; startLevel <= totalLevels; startLevel += 25) {
-      const endLevel = Math.min(startLevel + 24, totalLevels);
-      const chunkSeasonIndex = Math.floor((startLevel - 1) / 25) % 4;
+    for (let startLevel = 1; startLevel <= totalLevels; startLevel += 100) {
+      const endLevel = Math.min(startLevel + 99, totalLevels);
+      const chunkSeasonIndex = Math.floor((startLevel - 1) / 100) % 4;
       
       // Calculate start and end Y positions for this chunk
       // Levels are drawn bottom-to-top. Level 1 is at the bottom.
@@ -853,7 +853,7 @@ export default function ClassicMapScreen() {
     const screenCenterY = scrollOffset + screenHeight / 2;
     const rawLevel = (totalMapHeight - MAP_PADDING_BOTTOM - screenCenterY) / LEVEL_SPACING + 1;
     const visibleLevel = Math.max(1, Math.min(Math.round(rawLevel), totalLevels));
-    const newSeasonIndex = Math.floor((visibleLevel - 1) / 25) % 4;
+    const newSeasonIndex = Math.floor((visibleLevel - 1) / 100) % 4;
     
     if (newSeasonIndex !== displayedSeasonIndex) {
       setDisplayedSeasonIndex(newSeasonIndex);

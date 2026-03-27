@@ -383,14 +383,14 @@ export function generateProblem(difficulty: Difficulty, questionNum: number = 1)
 
 /** Get the hardy label for a classic level */
 export function getClassicDifficulty(level: number): Difficulty {
-  if (level <= 25) return 'easy';
-  if (level <= 50) return 'average';
+  if (level <= 100) return 'easy';
+  if (level <= 200) return 'average';
   return 'hard';
 }
 
-/** Get the hardness multiplier based on level seasons (every 25 levels) */
+/** Get the hardness multiplier based on level seasons (every 100 levels) */
 export function getSeasonalHardness(level: number): number {
-  return Math.floor((level - 1) / 25);
+  return Math.floor((level - 1) / 100);
 }
 
 /** Generate a problem for Classic mode based on level */
@@ -398,8 +398,8 @@ export function generateClassicProblem(level: number): MathProblem {
   const hardness = getSeasonalHardness(level);
   const diff = getClassicDifficulty(level);
   
-  // Custom logic for Season 4 (Level 76+) to make it fraction-heavy
-  if (level >= 76) {
+  // Custom logic for Season 4 (Level 301+) to make it fraction-heavy
+  if (level >= 301) {
     const roll = Math.random();
     if (roll < 0.75) {
       // 75% chance of fractions in Season 4
@@ -413,9 +413,20 @@ export function generateClassicProblem(level: number): MathProblem {
     }
   }
   
-  // Levels 1-25 strictly addition and subtraction
-  if (level <= 25) {
+  // Levels 1-50 strictly addition and subtraction
+  if (level <= 50) {
     return Math.random() < 0.5 ? generateAddition('easy') : generateSubtraction('easy');
+  }
+
+  // Levels 51-100 include addition, subtraction, multiplication, and division
+  if (level <= 100) {
+    const baseOps = [
+      () => generateAddition('easy'),
+      () => generateSubtraction('easy'),
+      () => generateMultiplication('easy'),
+      () => generateDivision('easy')
+    ];
+    return pickRandom(baseOps)();
   }
 
   // Basic generation based on difficulty

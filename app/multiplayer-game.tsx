@@ -142,6 +142,7 @@ export default function MultiplayerGameScreen() {
   const triggerAdvanceRef = useRef<(() => void) | null>(null);
   const startTimerRef = useRef<(() => void) | null>(null);
   const lastAdvancedQuestionRef = useRef(1); // Track the last question we successfully advanced to
+  const pendingAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null); // Prevent duplicate advance scheduling
 
   // Keep refs in sync
   useEffect(() => { myAnsweredQRef.current = myAnsweredQ; }, [myAnsweredQ]);
@@ -562,7 +563,12 @@ export default function MultiplayerGameScreen() {
         // Host: if I already answered this question AND opponent just answered, advance now
         if (isHost && myAnsweredQRef.current >= questionNumRef.current) {
           setWaitingForOpponent(false);
-          setTimeout(() => { triggerAdvanceRef.current?.(); }, 1200);
+          // Clear any existing advance timer to prevent double-advancing
+          if (pendingAdvanceTimer.current) clearTimeout(pendingAdvanceTimer.current);
+          pendingAdvanceTimer.current = setTimeout(() => {
+            pendingAdvanceTimer.current = null;
+            triggerAdvanceRef.current?.();
+          }, 1200);
         }
 
         // Play pop sound if they were wrong
@@ -703,6 +709,12 @@ export default function MultiplayerGameScreen() {
   const triggerAdvance = useCallback(() => {
     if (gameOverRef.current) return;
 
+    // Cancel any pending advance timer — we're executing the advance now
+    if (pendingAdvanceTimer.current) {
+      clearTimeout(pendingAdvanceTimer.current);
+      pendingAdvanceTimer.current = null;
+    }
+
     const nextNum = questionNumRef.current + 1;
 
     // Guard: Prevent double-advancing if another trigger already moved us forward
@@ -770,7 +782,12 @@ export default function MultiplayerGameScreen() {
         const guestDone = data.guest_answered_q >= curQ;
         if (hostDone && guestDone) {
           setWaitingForOpponent(false);
-          triggerAdvanceRef.current?.();
+          // Clear any existing advance timer to prevent double-advancing
+          if (pendingAdvanceTimer.current) clearTimeout(pendingAdvanceTimer.current);
+          pendingAdvanceTimer.current = setTimeout(() => {
+            pendingAdvanceTimer.current = null;
+            triggerAdvanceRef.current?.();
+          }, 200);
         }
       }
     }, 3000);
@@ -839,7 +856,12 @@ export default function MultiplayerGameScreen() {
       const latestOppAns = opponentAnsweredRef.current;
       if (latestOppAns && latestOppAns.questionNum >= questionNumRef.current) {
         // Opponent already answered — advance after a short delay for feedback visibility
-        setTimeout(() => triggerAdvance(), 1200);
+        // Clear any existing advance timer to prevent double-advancing
+        if (pendingAdvanceTimer.current) clearTimeout(pendingAdvanceTimer.current);
+        pendingAdvanceTimer.current = setTimeout(() => {
+          pendingAdvanceTimer.current = null;
+          triggerAdvance();
+        }, 1200);
       } else {
         // Waiting for opponent
         setWaitingForOpponent(true);

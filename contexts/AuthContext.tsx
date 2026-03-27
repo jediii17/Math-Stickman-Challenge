@@ -136,13 +136,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          const profile = await db.getProfile(session.user.id);
+          // Retry profile fetch with backoff — network may not be ready on cold start
+          let profile = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            profile = await db.getProfile(session.user.id);
+            if (profile) break;
+            // Wait before retrying (500ms, 1000ms)
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+            }
+          }
+
           if (profile) {
             // On initial load, adopt the existing session key from DB
             if (!currentSessionKey.current && profile.session_key) {
               currentSessionKey.current = profile.session_key;
             }
             setUser(profile);
+            setIsGuest(false);
+          } else {
+            // Profile fetch failed after retries — use minimal profile so user
+            // isn't stuck as guest. Data will reload via recovery useEffect.
+            console.warn('[Auth] Profile fetch failed after retries, using minimal profile');
+            setUser({ id: session.user.id, username: session.user.email?.split('@')[0] || 'Player', coins: 0 });
             setIsGuest(false);
           }
         } else {
@@ -160,6 +176,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Recovery: if user was set from a minimal fallback (no classic_level),
+  // retry loading the full profile after a short delay.
+  useEffect(() => {
+    if (user && !isGuest && !('classic_level' in user)) {
+      const retryTimer = setTimeout(async () => {
+        try {
+          const profile = await db.getProfile(user.id);
+          if (profile && profile.username) {
+            if (!currentSessionKey.current && profile.session_key) {
+              currentSessionKey.current = profile.session_key;
+            }
+            setUser(profile);
+          }
+        } catch (e) {
+          console.warn('[Auth] Recovery profile fetch failed:', e);
+        }
+      }, 3000);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [user, isGuest]);
 
   const login = useCallback(async (username: string, password: string): Promise<string | null> => {
     try {
