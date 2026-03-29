@@ -699,7 +699,7 @@ export default function RouletteWheel({ visible, onClose }: RouletteWheelProps) 
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <View style={styles.overlay}>
         <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
 

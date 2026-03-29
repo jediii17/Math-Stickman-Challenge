@@ -1131,6 +1131,8 @@ export default function ClassicMapScreen() {
         visible={selectedLevel !== null}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />

@@ -3,7 +3,7 @@
     "name": "MATH Stickman Challenge",
     "slug": "math-stickman-challenge",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.jpg",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
@@ -36,6 +36,10 @@
         "android.permission.WAKE_LOCK"
       ]
     },
+    "androidNavigationBar": {
+      "backgroundColor": "transparent",
+      "barStyle": "dark-content"
+    },
     "web": {
       "favicon": "./assets/images/favicon.jpg"
     },
@@ -64,7 +68,8 @@
           "userTrackingPermission": "This identifier will be used to deliver personalized ads to you."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "react-native-edge-to-edge"
     ],
     "experiments": {
       "typedRoutes": true,

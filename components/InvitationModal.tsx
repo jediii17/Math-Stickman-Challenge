@@ -87,7 +87,7 @@ export default function InvitationModal({
   if (!visible) return null;
 
   return (
-    <Modal transparent animationType="fade" visible={visible}>
+    <Modal transparent animationType="fade" visible={visible} statusBarTranslucent navigationBarTranslucent>
       <View style={styles.overlay}>
         <Animated.View
           entering={ZoomIn.duration(300)}

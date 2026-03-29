@@ -153,6 +153,7 @@ function AppContent() {
         transparent
         animationType="fade"
         statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={afkStyles.overlay}>
           <Animated.View entering={FadeIn.duration(400)} style={afkStyles.card}>

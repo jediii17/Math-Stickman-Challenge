@@ -283,6 +283,8 @@ export default function DifficultyScreen() {
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowLoginModal(false)}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <Animated.View entering={FadeInDown.springify()} style={styles.modalContent}>

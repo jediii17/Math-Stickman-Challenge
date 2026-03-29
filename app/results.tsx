@@ -636,6 +636,8 @@ export default function ResultsScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setSelectedProblem(null)}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={modalStyles.overlay}>
           <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />

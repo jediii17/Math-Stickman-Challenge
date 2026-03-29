@@ -1010,6 +1010,8 @@ export default function GameScreen() {
         visible={showQuitModal}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
