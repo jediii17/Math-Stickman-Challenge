@@ -38,6 +38,11 @@ function stripProtocol(domain) {
   return new URL(urlString).host;
 }
 
+function getDeploymentDomain() {
+  const domain = process.env.EXPO_PUBLIC_DOMAIN || "jediii17.github.io/Math-Stickman-Challenge";
+  return stripProtocol(domain);
+}
+
 function prepareDirectories(timestamp) {
   console.log("Preparing build directories...");
 
@@ -525,6 +530,12 @@ async function main() {
 
   console.log("Updating manifests and creating landing page...");
   updateManifests(manifests, timestamp, baseUrl, assetsByHash);
+
+  // Copy app-ads.txt to the root of static-build for verification
+  if (fs.existsSync("app-ads.txt")) {
+    console.log("Copying app-ads.txt to static-build/app-ads.txt...");
+    fs.copyFileSync("app-ads.txt", path.join("static-build", "app-ads.txt"));
+  }
 
   console.log("Build complete! Deploy to:", baseUrl);
 
